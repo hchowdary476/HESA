@@ -1,0 +1,147 @@
+"""Thread-safe shared task log for the JARVIS multi-agent pipeline.
+
+All four agents write to a single ``agents/task_log.json`` file at project root.
+Entries are appended atomically (file-level lock via threading.Lock) so concurrent
+reads from the QML bridge never see a partial write.
+
+Schema of each log entry
+------------------------
+{
+    "run_id":         str,      # UUID4 shared by all entries in one pipeline run
+    "agent":          str,      # "planner" | "coding" | "testing" | "review"
+    "step":           int,      # 1-based sequence within the run
+    "input":          str,      # truncated at 2000 chars to keep file readable
+    "output":         str,      # truncated at 4000 chars
+    "tokens_estimate":int,      # rough word-count * 1.3
+    "elapsed_ms":     float,    # wall-clock time for this agent call
+    "status":         str,      # "success" | "error" | "retry" | "skipped"
+    "retry_count":    int,      # 0 for first attempt
+    "timestamp":      str       # ISO-8601 UTC
+}
+"""
+from __future__ import annotations
+
+import json
+import os
+import threading
+import time
+from datetime import datetime, timezone
+from typing import Any
+
+_LOCK = threading.Lock()
+
+# Relative to CWD (project root) — consistent with logs/, memory/ etc.
+_LOG_PATH = os.path.join("agents", "task_log.json")
+_MAX_INPUT_CHARS = 2000
+_MAX_OUTPUT_CHARS = 4000
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _truncate(text: str, limit: int) -> str:
+    if len(text) <= limit:
+        return text
+    return text[:limit] + f"…[truncated {len(text) - limit} chars]"
+
+
+def _estimate_tokens(text: str) -> int:
+    """Rough token estimate: word count * 1.3."""
+    return int(len(text.split()) * 1.3)
+
+
+class TaskQueue:
+    """Manages the shared ``agents/task_log.json`` file.
+
+    All methods are class-level so any agent can call them without
+    holding a reference to a specific instance.
+    """
+
+    @classmethod
+    def _ensure_dir(cls) -> None:
+        os.makedirs("agents", exist_ok=True)
+
+    @classmethod
+    def append_entry(
+        cls,
+        *,
+        run_id: str,
+        agent: str,
+        step: int,
+        input_text: str,
+        output_text: str,
+        elapsed_ms: float,
+        status: str,
+        retry_count: int = 0,
+        model_used: str = "",
+    ) -> dict[str, Any]:
+        """Append one log entry and return it."""
+        cls._ensure_dir()
+        entry: dict[str, Any] = {
+            "run_id": run_id,
+            "agent": agent,
+            "step": step,
+            "input": _truncate(input_text, _MAX_INPUT_CHARS),
+            "output": _truncate(output_text, _MAX_OUTPUT_CHARS),
+            "tokens_estimate": _estimate_tokens(input_text) + _estimate_tokens(output_text),
+            "elapsed_ms": round(elapsed_ms, 1),
+            "status": status,
+            "retry_count": retry_count,
+            "timestamp": _now_iso(),
+            "model_used": model_used,
+        }
+
+        with _LOCK:
+            existing: list[dict[str, Any]] = []
+            if os.path.exists(_LOG_PATH):
+                try:
+                    with open(_LOG_PATH, "r", encoding="utf-8") as f:
+                        existing = json.load(f)
+                    if not isinstance(existing, list):
+                        existing = []
+                except Exception:
+                    existing = []
+            existing.append(entry)
+            with open(_LOG_PATH, "w", encoding="utf-8") as f:
+                json.dump(existing, f, indent=2, ensure_ascii=False)
+        return entry
+
+    @classmethod
+    def get_all(cls) -> list[dict[str, Any]]:
+        """Return all log entries (all runs)."""
+        with _LOCK:
+            if not os.path.exists(_LOG_PATH):
+                return []
+            try:
+                with open(_LOG_PATH, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                return data if isinstance(data, list) else []
+            except Exception:
+                return []
+
+    @classmethod
+    def get_latest_run(cls) -> list[dict[str, Any]]:
+        """Return only entries belonging to the most-recent run_id."""
+        all_entries = cls.get_all()
+        if not all_entries:
+            return []
+        latest_id = all_entries[-1]["run_id"]
+        return [e for e in all_entries if e["run_id"] == latest_id]
+
+    @classmethod
+    def get_by_run_id(cls, run_id: str) -> list[dict[str, Any]]:
+        """Return entries for a specific run_id."""
+        return [e for e in cls.get_all() if e.get("run_id") == run_id]
+
+    @classmethod
+    def clear(cls) -> None:
+        """Wipe the log file."""
+        cls._ensure_dir()
+        with _LOCK:
+            with open(_LOG_PATH, "w", encoding="utf-8") as f:
+                json.dump([], f)
+
+    @classmethod
+    def log_path(cls) -> str:
+        return os.path.abspath(_LOG_PATH)

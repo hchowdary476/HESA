@@ -1,0 +1,6 @@
+{
+    "wake_word": "SAI",
+    "threshold": 0.72,
+    "model": "JARVIS/resources/models/sai.onnx",
+    "sample_rate": 16000
+}

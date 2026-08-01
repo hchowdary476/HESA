@@ -1,0 +1,9 @@
+{
+  "startup_greeting": "Namaskaram sir. JARVIS siddhanga undi. Mee commands kosam ready ga unnanu sir.",
+  "task_complete": "Task complete ayyindi sir.",
+  "no_internet": "Internet connection ledu sir.",
+  "security_verification": "Security verification complete ayyindi.",
+  "system_ready": "System ready ga undi sir.",
+  "learn_prompt": "Sir, naku ee command teliyadu. Deeni artham ento cheppandi sir.",
+  "learn_complete": "Sare sir. Ee command ni gurthupettukunnanu."
+}

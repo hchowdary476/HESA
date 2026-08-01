@@ -1,0 +1,10 @@
+{
+  "name": "Sample Tool Plugin",
+  "version": "1.0",
+  "author": "JARVIS Developer",
+  "description": "Custom utility demonstrating the plugin SDK integration.",
+  "plugin_entry": "plugin.py",
+  "class_name": "PluginTool",
+  "permissions": ["filesystem"],
+  "dependencies": []
+}

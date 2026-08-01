@@ -1,0 +1,38 @@
+Found 37 user-facing QML matches:
+AIMLPage.qml:1 -> // AIMLPage.qml — JARVIS AI & Machine Learning Platform Cockpit (v3.0)
+AIMLPage.qml:37 -> property string playgroundPrompt: "Optimize my background execution threads, JARVIS."
+CyberSecurityPage.qml:421 -> { label: "📊 LOG CORRELATION AUDIT", cmd: "Jarvis, analyze security logs" },
+CyberSecurityPage.qml:422 -> { label: "🔍 PROCESS HIJACK SCAN", cmd: "Jarvis, suspicious process check" },
+CyberSecurityPage.qml:423 -> { label: "📋 EXECUTIVE SOC REPORT", cmd: "Jarvis, generate soc report" },
+CyberSecurityPage.qml:424 -> { label: "🕒 INCIDENT POST-MORTEM", cmd: "Jarvis, create incident timeline" },
+CyberSecurityPage.qml:425 -> { label: "🌐 GLOBAL THREAT LANDSCAPE", cmd: "Jarvis, threat landscape" },
+CyberSecurityPage.qml:426 -> { label: "📡 PACKET CAPTURE DECODER", cmd: "Jarvis, explain packet capture" }
+CyberSecurityPage.qml:677 -> { label: "📘 COMPTIA SECURITY+ SYLLABUS", cmd: "Jarvis, learning roadmap for security+" },
+CyberSecurityPage.qml:678 -> { label: "📗 CERTIFIED ETHICAL HACKER (CEH)", cmd: "Jarvis, learning roadmap for CEH" },
+CyberSecurityPage.qml:679 -> { label: "📙 COMPTIA CySA+ SYLLABUS", cmd: "Jarvis, learning roadmap for CySA+" },
+CyberSecurityPage.qml:680 -> { label: "📕 CISSP EXECUTIVE POSTURE", cmd: "Jarvis, learning roadmap for CISSP" }
+CyberSecurityPage.qml:978 -> { label: "🛡️ ZERO TRUST DEFENSE PATTERNS", cmd: "Jarvis, review security architecture" },
+CyberSecurityPage.qml:979 -> { label: "🤖 AI PROMPT INJECTION SECURITY AUDIT", cmd: "Jarvis, check prompt security" },
+CyberSecurityPage.qml:980 -> { label: "🌩️ CLOUD CONTAINER PIPELINE SYLLABUS", cmd: "Jarvis, teach cloud security" }
+FaceEngine.qml:1 -> // FaceEngine.qml — JARVIS Holographic Avatar — FINAL EYE FIX
+FaceEngine.qml:241 -> console.warn("JARVIS FaceEngine Warning: Undefined variables detected in drawEye. Skipping render.");
+HelpPage.qml:67 -> text: "JARVIS HUD DOCUMENTATION & KEYBOARD SYSTEM BINDINGS"
+HelpPage.qml:94 -> text: "JARVIS INTELLIGENCE INTERFACE SYSTEM"
+HelpPage.qml:98 -> text: "Welcome to the JARVIS QML HUD, sir. Below you will find all system key bindings, functional command schemas, and diagnostics tools directory. Use the command console or voice speech controls to execute core macros."
+HelpPage.qml:134 -> Text { text: "Exits the JARVIS host process."; font.family: "Consolas"; font.pixelSize: 9; color: "#80C6E5" }
+HelpPage.qml:187 -> { cmd: "shutdown jarvis", desc: "Safely shut down the assistant stack." }
+HudEngine.qml:106 -> if (hudRoot.state === "STANDBY")    return "JARVIS ONLINE"
+main.qml:1 -> // main.qml — JARVIS Root Application Window
+main.qml:11 -> title: "JARVIS CYBER INTERFACE"
+SecurityPage.qml:88 -> text: "JARVIS CYBER OS SHIELD"
+SecurityPage.qml:204 -> { label: "LOG CORRELATION AUDIT", cmd: "Jarvis, analyze logs", icon: "📊" },
+SecurityPage.qml:205 -> { label: "PROCESS HIJACK AUDIT", cmd: "Jarvis, suspicious process check", icon: "🔍" },
+SecurityPage.qml:206 -> { label: "INCIDENT POST-MORTEM TIMELINE", cmd: "Jarvis, create incident timeline", icon: "🕒" },
+SecurityPage.qml:207 -> { label: "MITRE ATT&CK COMPARISON", cmd: "Jarvis, compare mitre", icon: "⚔️" },
+SecurityPage.qml:208 -> { label: "DAILY SOC REPORT SUMMARIZE", cmd: "Jarvis, prepare daily SOC report", icon: "📋" },
+SecurityPage.qml:209 -> { label: "THREAT LANDSCAPE REPORT", cmd: "Jarvis, threat landscape", icon: "🌐" },
+SecurityPage.qml:210 -> { label: "COMPTIA SECURITY+ ROADMAP", cmd: "Jarvis, roadmap for security+", icon: "📚" },
+SecurityPage.qml:211 -> { label: "COMPTIA SECURITY+ PRACTICE QUIZ", cmd: "Jarvis, prepare me for security plus", icon: "🎯" }
+TitleBar.qml:57 -> text: "JARVIS OS v2.0.0"
+TitleBar.qml:64 -> // ── Center: JARVIS title ─────────────────────────────────────────
+TitleBar.qml:69 -> text: "JARVIS"

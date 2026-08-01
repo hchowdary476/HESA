@@ -1,0 +1,120 @@
+{
+  "project_name": "task_manager",
+  "description": "build a FastAPI REST API named task_manager with SQLite database",
+  "project_type": "api",
+  "backend_stack": "FastAPI",
+  "frontend_stack": null,
+  "mobile_stack": null,
+  "ml_stack": null,
+  "database": "SQLite",
+  "auth_method": "None",
+  "features": [
+    "crud"
+  ],
+  "folder_structure": {
+    "backend": {
+      "app": {
+        "models": {},
+        "routes": {},
+        "schemas": {},
+        "services": {},
+        "core": {}
+      },
+      "tests": {},
+      "requirements.txt": null,
+      ".env.example": null,
+      "main.py": null
+    },
+    "docs": {},
+    "devops": {},
+    "tests": {}
+  },
+  "backend_deps": [
+    "fastapi",
+    "uvicorn[standard]",
+    "sqlalchemy",
+    "alembic",
+    "pydantic[email]",
+    "python-multipart",
+    "python-dotenv",
+    "httpx"
+  ],
+  "frontend_deps": [],
+  "mobile_deps": [],
+  "api_endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/items",
+      "description": "List all items",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/items",
+      "description": "Create new item",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/items/{id}",
+      "description": "Get item by ID",
+      "auth": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/items/{id}",
+      "description": "Update item",
+      "auth": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/items/{id}",
+      "description": "Delete item",
+      "auth": true
+    }
+  ],
+  "data_models": [
+    {
+      "name": "Item",
+      "fields": [
+        {
+          "name": "id",
+          "type": "Integer",
+          "primary_key": true
+        },
+        {
+          "name": "title",
+          "type": "String(200)",
+          "nullable": false
+        },
+        {
+          "name": "description",
+          "type": "Text",
+          "nullable": true
+        },
+        {
+          "name": "is_completed",
+          "type": "Boolean",
+          "default": false
+        },
+        {
+          "name": "owner_id",
+          "type": "Integer",
+          "foreign_key": "user.id"
+        },
+        {
+          "name": "created_at",
+          "type": "DateTime",
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "DateTime",
+          "onupdate": "now()"
+        }
+      ]
+    }
+  ],
+  "workspace_path": "C:\\Users\\veera\\OneDrive\\Desktop\\Open.Jarvis-main\\workspace\\task_manager",
+  "created_at": 1782900077.8380635
+}

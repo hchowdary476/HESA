@@ -1,0 +1,3434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JARVIS — Core OS Holographic Console</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;600;700&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+  
+  <style>
+    /* ── BASE CSS & THEME VARIABLES ──────────────────────────────── */
+    :root {
+      --neon-blue: #00BFFF;
+      --cyan: #00FFFF;
+      --green: #00FF7F;
+      --amber: #FFC107;
+      --red: #FF4D4D;
+      --white: #FFFFFF;
+      --bg-dark: #020813;
+      --bg-panel: rgba(7, 16, 28, 0.65);
+      --border-color: rgba(0, 191, 255, 0.25);
+      --font-display: 'Orbitron', sans-serif;
+      --font-body: 'Exo 2', sans-serif;
+      --font-mono: 'Rajdhani', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--white);
+      font-family: var(--font-body);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* Fullscreen scanline and grid overlay */
+    body::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+      background-size: 100% 4px, 6px 100%;
+      z-index: 9999;
+      pointer-events: none;
+      opacity: 0.4;
+    }
+
+    #bg-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* ── CINEMATIC BOOT SCREEN ───────────────────────────────────── */
+    #boot-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #010408;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 1s cubic-bezier(0.1, 0.8, 0.1, 1), transform 1s cubic-bezier(0.1, 0.8, 0.1, 1);
+    }
+
+    #boot-screen.fade-out {
+      opacity: 0;
+      transform: scale(1.1);
+      pointer-events: none;
+    }
+
+    .boot-container {
+      width: 800px;
+      max-width: 90%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .boot-logo-wrapper {
+      position: relative;
+      width: 180px;
+      height: 180px;
+      margin-bottom: 40px;
+    }
+
+    .boot-logo-ring {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 2px dashed var(--neon-blue);
+      border-radius: 50%;
+      animation: spin 8s linear infinite;
+    }
+
+    .boot-logo-ring-outer {
+      position: absolute;
+      top: -15px;
+      left: -15px;
+      width: 210px;
+      height: 210px;
+      border: 1px solid rgba(0, 255, 255, 0.15);
+      border-left: 3px solid var(--cyan);
+      border-right: 3px solid var(--cyan);
+      border-radius: 50%;
+      animation: spin-reverse 12s linear infinite;
+    }
+
+    .boot-logo-core {
+      position: absolute;
+      top: 25px;
+      left: 25px;
+      width: 130px;
+      height: 130px;
+      background: radial-gradient(circle, rgba(0, 255, 255, 0.2) 0%, rgba(2, 8, 19, 0.9) 70%);
+      border: 3px solid var(--cyan);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
+    }
+
+    .boot-logo-core span {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 20px;
+      letter-spacing: 2px;
+      color: var(--cyan);
+      text-shadow: 0 0 10px var(--cyan);
+    }
+
+    .boot-progress-bar-container {
+      width: 100%;
+      height: 6px;
+      background: rgba(0, 191, 255, 0.1);
+      border: 1px solid rgba(0, 191, 255, 0.3);
+      border-radius: 3px;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .boot-progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--neon-blue), var(--cyan));
+      box-shadow: 0 0 10px var(--cyan);
+      transition: width 0.1s ease;
+    }
+
+    .boot-logs {
+      width: 100%;
+      height: 200px;
+      background: rgba(2, 8, 19, 0.85);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 15px;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--neon-blue);
+      overflow-y: auto;
+      text-align: left;
+      margin-bottom: 30px;
+      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+    }
+
+    .boot-logs::-webkit-scrollbar {
+      width: 4px;
+    }
+    .boot-logs::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+    }
+
+    .boot-log-line {
+      margin-bottom: 6px;
+      opacity: 0.9;
+    }
+    .boot-log-line.success { color: var(--green); }
+    .boot-log-line.warn { color: var(--amber); }
+
+    .boot-btn {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 11px;
+      color: var(--cyan);
+      background: transparent;
+      border: 1px solid var(--cyan);
+      padding: 10px 24px;
+      cursor: pointer;
+      border-radius: 30px;
+      letter-spacing: 2px;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.1);
+    }
+
+    .boot-btn:hover {
+      background: rgba(0, 255, 255, 0.15);
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+      text-shadow: 0 0 5px var(--cyan);
+    }
+
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes spin-reverse { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
+    @keyframes pulse-banner {
+      0% { opacity: 0.95; }
+      50% { opacity: 0.65; }
+      100% { opacity: 0.95; }
+    }
+
+    /* ── DASHBOARD LAYOUT ────────────────────────────────────────── */
+    #dashboard-layout {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      z-index: 150;
+      pointer-events: all;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── TOP CONTROL BAR ─────────────────────────────────────────── */
+    #top-bar {
+      height: 60px;
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(2, 8, 19, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      backdrop-filter: blur(10px);
+      z-index: 10;
+    }
+
+    .top-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .jarvis-brand {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 18px;
+      letter-spacing: 3px;
+      color: var(--cyan);
+      text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .jarvis-brand span {
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--neon-blue);
+      border: 1px solid var(--neon-blue);
+      padding: 1px 6px;
+      border-radius: 3px;
+      letter-spacing: 1px;
+    }
+
+    .indicators {
+      display: flex;
+      gap: 12px;
+    }
+
+    .indicator-node {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 4px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+    }
+
+    .indicator-node.active {
+      color: var(--cyan);
+      border-color: rgba(0, 255, 255, 0.3);
+      background: rgba(0, 255, 255, 0.04);
+    }
+
+    .indicator-node.active .led {
+      background-color: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan);
+    }
+
+    .indicator-node.green.active {
+      color: var(--green);
+      border-color: rgba(0, 255, 127, 0.3);
+      background: rgba(0, 255, 127, 0.04);
+    }
+
+    .indicator-node.green.active .led {
+      background-color: var(--green);
+      box-shadow: 0 0 8px var(--green);
+    }
+
+    .led {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .top-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .system-clock {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--white);
+    }
+
+    .system-date {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--neon-blue);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-left: 1px solid rgba(0, 191, 255, 0.3);
+      padding-left: 10px;
+    }
+
+    /* ── MAIN CONTENT CONTAINER ──────────────────────────────────── */
+    #main-wrapper {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── SIDE NAV BAR ────────────────────────────────────────────── */
+    #sidebar-nav {
+      width: 75px;
+      border-right: 1px solid var(--border-color);
+      background: rgba(2, 8, 19, 0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 0;
+      gap: 20px;
+      backdrop-filter: blur(10px);
+    }
+
+    .nav-item {
+      width: 46px;
+      height: 46px;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 191, 255, 0.1);
+      background: rgba(7, 16, 28, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: rgba(255, 255, 255, 0.4);
+      transition: all 0.3s ease;
+    }
+
+    .nav-item svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    .nav-item:hover, .nav-item.active {
+      color: var(--cyan);
+      border-color: var(--cyan);
+      background: rgba(0, 255, 255, 0.08);
+      box-shadow: 0 0 12px rgba(0, 255, 255, 0.25);
+    }
+
+    /* ── PAGES PANELS CONTAINER ──────────────────────────────────── */
+    #page-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .app-page {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(15px);
+      transition: opacity 0.5s cubic-bezier(0.1, 0.8, 0.1, 1), transform 0.5s cubic-bezier(0.1, 0.8, 0.1, 1);
+      display: flex;
+      padding: 15px;
+      gap: 15px;
+    }
+
+    .app-page.active {
+      opacity: 1;
+      pointer-events: all;
+      transform: translateY(0);
+    }
+
+    /* ── GLASS PANEL STYLING ─────────────────────────────────────── */
+    .glass-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 20px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4), inset 0 0 10px rgba(0, 191, 255, 0.05);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 2px;
+      color: var(--cyan);
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(0, 191, 255, 0.15);
+      padding-bottom: 8px;
+    }
+
+    .panel-header::before {
+      content: "[+] ";
+      color: var(--neon-blue);
+    }
+
+    /* ── PAGE: DASHBOARD (MAIN GRID) ─────────────────────────────── */
+    #page-dashboard {
+      display: grid;
+      grid-template-columns: 320px 1fr 340px;
+      gap: 15px;
+      padding: 15px;
+    }
+
+    /* Left Panel: Vitals */
+    .vitals-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      flex: 1;
+    }
+
+    .vital-card {
+      background: rgba(2, 8, 19, 0.4);
+      border: 1px solid rgba(0, 191, 255, 0.15);
+      border-radius: 6px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .vital-title {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--neon-blue);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .gauge-wrapper {
+      position: relative;
+      width: 76px;
+      height: 76px;
+    }
+
+    .gauge-svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .gauge-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.05);
+      stroke-width: 6;
+    }
+
+    .gauge-fill {
+      fill: none;
+      stroke: var(--cyan);
+      stroke-width: 6;
+      stroke-dasharray: 220;
+      stroke-dashoffset: 220;
+      transition: stroke-dashoffset 0.8s ease;
+      stroke-linecap: round;
+    }
+
+    .vital-value {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--white);
+    }
+
+    .sparkline-canvas {
+      width: 100%;
+      height: 24px;
+      margin-top: 8px;
+    }
+
+    /* Center Panel: Three.js core & console */
+    .center-col {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    #threejs-container {
+      flex: 1;
+      position: relative;
+      border: 1px solid var(--border-color);
+      background: radial-gradient(circle, rgba(7,16,28,0.5) 0%, rgba(2,8,19,0.95) 100%);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .hud-overlay {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      pointer-events: none;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--neon-blue);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    /* Bottom Console */
+    #console-panel {
+      height: 160px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--green);
+      background: rgba(1, 6, 12, 0.9);
+      border: 1px solid rgba(0, 255, 127, 0.25);
+      box-shadow: inset 0 0 15px rgba(0, 255, 127, 0.05);
+    }
+
+    .console-header {
+      border-bottom: 1px solid rgba(0, 255, 127, 0.2);
+      color: var(--green);
+    }
+
+    .console-header::before {
+      content: "[✓] ";
+      color: var(--green);
+    }
+
+    .console-stream {
+      flex: 1;
+      overflow-y: auto;
+      padding-top: 5px;
+      line-height: 1.4;
+    }
+
+    .console-stream::-webkit-scrollbar {
+      width: 4px;
+    }
+    .console-stream::-webkit-scrollbar-thumb {
+      background: rgba(0, 255, 127, 0.2);
+    }
+
+    .console-line {
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+
+    /* Right Panel: Analytics & Agents */
+    .radar-wrapper {
+      height: 150px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 15px;
+    }
+
+    #radar-chart {
+      width: 140px;
+      height: 140px;
+    }
+
+    .agents-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .agents-list::-webkit-scrollbar {
+      width: 3px;
+    }
+    .agents-list::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+    }
+
+    .agent-row {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(0, 191, 255, 0.1);
+      border-radius: 4px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .agent-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .agent-name {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--white);
+    }
+
+    .agent-task {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--neon-blue);
+    }
+
+    .agent-status {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    .agent-status.idle { color: rgba(255, 255, 255, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); }
+    .agent-status.active { color: var(--cyan); border: 1px solid var(--cyan); background: rgba(0, 255, 255, 0.05); }
+    .agent-status.standby { color: var(--amber); border: 1px solid var(--amber); }
+    .agent-status.alert { color: var(--red); border: 1px solid var(--red); background: rgba(255, 77, 77, 0.05); }
+
+    /* ── PAGE: CHAT CENTER ───────────────────────────────────────── */
+    #page-chat {
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      flex: 1;
+    }
+
+    .chat-box {
+      flex: 1;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: rgba(1, 6, 12, 0.6);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .chat-messages::-webkit-scrollbar {
+      width: 4px;
+    }
+    .chat-messages::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+    }
+
+    .chat-msg {
+      max-width: 75%;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .chat-msg.jarvis {
+      align-self: flex-start;
+      background: rgba(0, 191, 255, 0.08);
+      border: 1px solid rgba(0, 191, 255, 0.3);
+      color: var(--cyan);
+      border-bottom-left-radius: 1px;
+    }
+
+    .chat-msg.user {
+      align-self: flex-end;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--white);
+      border-bottom-right-radius: 1px;
+    }
+
+    .typing-indicator {
+      display: none;
+      align-self: flex-start;
+      background: rgba(0, 191, 255, 0.03);
+      border: 1px solid rgba(0, 191, 255, 0.15);
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: var(--neon-blue);
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .chat-input-row {
+      height: 50px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      background: rgba(2, 8, 19, 0.9);
+    }
+
+    .chat-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--white);
+      font-family: var(--font-body);
+      font-size: 13px;
+      padding: 0 15px;
+    }
+
+    .chat-send-btn {
+      width: 60px;
+      background: transparent;
+      border: none;
+      border-left: 1px solid var(--border-color);
+      color: var(--cyan);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s;
+    }
+
+    .chat-send-btn:hover {
+      background: rgba(0, 255, 255, 0.1);
+    }
+
+    /* ── PAGE: MEMORY ENGINE ─────────────────────────────────────── */
+    #page-memory {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      padding: 20px;
+    }
+
+    .memory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 15px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .memory-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(0, 191, 255, 0.15);
+      border-radius: 6px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .memory-key {
+      font-family: var(--font-display);
+      font-size: 12px;
+      color: var(--cyan);
+      border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+      padding-bottom: 4px;
+    }
+
+    .memory-val {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--white);
+      word-break: break-all;
+    }
+
+    .memory-meta {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--neon-blue);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* ── PAGE: AUTOMATION CENTER ─────────────────────────────────── */
+    #page-automation {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      padding: 20px;
+    }
+
+    .automation-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .auto-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(0, 191, 255, 0.15);
+      border-radius: 6px;
+      padding: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .auto-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .auto-title {
+      font-family: var(--font-display);
+      font-size: 13px;
+      color: var(--white);
+    }
+
+    .auto-desc {
+      font-family: var(--font-body);
+      font-size: 11px;
+      color: var(--neon-blue);
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 46px;
+      height: 22px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(0, 191, 255, 0.2);
+      transition: .4s;
+      border-radius: 22px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: var(--neon-blue);
+      transition: .4s;
+      border-radius: 50%;
+      box-shadow: 0 0 6px var(--neon-blue);
+    }
+
+    input:checked + .slider {
+      background-color: rgba(0, 255, 127, 0.1);
+      border-color: var(--green);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(24px);
+      background-color: var(--green);
+      box-shadow: 0 0 6px var(--green);
+    }
+
+    /* ── PAGE: SECURITY CENTER ───────────────────────────────────── */
+    #page-security {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 15px;
+      padding: 20px;
+    }
+
+    .radar-sweep-panel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(1, 6, 12, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      position: relative;
+    }
+
+    #security-radar {
+      width: 320px;
+      height: 320px;
+    }
+
+    .sec-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .sec-stat-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(0, 191, 255, 0.1);
+      border-radius: 6px;
+      padding: 12px;
+    }
+
+    .sec-stat-title {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--neon-blue);
+      text-transform: uppercase;
+    }
+
+    .sec-stat-value {
+      font-family: var(--font-display);
+      font-size: 18px;
+      color: var(--cyan);
+      margin-top: 4px;
+    }
+
+    .sec-stat-value.green { color: var(--green); }
+    .sec-stat-value.red { color: var(--red); }
+
+    /* ── PAGE: MULTI AI AGENTS ───────────────────────────────────── */
+    #page-agents {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      padding: 20px;
+    }
+
+    .agents-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 15px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .agent-detail-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(0, 191, 255, 0.15);
+      border-radius: 6px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+    }
+
+    .agent-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(0, 191, 255, 0.15);
+      padding-bottom: 6px;
+    }
+
+    .agent-detail-name {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--cyan);
+    }
+
+    .agent-detail-role {
+      font-family: var(--font-body);
+      font-size: 11px;
+      color: var(--white);
+      opacity: 0.8;
+    }
+
+    .agent-stat-bar-container {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .agent-stat-bar {
+      height: 100%;
+      background: var(--neon-blue);
+    }
+
+    /* ── PAGE: COMMAND CENTER (WIDGETS) ──────────────────────────── */
+    #page-widgets {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      padding: 20px;
+    }
+
+    .widget-box {
+      flex: 1;
+      min-height: 250px;
+    }
+
+    .weather-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 0;
+    }
+
+    .temp-val {
+      font-family: var(--font-display);
+      font-size: 48px;
+      color: var(--cyan);
+      text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+    }
+
+    .notes-area {
+      width: 100%;
+      height: 160px;
+      background: rgba(1, 6, 12, 0.5);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 10px;
+      color: var(--white);
+      font-family: var(--font-body);
+      font-size: 13px;
+      resize: none;
+      outline: none;
+    }
+
+    .notes-area:focus {
+      border-color: var(--cyan);
+    }
+
+    .quick-launcher-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .launcher-btn {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(0, 191, 255, 0.2);
+      border-radius: 4px;
+      padding: 10px;
+      color: var(--neon-blue);
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      letter-spacing: 1px;
+    }
+
+    .launcher-btn:hover {
+      background: rgba(0, 255, 255, 0.08);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 8px rgba(0, 255, 255, 0.2);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── SAFE MODE FLOATING WARNING BANNER ────────────────────────── -->
+  <div id="safe-mode-banner" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 32px; background: rgba(255, 193, 7, 0.95); color: #000; font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: bold; text-align: center; line-height: 32px; letter-spacing: 2px; z-index: 10001; box-shadow: 0 2px 10px rgba(255, 193, 7, 0.4); animation: pulse-banner 2s infinite; pointer-events: none;">
+    ⚠️ SAFE MODE ACTIVE — RUNNING RECOVERY DIAGNOSTICS & CORE RECOVERY
+  </div>
+
+  <!-- ── PROTECTED ACTION VERIFICATION MODAL ────────────────────────── -->
+  <div id="protected-action-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(1, 4, 8, 0.85); backdrop-filter: blur(8px); z-index: 10002; align-items: center; justify-content: center;">
+    <div class="glass-panel" style="width: 520px; background: rgba(7, 16, 28, 0.95); border: 2px solid var(--amber); border-radius: 12px; padding: 25px; box-shadow: 0 0 30px rgba(255, 193, 7, 0.35);">
+      <div style="font-family: var(--font-display); font-size: 16px; font-weight: bold; color: var(--amber); margin-bottom: 15px; border-bottom: 1px solid rgba(255, 193, 7, 0.3); padding-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+        ⚠️ HIGH-IMPACT PROTECTED ACTION REQUESTED
+      </div>
+      <div style="font-size: 13px; line-height: 1.6; margin-bottom: 20px;">
+        <div style="font-weight: bold; color: var(--cyan); margin-bottom: 5px;">Action Required:</div>
+        <div id="protected-action-title" style="margin-bottom: 15px; font-family: var(--font-mono); font-size: 14px;">Enable core security scanner system settings.</div>
+        
+        <div style="font-weight: bold; color: var(--cyan); margin-bottom: 5px;">Explanation:</div>
+        <div id="protected-action-explanation" style="margin-bottom: 15px; color: rgba(255, 255, 255, 0.8);">Modifying services registry layout parameters to configure and auto-restart protection services.</div>
+        
+        <div style="font-weight: bold; color: var(--cyan); margin-bottom: 5px;">Affected Components:</div>
+        <div id="protected-action-components" style="font-family: var(--font-mono); color: var(--red);">Security Subsystem (WinDefend)</div>
+      </div>
+      <div style="display: flex; gap: 15px; justify-content: flex-end;">
+        <button class="boot-btn" onclick="confirmProtectedAction()" style="border-color: var(--green); color: var(--green); background: rgba(0, 255, 127, 0.05); padding: 8px 24px;">APPROVE & EXECUTE</button>
+        <button class="boot-btn" onclick="closeProtectedActionModal()" style="border-color: var(--red); color: var(--red); background: rgba(255, 77, 77, 0.05); padding: 8px 24px;">DENY REQUEST</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── FULLSCREEN PARTICLES BACKGROUND ────────────────────────── -->
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- ── CINEMATIC BOOT SCREEN ───────────────────────────────────── -->
+  <div id="boot-screen">
+    <div class="boot-container">
+      <div class="boot-logo-wrapper">
+        <div class="boot-logo-ring-outer"></div>
+        <div class="boot-logo-ring"></div>
+        <div class="boot-logo-core">
+          <span>JARVIS</span>
+        </div>
+      </div>
+      <div class="boot-progress-bar-container">
+        <div class="boot-progress-bar" id="boot-progress"></div>
+      </div>
+      <div class="boot-logs" id="boot-logs-box">
+        <!-- Logs populated dynamically -->
+      </div>
+      <button class="boot-btn" onclick="skipBoot()">BYPASS BOOT SEQUENCE</button>
+    </div>
+  </div>
+
+  <!-- ── MAIN DASHBOARD APPLICATION ──────────────────────────────── -->
+  <div id="dashboard-layout">
+    
+    <!-- TOP BAR -->
+    <div id="top-bar">
+      <div class="top-bar-left">
+        <div class="jarvis-brand">JARVIS <span>OS v7.0</span></div>
+        <div class="indicators">
+          <div class="indicator-node active" id="ind-online"><div class="led"></div>ONLINE</div>
+          <div class="indicator-node active green" id="ind-secure"><div class="led"></div>SECURE</div>
+          <div class="indicator-node active" id="ind-encrypt"><div class="led"></div>ENCRYPTED</div>
+          <div class="indicator-node active" id="ind-gesture"><div class="led"></div>GESTURE</div>
+          <div class="indicator-node active green" id="ind-voice"><div class="led"></div>VOICE</div>
+        </div>
+      </div>
+      <div class="top-bar-right">
+        <div class="system-clock" id="live-time">00:00:00</div>
+        <div class="system-date" id="live-date">INITIALIZING MATRIX</div>
+      </div>
+    </div>
+
+    <!-- MAIN COCKPIT VIEW -->
+    <div id="main-wrapper">
+      
+      <!-- NAV SIDEBAR -->
+      <div id="sidebar-nav">
+        <!-- Dashboard -->
+        <div class="nav-item active" onclick="switchPage('dashboard', this)" title="Dashboard">
+          <svg viewBox="0 0 24 24"><path d="M3 13h1v7c0 1.103.897 2 2 2h12c1.103 0 2-.897 2-2v-7h1a1 1 0 0 0 .707-1.707l-9-9a.999.999 0 0 0-1.414 0l-9 9A1 1 0 0 0 3 13zm9-8.414 7 7V20H5v-8.414 7z"/></svg>
+        </div>
+        <!-- Chat Center -->
+        <div class="nav-item" onclick="switchPage('chat', this)" title="Chat Center">
+          <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.103 0-2 .897-2 2v18l4-4h14c1.103 0 2-.897 2-2V4c0-1.103-.897-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+        </div>
+        <!-- Memory Engine -->
+        <div class="nav-item" onclick="switchPage('memory', this)" title="Memory Engine">
+          <svg viewBox="0 0 24 24"><path d="M20 3H4c-1.103 0-2 .897-2 2v14c0 1.103.897 2 2 2h16c1.103 0 2-.897 2-2V5c0-1.103-.897-2-2-2zm-1 9H5V5h14v7z"/></svg>
+        </div>
+        <!-- Automation Center -->
+        <div class="nav-item" onclick="switchPage('automation', this)" title="Automation">
+          <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.5.5 0 0 0 .12-.63l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.74 8.87a.5.5 0 0 0 .12.63l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.5.5 0 0 0-.12.63l1.92 3.32c.12.22.37.29.6.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.42.5.42h3.84c.24 0 .44-.17.5-.42l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.63l-2.03-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        </div>
+        <!-- Security Center -->
+        <div class="nav-item" onclick="switchPage('security', this)" title="Security">
+          <svg viewBox="0 0 24 24"><path d="M20.922 4.417 12.57 2.03a1.002 1.002 0 0 0-.57 0L3.649 4.417A1 1 0 0 0 3 5.383v5.679c0 5.86 4.195 10.158 9 10.938 4.805-.78 9-5.078 9-10.938V5.383a1 1 0 0 0-.078-.966zM12 20c-3.857-.698-7-4.469-7-9.062V6.28l7-2 7 2v4.658c0 4.593-3.143 8.364-7 9.062z"/></svg>
+        </div>
+        <!-- Multi AI Agents -->
+        <div class="nav-item" onclick="switchPage('agents', this)" title="AI Agents">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/></svg>
+        </div>
+        <!-- Widgets (Command Center) -->
+        <div class="nav-item" onclick="switchPage('widgets', this)" title="Command Center Widgets">
+          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.103 0-2 .897-2 2v14c0 1.103.897 2 2 2h14c1.103 0 2-.897 2-2V5c0-1.103-.897-2-2-2zm-7 15H5v-5h7v5zm0-7H5V6h7v5zm7 7h-5v-9h5v9z"/></svg>
+        </div>
+        <!-- Diagnostics Center -->
+        <div class="nav-item" onclick="switchPage('diagnostics', this)" title="Diagnostics Center">
+          <svg viewBox="0 0 24 24" style="width: 20px; height: 20px; fill: currentColor;"><path d="m21.82 2.18a1 1 0 0 0-1.12-.13l-4 2a1 1 0 0 0-.41.51l-.7 2.1a1 1 0 0 1-.62.62l-2.1.7a1 1 0 0 0-.51.41l-2 4a1 1 0 0 0 .13 1.12l1.42 1.42-7.14 7.14a1 1 0 0 0 0 1.41l1.41 1.41a1 1 0 0 0 1.41 0l7.14-7.14 1.42 1.42a1 1 0 0 0 1.12.13l4-2a1 1 0 0 0 .51-.41l.7-2.1a1 1 0 0 1 .62-.62l2.1-.7a1 1 0 0 0 .41-.51l2-4a1 1 0 0 0-.13-1.12z"/></svg>
+        </div>
+        <!-- Settings Center -->
+        <div class="nav-item" onclick="switchPage('settings', this)" title="Settings Console">
+          <svg viewBox="0 0 24 24" style="width: 20px; height: 20px; fill: currentColor;"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+        </div>
+      </div>
+
+      <!-- PAGES CONTROLLER -->
+      <div id="page-container">
+        
+        <!-- PAGE 1: MAIN DASHBOARD -->
+        <div class="app-page active" id="page-dashboard">
+          
+          <!-- Left Vitals Column -->
+          <div class="glass-panel" style="gap: 15px;">
+            <div class="panel-header">SYSTEM VITALS TELEMETRY</div>
+            <div class="vitals-grid">
+              
+              <!-- CPU Card -->
+              <div class="vital-card">
+                <span class="vital-title">Core CPU Load</span>
+                <div class="gauge-wrapper">
+                  <svg class="gauge-svg">
+                    <circle class="gauge-bg" cx="38" cy="38" r="35" />
+                    <circle class="gauge-fill" cx="38" cy="38" r="35" id="cpu-fill" />
+                  </svg>
+                  <div class="vital-value" id="cpu-val">0%</div>
+                </div>
+                <canvas class="sparkline-canvas" id="cpu-spark"></canvas>
+              </div>
+
+              <!-- RAM Card -->
+              <div class="vital-card">
+                <span class="vital-title">RAM Utilization</span>
+                <div class="gauge-wrapper">
+                  <svg class="gauge-svg">
+                    <circle class="gauge-bg" cx="38" cy="38" r="35" />
+                    <circle class="gauge-fill" cx="38" cy="38" r="35" id="ram-fill" />
+                  </svg>
+                  <div class="vital-value" id="ram-val">0%</div>
+                </div>
+                <canvas class="sparkline-canvas" id="ram-spark"></canvas>
+              </div>
+
+              <!-- GPU Card -->
+              <div class="vital-card">
+                <span class="vital-title">GPU Draw</span>
+                <div class="gauge-wrapper">
+                  <svg class="gauge-svg">
+                    <circle class="gauge-bg" cx="38" cy="38" r="35" />
+                    <circle class="gauge-fill" cx="38" cy="38" r="35" id="gpu-fill" />
+                  </svg>
+                  <div class="vital-value" id="gpu-val">0%</div>
+                </div>
+                <canvas class="sparkline-canvas" id="gpu-spark"></canvas>
+              </div>
+
+              <!-- Storage Card -->
+              <div class="vital-card">
+                <span class="vital-title">Disk Allocation</span>
+                <div class="gauge-wrapper">
+                  <svg class="gauge-svg">
+                    <circle class="gauge-bg" cx="38" cy="38" r="35" />
+                    <circle class="gauge-fill" cx="38" cy="38" r="35" id="disk-fill" />
+                  </svg>
+                  <div class="vital-value" id="disk-val">0%</div>
+                </div>
+                <canvas class="sparkline-canvas" id="disk-spark"></canvas>
+              </div>
+
+              <!-- Temperature Card -->
+              <div class="vital-card">
+                <span class="vital-title">Core Temp</span>
+                <div class="gauge-wrapper">
+                  <svg class="gauge-svg">
+                    <circle class="gauge-bg" cx="38" cy="38" r="35" />
+                    <circle class="gauge-fill" cx="38" cy="38" r="35" id="temp-fill" />
+                  </svg>
+                  <div class="vital-value" id="temp-val">38°C</div>
+                </div>
+                <canvas class="sparkline-canvas" id="temp-spark"></canvas>
+              </div>
+
+              <!-- Battery Card -->
+              <div class="vital-card">
+                <span class="vital-title">Battery Level</span>
+                <div class="gauge-wrapper">
+                  <svg class="gauge-svg">
+                    <circle class="gauge-bg" cx="38" cy="38" r="35" />
+                    <circle class="gauge-fill" cx="38" cy="38" r="35" id="battery-fill" />
+                  </svg>
+                  <div class="vital-value" id="battery-val">100%</div>
+                </div>
+                <canvas class="sparkline-canvas" id="battery-spark"></canvas>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Center Column (ThreeJS Core + Console) -->
+          <div class="center-col">
+            <div id="threejs-container">
+              <!-- Top-Left Consciousness Banner -->
+              <div class="hud-overlay" style="top: 20px; left: 20px; font-family: var(--font-display); pointer-events: none; display: flex; align-items: center; gap: 15px;">
+                <div style="font-size: 42px; font-weight: 900; color: var(--cyan); text-shadow: 0 0 15px rgba(0, 255, 255, 0.6); line-height: 1;">06</div>
+                <div style="display: flex; flex-direction: column;">
+                  <div style="font-size: 14px; font-weight: bold; letter-spacing: 2px; color: var(--cyan); text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);">JARVIS CONSCIOUSNESS</div>
+                  <div style="font-size: 12px; font-weight: bold; letter-spacing: 2px; color: var(--cyan); opacity: 0.9;">ACTIVATED</div>
+                </div>
+              </div>
+              
+              <!-- Bottom-Left Status Subtitles -->
+              <div class="hud-overlay" style="top: auto; bottom: 20px; left: 20px; font-family: var(--font-body); font-size: 15px; line-height: 1.6; pointer-events: none; text-shadow: 0 0 8px rgba(0, 0, 0, 0.95);">
+                <div style="color: #c8e6ff; font-weight: 500; letter-spacing: 1px;">Consciousness Online.</div>
+                <div style="color: #ffffff; opacity: 0.95;">I am online, Sir.</div>
+                <div style="color: #a0c8ff; opacity: 0.95;">How may I assist you?</div>
+              </div>
+            </div>
+            
+            <div class="glass-panel" id="console-panel">
+              <div class="panel-header console-header">JARVIS CONSOLE STREAM</div>
+              <div class="console-stream" id="console-feed">
+                <!-- Autoscrolling logger lines -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column (Analytics & Agents list) -->
+          <div class="glass-panel">
+            <div class="panel-header">AI CORE ANALYTICS</div>
+            <div class="radar-wrapper">
+              <canvas id="radar-chart"></canvas>
+            </div>
+            <div class="panel-header" style="margin-top: 15px;">SYSTEM ENGINE STATUS</div>
+            <div class="agents-list" id="engine-status-list" style="max-height: 280px; overflow-y: auto; margin-bottom: 15px; flex: 0 0 auto;">
+              <div class="agent-row">
+                <div class="agent-info">
+                  <span class="agent-name">Voice Engine</span>
+                  <span class="agent-task" id="voice_engine-desc">Wake word & Speech STT/TTS</span>
+                </div>
+                <span class="agent-status active" id="voice_engine-status" style="color:var(--green); border-color:var(--green)">🟢 Healthy</span>
+              </div>
+              <div class="agent-row">
+                <div class="agent-info">
+                  <span class="agent-name">Gesture Engine</span>
+                  <span class="agent-task" id="gesture_engine-desc">MediaPipe Hand & HUD Tracking</span>
+                </div>
+                <span class="agent-status active" id="gesture_engine-status" style="color:var(--green); border-color:var(--green)">🟢 Healthy</span>
+              </div>
+              <div class="agent-row">
+                <div class="agent-info">
+                  <span class="agent-name">Memory Engine</span>
+                  <span class="agent-task" id="memory_engine-desc">Cognitive Database & Cache</span>
+                </div>
+                <span class="agent-status active" id="memory_engine-status" style="color:var(--green); border-color:var(--green)">🟢 Healthy</span>
+              </div>
+              <div class="agent-row">
+                <div class="agent-info">
+                  <span class="agent-name">Automation Engine</span>
+                  <span class="agent-task" id="automation_engine-desc">Workflow Triggers & Scheduling</span>
+                </div>
+                <span class="agent-status active" id="automation_engine-status" style="color:var(--green); border-color:var(--green)">🟢 Healthy</span>
+              </div>
+              <div class="agent-row">
+                <div class="agent-info">
+                  <span class="agent-name">Security Engine</span>
+                  <span class="agent-task" id="security_engine-desc">Threat Monitor & Health Checks</span>
+                </div>
+                <span class="agent-status active" id="security_engine-status" style="color:var(--green); border-color:var(--green)">🟢 Healthy</span>
+              </div>
+              <div class="agent-row">
+                <div class="agent-info">
+                  <span class="agent-name">AI Agent Manager</span>
+                  <span class="agent-task" id="ai_agents-desc">Multi-Agent Synaptic Control</span>
+                </div>
+                <span class="agent-status active" id="ai_agents-status" style="color:var(--green); border-color:var(--green)">🟢 Healthy</span>
+              </div>
+            </div>
+
+            <div class="panel-header" style="margin-top: 10px;">ACTIVE AGENTS DIRECTORY</div>
+            <div class="agents-list" id="agents-feed-list">
+              <!-- Agents status rows -->
+            </div>
+          </div>
+
+        </div>
+
+        <!-- PAGE 2: CHAT CENTER -->
+        <div class="app-page" id="page-chat">
+          <div class="glass-panel" style="flex: 1;">
+            <div class="panel-header">AI SYNAPTIC COMMUNICATIONS</div>
+            <div class="chat-box">
+              <div class="chat-messages" id="chat-feed">
+                <div class="chat-msg jarvis">Greetings, sir. Neural connection established. How can I assist you today?</div>
+              </div>
+              <div class="typing-indicator" id="chat-typing">JARVIS is processing...</div>
+              <div class="chat-input-row">
+                <input type="text" class="chat-input" id="chat-in-field" placeholder="Enter voice command or prompt..." onkeydown="handleChatKey(event)">
+                <button class="chat-send-btn" onclick="sendChatMessage()">
+                  <svg style="width:20px;height:20px;fill:var(--cyan)" viewBox="0 0 24 24"><path d="m21.426 11.097-17-8a1 1 0 0 0-1.414 1.152l2.242 7.751 7.752 1 7.752 1 2.242 7.751a1 1 0 0 0 1.414 1.152l17-8a1 1 0 0 0 0-1.806z"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGE 3: MEMORY ENGINE -->
+        <div class="app-page" id="page-memory">
+          <div class="glass-panel" style="flex: 1;">
+            <div class="panel-header">COGNITIVE MEMORY ALLOCATION</div>
+            <div class="memory-grid" id="memory-cards-grid">
+              <!-- Memory addresses populated by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGE 4: AUTOMATION CENTER -->
+        <div class="app-page" id="page-automation">
+          <div class="glass-panel" style="flex: 1;">
+            <div class="panel-header">WORKFLOW AUTOMATION MODULES</div>
+            <div class="automation-list" id="auto-tasks-list">
+              <!-- Automated tasks with switches -->
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGE 5: SECURITY CENTER -->
+        <div class="app-page" id="page-security">
+          <div class="glass-panel radar-sweep-panel">
+            <div class="panel-header" style="position: absolute; top: 15px; left: 15px;">THREAT VECTOR RADAR SCAN</div>
+            <canvas id="security-radar"></canvas>
+          </div>
+          <div class="sec-stats">
+            <div class="glass-panel sec-stat-card">
+              <span class="sec-stat-title">Firewall Status</span>
+              <div class="sec-stat-value green">ACTIVE / ONLINE</div>
+            </div>
+            <div class="glass-panel sec-stat-card">
+              <span class="sec-stat-title">VPN Tunnel</span>
+              <div class="sec-stat-value green">SECURED (AES-256)</div>
+            </div>
+            <div class="glass-panel sec-stat-card">
+              <span class="sec-stat-title">Intrusion Attempts</span>
+              <div class="sec-stat-value red">0 BLOCKED</div>
+            </div>
+            <div class="glass-panel sec-stat-card">
+              <span class="sec-stat-title">Quantum Encryption</span>
+              <div class="sec-stat-value green">STABLE (128-BIT)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGE 6: MULTI AI AGENTS -->
+        <div class="app-page" id="page-agents">
+          <div class="glass-panel" style="flex: 1;">
+            <div class="panel-header">7-AGENT SYNAPTIC GRID MONITOR</div>
+            <div class="agents-grid" id="agents-detail-grid">
+              <!-- Detail cards for the 7 agents -->
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGE 7: COMMAND CENTER WIDGETS -->
+        <div class="app-page" id="page-widgets">
+          <!-- Weather & Clock -->
+          <div class="glass-panel widget-box">
+            <div class="panel-header">LOCAL METEOROLOGY INTEL</div>
+            <div class="weather-info">
+              <div>
+                <div style="font-size: 20px; font-weight: 700;" id="weather-city">Location Loading...</div>
+                <div style="font-family: var(--font-mono); font-size: 13px; color: var(--neon-blue); margin-top: 4px;" id="weather-desc">Syncing with Open-Meteo</div>
+              </div>
+              <div class="temp-val" id="weather-temp">--°C</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+              <div class="vital-card">
+                <span class="vital-title" style="margin-bottom: 2px;">Humidity</span>
+                <div style="font-family: var(--font-display); font-size: 16px; color: var(--cyan);" id="weather-humidity">--%</div>
+              </div>
+              <div class="vital-card">
+                <span class="vital-title" style="margin-bottom: 2px;">Wind Speed</span>
+                <div style="font-family: var(--font-display); font-size: 16px; color: var(--cyan);" id="weather-wind">-- km/h</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Notes & Shortcuts -->
+          <div class="glass-panel widget-box">
+            <div class="panel-header">COGNITIVE NOTE STORAGE</div>
+            <textarea class="notes-area" id="jarvis-notes" placeholder="Type tactical logs or notes here... Auto-saves locally." oninput="saveNotes()"></textarea>
+            <div class="panel-header" style="margin-top: 15px; margin-bottom: 8px;">QUICK SYSTEM UTILITIES</div>
+            <div class="quick-launcher-grid">
+              <div class="launcher-btn" onclick="triggerQuickAction('browser')">🌐 OPEN BROWSER</div>
+              <div class="launcher-btn" onclick="triggerQuickAction('explorer')">📂 OPEN DISK</div>
+              <div class="launcher-btn" onclick="triggerQuickAction('terminal')">⚡ ACTIVATE TERM</div>
+              <div class="launcher-btn" onclick="triggerQuickAction('optimize')">🧠 OPTIMIZE CORE</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGE 8: DIAGNOSTICS CENTER -->
+        <div class="app-page" id="page-diagnostics" style="display: flex; flex-direction: column; gap: 15px; padding: 20px; flex: 1;">
+          <div class="glass-panel" style="flex: 1; display: flex; flex-direction: column; gap: 20px;">
+            <div class="panel-header">
+              <span>SYSTEM DIAGNOSTICS & MAINTENANCE COCKPIT</span>
+              <button class="boot-btn" onclick="triggerDiagnosticsScan()" style="padding: 6px 18px; font-size: 10px;">RUN FULL DIAGNOSTICS SCAN</button>
+            </div>
+            
+            <!-- Telemetry score grid -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+              <div class="vital-card" style="background: rgba(2, 8, 19, 0.5); padding: 15px; border-color: rgba(0, 255, 255, 0.2);">
+                <div class="vital-title">OS Health Score</div>
+                <div style="font-family: var(--font-display); font-size: 32px; font-weight: bold; color: var(--green); margin: 10px 0;" id="score-health">100</div>
+                <div style="font-size: 11px; color: rgba(255, 255, 255, 0.5); text-align: center;">Storage, Temp Bloat, & Connectivity</div>
+              </div>
+              <div class="vital-card" style="background: rgba(2, 8, 19, 0.5); padding: 15px; border-color: rgba(0, 255, 255, 0.2);">
+                <div class="vital-title">Performance Score</div>
+                <div style="font-family: var(--font-display); font-size: 32px; font-weight: bold; color: var(--cyan); margin: 10px 0;" id="score-perf">100</div>
+                <div style="font-size: 11px; color: rgba(255, 255, 255, 0.5); text-align: center;">Active CPU, Memory, & Auto-run Keys</div>
+              </div>
+              <div class="vital-card" style="background: rgba(2, 8, 19, 0.5); padding: 15px; border-color: rgba(0, 255, 255, 0.2);">
+                <div class="vital-title">Security Score</div>
+                <div style="font-family: var(--font-display); font-size: 32px; font-weight: bold; color: var(--green); margin: 10px 0;" id="score-security">100</div>
+                <div style="font-size: 11px; color: rgba(255, 255, 255, 0.5); text-align: center;">Security Services & Port Posture</div>
+              </div>
+              <div class="vital-card" style="background: rgba(2, 8, 19, 0.5); padding: 15px; border-color: rgba(0, 255, 255, 0.2);">
+                <div class="vital-title">Stability Score</div>
+                <div style="font-family: var(--font-display); font-size: 32px; font-weight: bold; color: var(--cyan); margin: 10px 0;" id="score-stability">100</div>
+                <div style="font-size: 11px; color: rgba(255, 255, 255, 0.5); text-align: center;">Windows Indexer & Update status</div>
+              </div>
+            </div>
+
+            <!-- HUD Component Status Indicators -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+              <div class="vital-card" style="background: rgba(2, 8, 19, 0.4); padding: 10px 15px; border-color: rgba(0, 191, 255, 0.15); display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-family: var(--font-mono); font-size: 11px; color: var(--white); text-shadow: 0 0 4px var(--cyan);">Frontend Status</span>
+                <span id="diag-status-frontend" style="font-family: var(--font-mono); font-size: 11px; font-weight: bold; color: var(--green);">🟢 RUNNING</span>
+              </div>
+              <div class="vital-card" style="background: rgba(2, 8, 19, 0.4); padding: 10px 15px; border-color: rgba(0, 191, 255, 0.15); display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-family: var(--font-mono); font-size: 11px; color: var(--white); text-shadow: 0 0 4px var(--cyan);">Backend Status</span>
+                <span id="diag-status-backend" style="font-family: var(--font-mono); font-size: 11px; font-weight: bold; color: var(--green);">🟢 CONNECTED</span>
+              </div>
+              <div class="vital-card" style="background: rgba(2, 8, 19, 0.4); padding: 10px 15px; border-color: rgba(0, 191, 255, 0.15); display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-family: var(--font-mono); font-size: 11px; color: var(--white); text-shadow: 0 0 4px var(--cyan);">API Keys Config</span>
+                <span id="diag-status-api" style="font-family: var(--font-mono); font-size: 11px; font-weight: bold; color: var(--amber);">🟡 CHECKING</span>
+              </div>
+              <div class="vital-card" style="background: rgba(2, 8, 19, 0.4); padding: 10px 15px; border-color: rgba(0, 191, 255, 0.15); display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-family: var(--font-mono); font-size: 11px; color: var(--white); text-shadow: 0 0 4px var(--cyan);">Event Handlers</span>
+                <span id="diag-status-handlers" style="font-family: var(--font-mono); font-size: 11px; font-weight: bold; color: var(--green);">🟢 AUDITED</span>
+              </div>
+            </div>
+
+            <!-- Backend AI & Cloud Routing status -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+              <div class="vital-card" style="background: rgba(2, 8, 19, 0.4); padding: 10px 15px; border-color: rgba(0, 191, 255, 0.15); display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-family: var(--font-mono); font-size: 11px; color: var(--white); text-shadow: 0 0 4px var(--cyan);">GROQ_API_KEY LOADED</span>
+                <span id="diag-groq-key" style="font-family: var(--font-mono); font-size: 11px; font-weight: bold; color: var(--red);">🔴 FALSE</span>
+              </div>
+              <div class="vital-card" style="background: rgba(2, 8, 19, 0.4); padding: 10px 15px; border-color: rgba(0, 191, 255, 0.15); display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-family: var(--font-mono); font-size: 11px; color: var(--white); text-shadow: 0 0 4px var(--cyan);">JARVIS_ENABLE_GROQ</span>
+                <span id="diag-groq-enabled" style="font-family: var(--font-mono); font-size: 11px; font-weight: bold; color: var(--red);">🔴 FALSE</span>
+              </div>
+              <div class="vital-card" style="background: rgba(2, 8, 19, 0.4); padding: 10px 15px; border-color: rgba(0, 191, 255, 0.15); display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-family: var(--font-mono); font-size: 11px; color: var(--white); text-shadow: 0 0 4px var(--cyan);">AI ROUTING STATUS</span>
+                <span id="diag-routing-status" style="font-family: var(--font-mono); font-size: 11px; font-weight: bold; color: var(--red);">🔴 LOCAL-ONLY</span>
+              </div>
+            </div>
+
+            <!-- Diagnostics results lists -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; flex: 1; min-height: 0;">
+              <!-- Detected Problems -->
+              <div class="glass-panel" style="background: rgba(1, 6, 12, 0.4); border-color: rgba(0, 191, 255, 0.15); display: flex; flex-direction: column;">
+                <div class="panel-header" style="font-size: 11px; border-bottom: 1px solid rgba(0, 191, 255, 0.1);">DETECTED ANOMALIES & RECOMMENDED REPAIRS</div>
+                <div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;" id="diagnostics-issues-list">
+                  <div style="color: var(--green); text-align: center; margin-top: 40px; font-family: var(--font-mono); letter-spacing: 1px;">🟢 NO ANOMALIES DETECTED. SYSTEM RUNNING OPTIMALLY.</div>
+                </div>
+              </div>
+
+              <!-- Repair execution report log -->
+              <div class="glass-panel" style="background: rgba(1, 6, 12, 0.4); border-color: rgba(0, 191, 255, 0.15); display: flex; flex-direction: column;">
+                <div class="panel-header" style="font-size: 11px; border-bottom: 1px solid rgba(0, 191, 255, 0.1);">
+                  <span>MAINTENANCE ENGINE & REPAIR REPORTS</span>
+                  <button class="boot-btn" onclick="triggerSystemSafeRepairs()" style="padding: 4px 12px; font-size: 9px; border-color: var(--green); color: var(--green);">RUN ALL SAFE REPAIRS</button>
+                </div>
+                <div style="flex: 1; overflow-y: auto; font-family: var(--font-mono); font-size: 12px; line-height: 1.5; color: var(--green); display: flex; flex-direction: column; gap: 8px;" id="diagnostics-reports-feed">
+                  <div>[READY] Waiting for telemetry scan or auto-repair execution triggers...</div>
+                </div>
+              </div>
+            </div>
+            <!-- Raw API Response Diagnostics Panel -->
+            <div class="glass-panel" style="background: rgba(1, 6, 12, 0.45); border-color: rgba(0, 191, 255, 0.2); display: flex; flex-direction: column; height: 180px; margin-top: 5px;">
+              <div class="panel-header" style="font-size: 11px; border-bottom: 1px solid rgba(0, 191, 255, 0.1); padding: 6px 12px; display: flex; justify-content: space-between; align-items: center;">
+                <span>RAW API RESPONSE DIAGNOSTICS LOG</span>
+                <span id="api-diag-timestamp" style="font-size: 9px; color: var(--cyan); font-family: var(--font-mono);">[IDLE]</span>
+              </div>
+              <div style="flex: 1; overflow-y: auto; font-family: var(--font-mono); font-size: 11px; color: var(--cyan); padding: 12px; display: flex; flex-direction: column; gap: 8px; background: rgba(2, 8, 19, 0.5);" id="api-raw-response-feed">
+                <div style="color: rgba(255, 255, 255, 0.45);">[API SYSTEM] Ready. Trigger "CONNECT / TEST" on the Settings tab to populate real-time diagnostics.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGE 9: SETTINGS CONSOLE -->
+        <div class="app-page" id="page-settings" style="display: flex; flex-direction: column; gap: 15px; padding: 20px; flex: 1; overflow-y: auto;">
+          <div class="glass-panel" style="flex: 1; display: flex; flex-direction: column; gap: 20px;">
+            <div class="panel-header">
+              <span>JARVIS SYSTEM CONFIGURATION CONSOLE</span>
+              <button class="boot-btn" onclick="saveSettingsForm()" style="padding: 6px 18px; font-size: 10px; border-color: var(--green); color: var(--green);">SAVE SYSTEM CONFIG</button>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; flex: 1; min-height: 0; overflow-y: auto;">
+              <!-- Left: General / Assistant config -->
+              <div class="glass-panel" style="background: rgba(1, 6, 12, 0.4); border-color: rgba(0, 191, 255, 0.15); display: flex; flex-direction: column; gap: 15px; padding: 15px; overflow-y: auto;">
+                <div class="panel-header" style="font-size: 11px; border-bottom: 1px solid rgba(0, 191, 255, 0.1); margin-bottom: 10px;">CORE ASSISTANT CONFIGURATION</div>
+                
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                  <label style="font-family: var(--font-mono); font-size: 11px; color: var(--cyan);">WAKE WORD</label>
+                  <input type="text" id="setting-wake-word" class="chat-input" style="background: rgba(2, 8, 19, 0.6); border: 1px solid rgba(0, 191, 255, 0.3); border-radius: 4px; color: var(--white); font-family: var(--font-mono); font-size: 12px; padding: 8px;" placeholder="e.g. jarvis">
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                  <label style="font-family: var(--font-mono); font-size: 11px; color: var(--cyan);">TTS ENGINE PROVIDER</label>
+                  <input type="text" id="setting-tts-provider" class="chat-input" style="background: rgba(2, 8, 19, 0.6); border: 1px solid rgba(0, 191, 255, 0.3); border-radius: 4px; color: var(--white); font-family: var(--font-mono); font-size: 12px; padding: 8px;" placeholder="e.g. edge, piper, elevenlabs">
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                  <label style="font-family: var(--font-mono); font-size: 11px; color: var(--cyan);">LANGUAGE</label>
+                  <input type="text" id="setting-language" class="chat-input" style="background: rgba(2, 8, 19, 0.6); border: 1px solid rgba(0, 191, 255, 0.3); border-radius: 4px; color: var(--white); font-family: var(--font-mono); font-size: 12px; padding: 8px;" placeholder="e.g. en or tr">
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                  <label style="font-family: var(--font-mono); font-size: 11px; color: var(--cyan);">SAFE MODE POSTURE</label>
+                  <label class="toggle-switch" style="margin-top: 5px;">
+                    <input type="checkbox" id="setting-safe-mode" onchange="toggleSettingSafeMode(this.checked)">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Right: API Keys config -->
+              <div class="glass-panel" style="background: rgba(1, 6, 12, 0.4); border-color: rgba(0, 191, 255, 0.15); display: flex; flex-direction: column; gap: 15px; padding: 15px; overflow-y: auto;">
+                <div class="panel-header" style="font-size: 11px; border-bottom: 1px solid rgba(0, 191, 255, 0.1); margin-bottom: 10px;">API KEYS & CLOUD PROVIDERS</div>
+                
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                  <label style="font-family: var(--font-mono); font-size: 11px; color: var(--cyan);">GEMINI API KEY</label>
+                  <div style="display: flex; gap: 10px;">
+                    <input type="password" id="setting-gemini-key" class="chat-input" style="flex: 1; background: rgba(2, 8, 19, 0.6); border: 1px solid rgba(0, 191, 255, 0.3); border-radius: 4px; color: var(--white); font-family: var(--font-mono); font-size: 12px; padding: 8px;" placeholder="Enter Gemini key...">
+                    <button class="boot-btn" onclick="testApiKey('gemini')" style="padding: 6px 12px; font-size: 10px;">CONNECT / TEST</button>
+                  </div>
+                  <span id="test-status-gemini" style="font-family: var(--font-mono); font-size: 10px; color: var(--neon-blue); display: none; margin-top: 2px;"></span>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                  <label style="font-family: var(--font-mono); font-size: 11px; color: var(--cyan);">GROQ API KEY</label>
+                  <div style="display: flex; gap: 10px;">
+                    <input type="password" id="setting-groq-key" class="chat-input" style="flex: 1; background: rgba(2, 8, 19, 0.6); border: 1px solid rgba(0, 191, 255, 0.3); border-radius: 4px; color: var(--white); font-family: var(--font-mono); font-size: 12px; padding: 8px;" placeholder="Enter Groq key...">
+                    <button class="boot-btn" onclick="testApiKey('groq')" style="padding: 6px 12px; font-size: 10px;">CONNECT / TEST</button>
+                  </div>
+                  <span id="test-status-groq" style="font-family: var(--font-mono); font-size: 10px; color: var(--neon-blue); display: none; margin-top: 2px;"></span>
+                </div>
+                
+                <div style="border-top: 1px dashed rgba(0, 191, 255, 0.2); padding-top: 15px; margin-top: 5px; font-size: 10px; color: rgba(255, 255, 255, 0.5); line-height: 1.5; font-family: var(--font-mono);">
+                  🤖 Groq API key is used for voice command routing. Gemini API key is used for vision services. Non-sensitive settings write to settings.json, keys stay env-only.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ── HIDDEN DEVELOPER DIAGNOSTICS PANEL ────────────────────────── -->
+  <div id="dev-diagnostics-panel" style="display: none; position: fixed; right: 20px; top: 80px; width: 340px; background: rgba(7, 16, 28, 0.95); border: 2px solid var(--neon-blue); border-radius: 8px; padding: 15px; box-shadow: 0 0 25px rgba(0, 191, 255, 0.35); z-index: 10005; font-family: var(--font-mono); font-size: 11px;">
+    <div style="font-weight: bold; color: var(--cyan); border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+      <span>⚙️ INTERACTION DIAGNOSTICS</span>
+      <span onclick="toggleDevDiagnostics()" style="cursor: pointer; color: var(--red);">[CLOSE]</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; justify-content: space-between;">
+        <span>Interactive Elements Found:</span>
+        <span id="diag-btn-found" style="font-weight: bold; color: var(--white);">0</span>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span>Working:</span>
+        <span id="diag-btn-working" style="font-weight: bold; color: var(--green);">0</span>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span>Broken:</span>
+        <span id="diag-btn-broken" style="font-weight: bold; color: var(--red);">0</span>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span>Blocked:</span>
+        <span id="diag-btn-blocked" style="font-weight: bold; color: var(--amber);">0</span>
+      </div>
+      <div style="margin-top: 5px; border-top: 1px dashed var(--border-color); padding-top: 5px;">
+        <button class="boot-btn" onclick="runDiagnosticsAudit()" style="width: 100%; padding: 6px; font-size: 9px; border-color: var(--cyan); color: var(--cyan);">RE-AUDIT & REPAIR</button>
+      </div>
+      <div id="diag-log-container" style="max-height: 120px; overflow-y: auto; background: rgba(0,0,0,0.4); border: 1px solid rgba(0, 191, 255, 0.15); padding: 5px; font-size: 9px; color: var(--neon-blue); margin-top: 5px;">
+        <!-- Audit logs go here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ── FRONTEND LOGIC ──────────────────────────────────────────── -->
+  <script>
+    /* ── CINEMATIC BOOT RUNTIME ─────────────────────────────────── */
+    const staticBootLogs = [
+      { text: "[BOOT] INITIALIZING NEURAL PATHWAY INTEGRATION...", type: "info" },
+      { text: "[BOOT] CONNECTING TO HOST SYSTEM (OS: WINDOWS)...", type: "info" },
+      { text: "[BOOT] STARTING CYBER DETECTOR AND MICROPHONE INTERFACE...", type: "info" },
+      { text: "[BOOT] LOADING DATA NODE GRID MATRIX...", type: "info" },
+      { text: "[BOOT] ENABLING 128-BIT QUANTUM CRYPTO SHIELD...", type: "success" },
+      { text: "[BOOT] SETTING UP 7 SPECIALIZED AI AGENTS...", type: "info" },
+      { text: "[BOOT] PRE-CACHING COGNITIVE MEMORY SECTORS...", type: "info" },
+      { text: "[BOOT] ESTABLISHING FLIGHT & RADAR VECTOR MAPS...", type: "info" },
+      { text: "[BOOT] INITIALIZING GESTURE CONTROL CAPABILITY...", type: "success" },
+      { text: "[BOOT] SYSTEM HEALTH CHECK: CPU/RAM/VRAM PASS...", type: "success" },
+      { text: "[BOOT] LAUNCHING SYNAPTIC USER HUD MATRIX...", type: "info" },
+      { text: "[BOOT] JARVIS v7.0 ONLINE. WELCOME BACK, SIR.", type: "success" }
+    ];
+
+    let bootLogs = [];
+    let currentLogIndex = 0;
+    const logsBox = document.getElementById("boot-logs-box");
+    const progressBar = document.getElementById("boot-progress");
+    let pywebviewChecked = false;
+    let usingRealLogs = false;
+
+    function runBootSequence() {
+      if (currentLogIndex === 0 && !pywebviewChecked) {
+        pywebviewChecked = true;
+        setTimeout(runBootSequence, 300);
+        return;
+      }
+
+      if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.get_boot_logs === 'function') {
+        usingRealLogs = true;
+        window.pywebview.api.get_boot_logs().then(logs => {
+          if (logs && logs.length > 0) {
+            bootLogs = logs.map(item => {
+              let type = "info";
+              if (item.kind === "ok" || item.kind === "success") type = "success";
+              if (item.kind === "warn") type = "warn";
+              return { text: item.message, type: type };
+            });
+          }
+          animateNextLog();
+        }).catch(err => {
+          console.error("Error fetching real boot logs:", err);
+          useFallbackLogs();
+        });
+      } else {
+        useFallbackLogs();
+      }
+    }
+
+    function useFallbackLogs() {
+      bootLogs = staticBootLogs;
+      animateNextLog();
+    }
+
+    function animateNextLog() {
+      if (currentLogIndex < bootLogs.length) {
+        const log = bootLogs[currentLogIndex];
+        const line = document.createElement("div");
+        line.className = "boot-log-line " + (log.type === "success" ? "success" : log.type === "warn" ? "warn" : "");
+        line.innerText = log.text;
+        logsBox.appendChild(line);
+        logsBox.scrollTop = logsBox.scrollHeight;
+
+        currentLogIndex++;
+        const progressPercent = (currentLogIndex / Math.max(bootLogs.length, 12)) * 100;
+        progressBar.style.width = Math.min(progressPercent, 100) + "%";
+
+        if (usingRealLogs) {
+          const lastLogText = log.text.toLowerCase();
+          const isComplete = lastLogText.includes("ready") || lastLogText.includes("operational");
+          
+          if (currentLogIndex >= bootLogs.length && !isComplete) {
+            setTimeout(runBootSequence, 300);
+          } else {
+            setTimeout(animateNextLog, 100 + Math.random() * 100);
+          }
+        } else {
+          setTimeout(animateNextLog, 250 + Math.random() * 150);
+        }
+      } else {
+        setTimeout(completeBoot, 600);
+      }
+    }
+
+    function skipBoot() {
+      completeBoot();
+    }
+
+    function completeBoot() {
+      const bs = document.getElementById("boot-screen");
+      bs.classList.add("fade-out");
+      setTimeout(() => {
+        bs.style.display = "none";
+      }, 1000);
+      logConsole("SYSTEM INITIALIZED. JARVIS v7.0 ON-STANDBY.");
+      logConsole("Ready for user input. Activation phrase: 'Jarvis' or Single Clap.");
+    }
+
+    // Start boot automatically
+    window.addEventListener("load", () => {
+      try { runBootSequence(); } catch (e) { console.error("Error in runBootSequence:", e); }
+      try { initThreeJS(); } catch (e) { console.error("Error in initThreeJS:", e); }
+      try { animateBg(); } catch (e) { console.error("Error in animateBg:", e); }
+      try { initSparklines(); } catch (e) { console.error("Error in initSparklines:", e); }
+      try { initRadarChart(); } catch (e) { console.error("Error in initRadarChart:", e); }
+      try { initSecurityRadar(); } catch (e) { console.error("Error in initSecurityRadar:", e); }
+      try { buildAgentsList(); } catch (e) { console.error("Error in buildAgentsList:", e); }
+      try { buildMemoryGrid(); } catch (e) { console.error("Error in buildMemoryGrid:", e); }
+      try { buildAutomationTasks(); } catch (e) { console.error("Error in buildAutomationTasks:", e); }
+      try { loadNotes(); } catch (e) { console.error("Error in loadNotes:", e); }
+      try { fetchWeather(); } catch (e) { console.error("Error in fetchWeather:", e); }
+      setTimeout(() => {
+        try { triggerDiagnosticsScan(); } catch (e) { console.error("Error in triggerDiagnosticsScan:", e); }
+      }, 4000); // Run initial diagnostics scan after boot sequence completes
+    });
+
+    /* ── FULLSCREEN PARTICLES BACKGROUND ────────────────────────── */
+    const bgCanvas = document.getElementById("bg-canvas");
+    const bgCtx = bgCanvas.getContext("2d");
+    let particles = [];
+    const maxParticles = 140;
+
+    function resizeBgCanvas() {
+      bgCanvas.width = window.innerWidth;
+      bgCanvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resizeBgCanvas);
+    resizeBgCanvas();
+
+    class Particle {
+      constructor() {
+        this.x = Math.random() * bgCanvas.width;
+        this.y = Math.random() * bgCanvas.height;
+        this.vx = (Math.random() - 0.5) * 0.3;
+        this.vy = (Math.random() - 0.5) * 0.3;
+        this.radius = Math.random() * 1.5;
+        this.alpha = Math.random() * 0.5 + 0.1;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        if (this.x < 0 || this.x > bgCanvas.width) this.vx *= -1;
+        if (this.y < 0 || this.y > bgCanvas.height) this.vy *= -1;
+      }
+      draw() {
+        bgCtx.beginPath();
+        bgCtx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        bgCtx.fillStyle = `rgba(0, 191, 255, ${this.alpha})`;
+        bgCtx.fill();
+      }
+    }
+
+    for (let i = 0; i < maxParticles; i++) {
+      particles.push(new Particle());
+    }
+
+    function animateBg() {
+      bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+      
+      // Draw grid
+      bgCtx.strokeStyle = "rgba(0, 191, 255, 0.02)";
+      bgCtx.lineWidth = 1;
+      const gridSize = 60;
+      for (let x = 0; x < bgCanvas.width; x += gridSize) {
+        bgCtx.beginPath();
+        bgCtx.moveTo(x, 0);
+        bgCtx.lineTo(x, bgCanvas.height);
+        bgCtx.stroke();
+      }
+      for (let y = 0; y < bgCanvas.height; y += gridSize) {
+        bgCtx.beginPath();
+        bgCtx.moveTo(0, y);
+        bgCtx.lineTo(bgCanvas.width, y);
+        bgCtx.stroke();
+      }
+
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+
+      requestAnimationFrame(animateBg);
+    }
+
+    /* ── PAGE SWITCHING ────────────────────────────────────────── */
+    function switchPage(pageId, navEl) {
+      document.querySelectorAll(".nav-item").forEach(el => el.classList.remove("active"));
+      navEl.classList.add("active");
+
+      document.querySelectorAll(".app-page").forEach(page => page.classList.remove("active"));
+      document.getElementById("page-" + pageId).classList.add("active");
+
+      logConsole("SWAP NAVIGATION PAGE: " + pageId.toUpperCase());
+      if (pageId === "settings") {
+        try { loadSettingsForm(); } catch (e) { console.error("Error in loadSettingsForm:", e); }
+      }
+    }
+
+    /* ── THREE.JS HOLOGRAPHIC CORE ──────────────────────────────── */
+    let scene, camera, renderer, faceMesh, facePoints, leftEye, rightEye, rings = [], particleSystem, neuralLines;
+    let pulseScale = 1.0;
+
+    function initThreeJS() {
+      if (typeof THREE === 'undefined') {
+        console.warn("Three.js not loaded. Holographic core visual will be offline.");
+        const container = document.getElementById("threejs-container");
+        if (container) {
+          container.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--red); font-family: var(--font-mono); font-size: 13px; text-align: center; padding: 20px;">
+              <div style="font-weight: bold; letter-spacing: 1px;">⚠️ HOLOGRAPHIC CORE REDIRECTED</div>
+              <div style="font-size: 10px; color: var(--neon-blue); margin-top: 8px;">Three.js graphics engine could not be resolved (offline mode). 2D telemetry vectors remaining active.</div>
+            </div>
+          `;
+        }
+        return;
+      }
+      const container = document.getElementById("threejs-container");
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+      camera.position.z = 10;
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      container.appendChild(renderer.domElement);
+
+      // Create Holographic Face Geometry
+      const faceGeom = new THREE.BufferGeometry();
+      const points = [];
+      const stepsU = 60;
+      const stepsV = 60;
+      
+      for (let i = 0; i <= stepsU; i++) {
+        const u = -Math.PI / 2 + (Math.PI * i) / stepsU; // left to right
+        for (let j = 0; j <= stepsV; j++) {
+          const v = -Math.PI / 2.2 + (Math.PI / 1.1 * j) / stepsV; // bottom to top
+          
+          let r = 2.2; // base radius
+          
+          // Spherical coordinates
+          let x = r * Math.cos(v) * Math.sin(u);
+          let y = r * Math.sin(v);
+          let z = r * Math.cos(v) * Math.cos(u);
+          
+          // Nose: center line x close to 0, y close to 0
+          const noseProfile = Math.exp(-Math.pow(u / 0.16, 2)) * Math.exp(-Math.pow(v / 0.38, 2));
+          z += noseProfile * 0.72; // push nose forward
+          
+          // Nose bridge
+          if (v > 0 && v < 0.32 && Math.abs(u) < 0.1) {
+            z += 0.28 * (1 - Math.abs(u)/0.1);
+          }
+          
+          // Eye sockets: left eye around u = -0.4, v = 0.25; right eye around u = 0.4, v = 0.25
+          const dLeftEye = Math.sqrt(Math.pow(u + 0.4, 2) + Math.pow(v - 0.25, 2));
+          const dRightEye = Math.sqrt(Math.pow(u - 0.4, 2) + Math.pow(v - 0.25, 2));
+          
+          if (dLeftEye < 0.25) {
+            z -= (0.25 - dLeftEye) * 0.85;
+          }
+          if (dRightEye < 0.25) {
+            z -= (0.25 - dRightEye) * 0.85;
+          }
+          
+          // Brow ridge
+          const browFactor = Math.exp(-Math.pow((v - 0.38) / 0.1, 2)) * Math.exp(-Math.pow(u / 0.8, 2));
+          z += browFactor * 0.22;
+          
+          // Cheeks
+          const dLeftCheek = Math.sqrt(Math.pow(u + 0.5, 2) + Math.pow(v + 0.1, 2));
+          const dRightCheek = Math.sqrt(Math.pow(u - 0.5, 2) + Math.pow(v + 0.1, 2));
+          if (dLeftCheek < 0.3) {
+            z += (0.3 - dLeftCheek) * 0.32;
+          }
+          if (dRightCheek < 0.3) {
+            z += (0.3 - dRightCheek) * 0.32;
+          }
+          
+          // Lips: mouth around u = 0, v = -0.3
+          const mouthY = -0.3;
+          const dMouth = Math.sqrt(u*u + Math.pow(v - mouthY, 2));
+          if (dMouth < 0.35) {
+            const lipFactor = Math.cos(dMouth * Math.PI / 0.35);
+            z += lipFactor * 0.14 * Math.sin(u * 8);
+          }
+          
+          // Chin
+          const dChin = Math.sqrt(u*u + Math.pow(v + 0.7, 2));
+          if (dChin < 0.25) {
+            z += (0.25 - dChin) * 0.42;
+          }
+          
+          points.push(x, y, z);
+        }
+      }
+      
+      faceGeom.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+      
+      const indices = [];
+      for (let i = 0; i < stepsU; i++) {
+        for (let j = 0; j < stepsV; j++) {
+          const a = i * (stepsV + 1) + j;
+          const b = i * (stepsV + 1) + j + 1;
+          const c = (i + 1) * (stepsV + 1) + j;
+          const d = (i + 1) * (stepsV + 1) + j + 1;
+          
+          indices.push(a, c, b);
+          indices.push(b, c, d);
+        }
+      }
+      faceGeom.setIndex(indices);
+      faceGeom.computeVertexNormals();
+
+      // Face Wireframe Mesh
+      const faceMat = new THREE.MeshBasicMaterial({
+        color: 0x00BFFF,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.3,
+        blending: THREE.AdditiveBlending
+      });
+      faceMesh = new THREE.Mesh(faceGeom, faceMat);
+      scene.add(faceMesh);
+
+      // Face Point Cloud (Overlay grid vertices as dots)
+      const facePointsMat = new THREE.PointsMaterial({
+        color: 0x00FFFF,
+        size: 0.05,
+        transparent: true,
+        opacity: 0.75,
+        blending: THREE.AdditiveBlending
+      });
+      facePoints = new THREE.Points(faceGeom, facePointsMat);
+      faceMesh.add(facePoints);
+
+      // Glowing Blue Eyes
+      const eyeGeom = new THREE.SphereGeometry(0.12, 16, 16);
+      const eyeMat = new THREE.MeshBasicMaterial({
+        color: 0x00FFFF,
+        transparent: true,
+        opacity: 0.95,
+        blending: THREE.AdditiveBlending
+      });
+      
+      leftEye = new THREE.Mesh(eyeGeom, eyeMat);
+      leftEye.position.set(-0.76, 0.48, 1.48);
+      faceMesh.add(leftEye);
+      
+      rightEye = new THREE.Mesh(eyeGeom, eyeMat);
+      rightEye.position.set(0.76, 0.48, 1.48);
+      faceMesh.add(rightEye);
+
+      // Concentric Torus HUD Rings
+      const ringParams = [
+        { r: 3.4, t: 0.02, color: 0x00BFFF, rx: 0.005, ry: 0.003 },
+        { r: 4.0, t: 0.03, color: 0x00FFFF, rx: -0.003, ry: 0.006 },
+        { r: 4.6, t: 0.02, color: 0x00FF7F, rx: 0.004, ry: -0.004 }
+      ];
+
+      ringParams.forEach(p => {
+        const rGeom = new THREE.TorusGeometry(p.r, p.t, 8, 64);
+        const rMat = new THREE.MeshBasicMaterial({
+          color: p.color,
+          wireframe: true,
+          transparent: true,
+          opacity: 0.35
+        });
+        const mesh = new THREE.Mesh(rGeom, rMat);
+        mesh.rotation.x = Math.random() * Math.PI;
+        mesh.rotation.y = Math.random() * Math.PI;
+        scene.add(mesh);
+        rings.push({ mesh, rx: p.rx, ry: p.ry });
+      });
+
+      // Holographic Particle Field (Background ambience)
+      const particleCount = 600;
+      const particleGeom = new THREE.BufferGeometry();
+      const positions = new Float32Array(particleCount * 3);
+
+      for (let i = 0; i < particleCount * 3; i += 3) {
+        const radius = 6 + Math.random() * 5;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos((Math.random() * 2) - 1);
+
+        positions[i] = radius * Math.sin(phi) * Math.cos(theta);
+        positions[i+1] = radius * Math.sin(phi) * Math.sin(theta);
+        positions[i+2] = radius * Math.cos(phi);
+      }
+
+      particleGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      
+      const pCanvas = document.createElement('canvas');
+      pCanvas.width = 16;
+      pCanvas.height = 16;
+      const pCtx = pCanvas.getContext('2d');
+      const grad = pCtx.createRadialGradient(8, 8, 0, 8, 8, 8);
+      grad.addColorStop(0, 'rgba(0,255,255,1)');
+      grad.addColorStop(1, 'rgba(0,255,255,0)');
+      pCtx.fillStyle = grad;
+      pCtx.fillRect(0,0,16,16);
+      const texture = new THREE.CanvasTexture(pCanvas);
+
+      const pMat = new THREE.PointsMaterial({
+        size: 0.12,
+        map: texture,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+
+      particleSystem = new THREE.Points(particleGeom, pMat);
+      scene.add(particleSystem);
+
+      // Connective Neural Lines
+      const lineGeom = new THREE.BufferGeometry();
+      const linePositions = [];
+      const lineCount = 50;
+      
+      for (let i = 0; i < lineCount; i++) {
+        const idx1 = Math.floor(Math.random() * particleCount) * 3;
+        const idx2 = Math.floor(Math.random() * particleCount) * 3;
+        linePositions.push(positions[idx1], positions[idx1+1], positions[idx1+2]);
+        linePositions.push(positions[idx2], positions[idx2+1], positions[idx2+2]);
+      }
+      
+      lineGeom.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+      const lineMat = new THREE.LineBasicMaterial({
+        color: 0x00BFFF,
+        transparent: true,
+        opacity: 0.12
+      });
+      neuralLines = new THREE.LineSegments(lineGeom, lineMat);
+      scene.add(neuralLines);
+
+      animateThreeJS();
+
+      window.addEventListener('resize', () => {
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      });
+    }
+
+    function animateThreeJS() {
+      if (typeof THREE === 'undefined' || !faceMesh) return;
+      requestAnimationFrame(animateThreeJS);
+
+      // Face Breathing/Oscillation rotation and motion
+      const time = Date.now() * 0.001;
+      faceMesh.rotation.y = Math.sin(time * 0.5) * 0.4;
+      faceMesh.rotation.x = Math.sin(time * 0.25) * 0.12;
+
+      // Small idle scale breathing
+      pulseScale = 1.0 + Math.sin(time * 2.0) * 0.025;
+      faceMesh.scale.set(pulseScale, pulseScale, pulseScale);
+
+      // Make eyes pulse and glow
+      const eyeScale = 1.0 + Math.sin(time * 6.0) * 0.15;
+      leftEye.scale.set(eyeScale, eyeScale, eyeScale);
+      rightEye.scale.set(eyeScale, eyeScale, eyeScale);
+
+      // Rings rotation
+      rings.forEach(r => {
+        r.mesh.rotation.x += r.rx;
+        r.mesh.rotation.y += r.ry;
+      });
+
+      // Rotate particle cloud
+      particleSystem.rotation.y -= 0.0008;
+      neuralLines.rotation.y -= 0.0008;
+
+      renderer.render(scene, camera);
+    }
+
+    function pulseCore() {
+      if (typeof THREE === 'undefined' || !faceMesh) return;
+      // Pulse scale on speech/interaction
+      let targetScale = 1.35;
+      faceMesh.scale.set(targetScale, targetScale, targetScale);
+      setTimeout(() => {
+        if (faceMesh) {
+          faceMesh.scale.set(1.0, 1.0, 1.0);
+        }
+      }, 300);
+    }
+
+    /* ── SYSTEM VITALS TELEMETRY ────────────────────────────────── */
+    const vitalsData = {
+      cpu: { val: 0, target: 45, max: 100, fill: "cpu-fill", el: "cpu-val", spark: "cpu-spark", history: [] },
+      ram: { val: 0, target: 58, max: 100, fill: "ram-fill", el: "ram-val", spark: "ram-spark", history: [] },
+      gpu: { val: 0, target: 12, max: 100, fill: "gpu-fill", el: "gpu-val", spark: "gpu-spark", history: [] },
+      disk: { val: 0, target: 72, max: 100, fill: "disk-fill", el: "disk-val", spark: "disk-spark", history: [] },
+      temp: { val: 35, target: 42, max: 100, fill: "temp-fill", el: "temp-val", spark: "temp-spark", suffix: "°C", history: [] },
+      battery: { val: 100, target: 98, max: 100, fill: "battery-fill", el: "battery-val", spark: "battery-spark", history: [] }
+    };
+
+    function initSparklines() {
+      Object.keys(vitalsData).forEach(key => {
+        const item = vitalsData[key];
+        for (let i = 0; i < 20; i++) {
+          item.history.push(item.target + (Math.random() - 0.5) * 5);
+        }
+      });
+      updateVitals();
+    }
+
+    function updateVitals() {
+      Object.keys(vitalsData).forEach(key => {
+        const item = vitalsData[key];
+        
+        // Random walk
+        item.target = Math.max(10, Math.min(item.max, item.target + (Math.random() - 0.5) * 8));
+        if (key === "battery") item.target = 98; // keep battery stable
+        
+        // Linear interpolation to smooth changes
+        item.val += (item.target - item.val) * 0.15;
+        
+        // Update Gauge Fill
+        const offset = 220 - (item.val / item.max) * 220;
+        document.getElementById(item.fill).style.strokeDashoffset = offset;
+        
+        // Update text value
+        document.getElementById(item.el).innerText = Math.round(item.val) + (item.suffix || "%");
+
+        // Update sparkline history
+        item.history.push(item.val);
+        if (item.history.length > 25) item.history.shift();
+
+        // Draw sparkline
+        const canvas = document.getElementById(item.spark);
+        if (canvas) {
+          const ctx = canvas.getContext("2d");
+          canvas.width = canvas.clientWidth;
+          canvas.height = canvas.clientHeight;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          
+          ctx.beginPath();
+          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = "rgba(0, 255, 255, 0.7)";
+          
+          const step = canvas.width / (item.history.length - 1);
+          item.history.forEach((hVal, idx) => {
+            const x = idx * step;
+            const y = canvas.height - (hVal / item.max) * canvas.height;
+            if (idx === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          });
+          ctx.stroke();
+
+          // Gradient area under curve
+          ctx.lineTo(canvas.width, canvas.height);
+          ctx.lineTo(0, canvas.height);
+          const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+          grad.addColorStop(0, "rgba(0, 255, 255, 0.15)");
+          grad.addColorStop(1, "rgba(0, 255, 255, 0)");
+          ctx.fillStyle = grad;
+          ctx.fill();
+        }
+      });
+
+      setTimeout(updateVitals, 400);
+    }
+
+    /* ── RADAR CHART (ANALYTICS) ────────────────────────────────── */
+    const radarCanvas = document.getElementById("radar-chart");
+    const radarLabels = ["Speed", "Synapses", "Memory", "Speech", "Automation", "Security"];
+    let radarValues = [85, 90, 75, 88, 70, 95];
+
+    function initRadarChart() {
+      drawRadar();
+      setInterval(() => {
+        // slightly fluctuate values
+        radarValues = radarValues.map(val => Math.max(50, Math.min(100, val + (Math.random() - 0.5) * 6)));
+        drawRadar();
+      }, 1000);
+    }
+
+    function drawRadar() {
+      if (!radarCanvas) return;
+      const ctx = radarCanvas.getContext("2d");
+      const size = 140;
+      radarCanvas.width = size;
+      radarCanvas.height = size;
+      const cx = size / 2;
+      const cy = size / 2;
+      const r = size / 2 - 20;
+
+      ctx.clearRect(0, 0, size, size);
+
+      // Concentric rings
+      ctx.strokeStyle = "rgba(0, 191, 255, 0.12)";
+      ctx.lineWidth = 1;
+      for (let j = 1; j <= 4; j++) {
+        const currR = (r / 4) * j;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const angle = (Math.PI / 3) * i - Math.PI / 2;
+          const x = cx + currR * Math.cos(angle);
+          const y = cy + currR * Math.sin(angle);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+      }
+
+      // Draw axis lines
+      ctx.strokeStyle = "rgba(0, 191, 255, 0.25)";
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i - Math.PI / 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + r * Math.cos(angle), cy + r * Math.sin(angle));
+        ctx.stroke();
+      }
+
+      // Fill data polygon
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i - Math.PI / 2;
+        const valPct = radarValues[i] / 100;
+        const x = cx + (r * valPct) * Math.cos(angle);
+        const y = cy + (r * valPct) * Math.sin(angle);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = "rgba(0, 255, 255, 0.22)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0, 255, 255, 0.85)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Labels
+      ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+      ctx.font = "9px Rajdhani";
+      ctx.textAlign = "center";
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i - Math.PI / 2;
+        const x = cx + (r + 12) * Math.cos(angle);
+        const y = cy + (r + 12) * Math.sin(angle) + 3;
+        ctx.fillText(radarLabels[i], x, y);
+      }
+    }
+
+    /* ── ACTIVE AGENTS MATRIX ───────────────────────────────────── */
+    const agents = [
+      { name: "Tony", role: "Executive Command", task: "Awaiting inputs...", status: "idle", rate: 0.05 },
+      { name: "Friday", role: "Interface Core", task: "Directing neural GUI matrix", status: "active", rate: 0.15 },
+      { name: "Veronica", role: "Defensive Grid", task: "Monitoring system firewalls", status: "standby", rate: 0.02 },
+      { name: "Jarvis-Web", role: "Information Fetch", task: "Retrieving local weather nodes", status: "active", rate: 0.18 },
+      { name: "Edith", role: "Orbital Uplink", task: "Tracking ISS & satellite feeds", status: "active", rate: 0.25 },
+      { name: "Hulkbuster", role: "Workflow Automator", task: "System sweep standing by", status: "standby", rate: 0.05 },
+      { name: "Vision", role: "Quantum Analysis", task: "Verifying encrypted packets", status: "active", rate: 0.12 }
+    ];
+
+    function buildAgentsList() {
+      const feed = document.getElementById("agents-feed-list");
+      feed.innerHTML = "";
+
+      agents.forEach(agent => {
+        const row = document.createElement("div");
+        row.className = "agent-row";
+        row.innerHTML = `
+          <div class="agent-info">
+            <span class="agent-name">${agent.name}</span>
+            <span class="agent-task">${agent.task}</span>
+          </div>
+          <span class="agent-status ${agent.status}">${agent.status.toUpperCase()}</span>
+        `;
+        feed.appendChild(row);
+      });
+
+      // Also build the detailed view for Page 6
+      const detailGrid = document.getElementById("agents-detail-grid");
+      detailGrid.innerHTML = "";
+      agents.forEach(agent => {
+        const card = document.createElement("div");
+        card.className = "agent-detail-card";
+        card.innerHTML = `
+          <div class="agent-header-row">
+            <span class="agent-detail-name">${agent.name}</span>
+            <span class="agent-status ${agent.status}">${agent.status.toUpperCase()}</span>
+          </div>
+          <div class="agent-detail-role">${agent.role}</div>
+          <div style="font-family: var(--font-mono); font-size:11px; color:var(--neon-blue);">Active task: ${agent.task}</div>
+          <div class="agent-stat-bar-container">
+            <div class="agent-stat-bar" style="width: ${Math.floor(agent.rate * 300)}%; background-color: ${agent.status === 'active' ? 'var(--cyan)' : 'var(--neon-blue)'}"></div>
+          </div>
+        `;
+        detailGrid.appendChild(card);
+      });
+    }
+
+    /* ── SECURITY RADAR CANVAS ───────────────────────────────────── */
+    const secRadar = document.getElementById("security-radar");
+    let radarAngle = 0;
+    let blips = [];
+
+    function initSecurityRadar() {
+      setInterval(() => {
+        if (Math.random() < 0.15 && blips.length < 5) {
+          blips.push({
+            r: Math.random() * 120,
+            theta: Math.random() * Math.PI * 2,
+            life: 1.0
+          });
+        }
+      }, 500);
+      drawSecurityRadar();
+    }
+
+    function drawSecurityRadar() {
+      if (!secRadar) return;
+      const ctx = secRadar.getContext("2d");
+      const size = 320;
+      secRadar.width = size;
+      secRadar.height = size;
+      const cx = size / 2;
+      const cy = size / 2;
+
+      ctx.clearRect(0, 0, size, size);
+
+      // Outer rings
+      ctx.strokeStyle = "rgba(0, 191, 255, 0.2)";
+      ctx.lineWidth = 1;
+      for (let r = 40; r <= 140; r += 40) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Radar Crosshair Lines
+      ctx.beginPath();
+      ctx.moveTo(cx - 150, cy);
+      ctx.lineTo(cx + 150, cy);
+      ctx.moveTo(cx, cy - 150);
+      ctx.lineTo(cx, cy + 150);
+      ctx.stroke();
+
+      // Sweeper Line
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      const sweepX = cx + 140 * Math.cos(radarAngle);
+      const sweepY = cy + 140 * Math.sin(radarAngle);
+      ctx.lineTo(sweepX, sweepY);
+      ctx.strokeStyle = "rgba(0, 255, 127, 0.7)";
+      ctx.stroke();
+
+      // Sweeper shadow sweep grad
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, 140, radarAngle, radarAngle - 0.4, true);
+      ctx.closePath();
+      const sweepGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 140);
+      sweepGrad.addColorStop(0, "rgba(0, 255, 127, 0.15)");
+      sweepGrad.addColorStop(1, "rgba(0, 255, 127, 0)");
+      ctx.fillStyle = sweepGrad;
+      ctx.fill();
+
+      // Draw blips
+      blips.forEach((blip, idx) => {
+        const bx = cx + blip.r * Math.cos(blip.theta);
+        const by = cy + blip.r * Math.sin(blip.theta);
+        
+        ctx.beginPath();
+        ctx.arc(bx, by, 6, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 77, 77, ${blip.life})`;
+        ctx.fill();
+        
+        blip.life -= 0.008;
+      });
+      blips = blips.filter(blip => blip.life > 0);
+
+      radarAngle = (radarAngle + 0.015) % (Math.PI * 2);
+      requestAnimationFrame(drawSecurityRadar);
+    }
+
+    /* ── MEMORY ENGINE GRID ──────────────────────────────────────── */
+    const memoryKeys = [
+      { key: "User Profile Path", val: "C:\\Users\\veera", sector: "SEC-01", status: "SYNCED" },
+      { key: "API Keys Encrypted", val: "AES256_xxxxxx_gemini", sector: "SEC-04", status: "ENCRYPTED" },
+      { key: "Last Speech Token", val: "Hello JARVIS status report", sector: "SEC-08", status: "CACHED" },
+      { key: "Gesture Mapping Matrix", val: "PinchHold=Click, 5Fingers=Wake", sector: "SEC-12", status: "STANDBY" },
+      { key: "Tactical Radar Range", val: "Radius=4000km, VectorArc=180", sector: "SEC-15", status: "SYNCED" },
+      { key: "Core Temperature Threshold", val: "Alert >= 75 degrees Celsius", sector: "SEC-19", status: "MONITORED" }
+    ];
+
+    function buildMemoryGrid() {
+      const grid = document.getElementById("memory-cards-grid");
+      grid.innerHTML = "";
+      memoryKeys.forEach(m => {
+        const card = document.createElement("div");
+        card.className = "memory-card";
+        card.innerHTML = `
+          <div class="memory-key">${m.key.toUpperCase()}</div>
+          <div class="memory-val">${m.val}</div>
+          <div class="memory-meta">
+            <span>Sector: ${m.sector}</span>
+            <span style="color:var(--green)">${m.status}</span>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    /* ── AUTOMATION CENTER ───────────────────────────────────────── */
+    const automationTasks = [
+      { title: "Core Backup", desc: "Automated daily project logs backups", active: true },
+      { title: "Anti-Virus Shield", desc: "Real-time signature mapping check", active: true },
+      { title: "Network Sniffer", desc: "Analyze outgoing Webhook traffic logs", active: false },
+      { title: "Memory Registry Defrag", desc: "Auto-deallocate idle LLM cache", active: true },
+      { title: "Microphone Noise Cancellation", desc: "Ambient noise baseline learning model", active: true }
+    ];
+
+    function buildAutomationTasks() {
+      const list = document.getElementById("auto-tasks-list");
+      list.innerHTML = "";
+      automationTasks.forEach((t, index) => {
+        const card = document.createElement("div");
+        card.className = "auto-card";
+        card.innerHTML = `
+          <div class="auto-info">
+            <span class="auto-title">${t.title}</span>
+            <span class="auto-desc">${t.desc}</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" ${t.active ? "checked" : ""} onchange="toggleAutoTask(${index}, this.checked)">
+            <span class="slider"></span>
+          </label>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function toggleAutoTask(index, active) {
+      automationTasks[index].active = active;
+      logConsole(`TASK AUTOMATION: '${automationTasks[index].title}' changed to ${active ? 'ACTIVE' : 'INACTIVE'}`);
+    }
+
+    /* ── WEATHER & WEATHER API (Open-Meteo) ───────────────────────── */
+    async function fetchWeather() {
+      try {
+        const city = "Hyderabad"; // Default display
+        const lat = 17.3850;
+        const lon = 78.4867;
+        
+        const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&relative_humidity_2m=true`);
+        if (!response.ok) throw new Error("API Offline");
+        const data = await response.json();
+        
+        const curr = data.current_weather;
+        document.getElementById("weather-city").innerText = city;
+        document.getElementById("weather-desc").innerText = "Current Status: Clear Horizon";
+        document.getElementById("weather-temp").innerText = Math.round(curr.temperature) + "°C";
+        document.getElementById("weather-humidity").innerText = data.current_weather_interval ? "--%" : "64%"; // default or variable
+        document.getElementById("weather-wind").innerText = curr.windspeed + " km/h";
+      } catch (err) {
+        // Fallback
+        document.getElementById("weather-city").innerText = "Staging Node";
+        document.getElementById("weather-desc").innerText = "Weather Node: Staged Fallback";
+        document.getElementById("weather-temp").innerText = "28°C";
+        document.getElementById("weather-humidity").innerText = "60%";
+        document.getElementById("weather-wind").innerText = "12 km/h";
+      }
+    }
+
+    /* ── COGNITIVE NOTES MODULE ──────────────────────────────────── */
+    function saveNotes() {
+      const txt = document.getElementById("jarvis-notes").value;
+      localStorage.setItem("jarvis_tactical_notes", txt);
+    }
+    function loadNotes() {
+      const stored = localStorage.getItem("jarvis_tactical_notes");
+      if (stored) {
+        document.getElementById("jarvis-notes").value = stored;
+      }
+    }
+
+    /* ── QUICK SYSTEM ACTION LAUNCHERS ───────────────────────────── */
+    function triggerQuickAction(action) {
+      logConsole(`QUICK LAUNCH: Initiating action '${action.toUpperCase()}'...`);
+      if (window.pywebview && window.pywebview.api) {
+        window.pywebview.api.quick_action(action);
+      } else {
+        logConsole(`QUICK LAUNCH WARN: Pywebview connection missing. Simulated action.`);
+      }
+    }
+
+    /* ── JARVIS CONSOLE LOGGER ───────────────────────────────────── */
+    const consoleFeed = document.getElementById("console-feed");
+
+    function logConsole(message, type = 'info') {
+      const line = document.createElement("div");
+      line.className = "console-line";
+      if (type === 'error') {
+        line.style.color = 'var(--red)';
+      } else if (type === 'warn') {
+        line.style.color = 'var(--amber)';
+      } else if (type === 'success') {
+        line.style.color = 'var(--green)';
+      }
+      const timestamp = new Date().toLocaleTimeString();
+      line.innerText = `[${timestamp}] ${type.toUpperCase()} > ${message}`;
+      consoleFeed.appendChild(line);
+      consoleFeed.scrollTop = consoleFeed.scrollHeight;
+    }
+
+    // Capture global uncaught runtime exceptions
+    window.onerror = function(message, source, lineno, colno, error) {
+      const shortSource = source ? source.substring(source.lastIndexOf('/') + 1) : 'unknown';
+      const msg = `[RUNTIME ERROR] ${message} (${shortSource}:${lineno}:${colno})`;
+      logConsole(msg, 'error');
+      
+      const devLog = document.getElementById("diag-log-container");
+      if (devLog) {
+        const div = document.createElement("div");
+        div.style.color = "var(--red)";
+        div.innerText = msg;
+        devLog.appendChild(div);
+      }
+      return false; // Let browser standard log still happen
+    };
+
+    // Capture unhandled promise rejections
+    window.addEventListener('unhandledrejection', function(event) {
+      const msg = `[PROMISE ERROR] ${event.reason}`;
+      logConsole(msg, 'error');
+      
+      const devLog = document.getElementById("diag-log-container");
+      if (devLog) {
+        const div = document.createElement("div");
+        div.style.color = "var(--red)";
+        div.innerText = msg;
+        devLog.appendChild(div);
+      }
+    });
+
+    // Intercept console.error calls
+    const _origConsoleError = console.error;
+    console.error = function(...args) {
+      _origConsoleError.apply(console, args);
+      logConsole(args.join(' '), 'error');
+    };
+
+    /* ── CHAT CENTER SYSTEM RESPONSES ────────────────────────────── */
+    function handleChatKey(e) {
+      if (e.key === "Enter") {
+        sendChatMessage();
+      }
+    }
+
+    function sendChatMessage() {
+      const input = document.getElementById("chat-in-field");
+      const msgText = input.value.trim();
+      if (!msgText) return;
+
+      // Append User message
+      appendMessage("user", msgText);
+      input.value = "";
+      logConsole("CHAT INPUT: " + msgText);
+
+      // Animate typing indicator
+      const typing = document.getElementById("chat-typing");
+      typing.style.display = "block";
+      
+      // Route command to python side if pywebview is running
+      if (window.pywebview && window.pywebview.api) {
+        window.pywebview.api.send_command(msgText).then(reply => {
+          typing.style.display = "none";
+          appendMessage("jarvis", reply || "No response received, sir.");
+          logConsole("JARVIS RESPONSE: " + (reply || "").substring(0, 40) + "...");
+          pulseCore();
+        }).catch(err => {
+          typing.style.display = "none";
+          const fallbackReply = generateJarvisReply(msgText);
+          appendMessage("jarvis", fallbackReply);
+          logConsole("JARVIS RESPONSE (FALLBACK): " + fallbackReply.substring(0, 40) + "...");
+          pulseCore();
+        });
+      } else {
+        // Simulated answer
+        setTimeout(() => {
+          typing.style.display = "none";
+          const reply = generateJarvisReply(msgText);
+          appendMessage("jarvis", reply);
+          logConsole("JARVIS RESPONSE: " + reply.substring(0, 40) + "...");
+          pulseCore();
+        }, 1000 + Math.random() * 800);
+      }
+    }
+
+    function appendMessage(sender, text) {
+      const feed = document.getElementById("chat-feed");
+      const div = document.createElement("div");
+      div.className = "chat-msg " + sender;
+      div.innerText = text;
+      feed.appendChild(div);
+      feed.scrollTop = feed.scrollHeight;
+    }
+
+    function generateJarvisReply(input) {
+      const text = input.toLowerCase();
+      if (text.includes("status") || text.includes("system")) {
+        return "All systems are green. CPU is performing well within specifications, core thermal signatures are optimal, and tactical sensors are clear.";
+      }
+      if (text.includes("hello") || text.includes("hey") || text.includes("hi")) {
+        return "Hello, sir. Neural link is robust. I am here to coordinate dashboard controls and direct commands.";
+      }
+      if (text.includes("weather")) {
+        return "Reviewing local atmospheric sensors. The weather node shows stable conditions. The temperature is currently updated on your Command widget.";
+      }
+      if (text.includes("clear") || text.includes("reset")) {
+        return "Clearing console queue cache registers... done.";
+      }
+      if (text.includes("who are you")) {
+        return "I am JARVIS, your integrated cybernetic operating system dashboard. v5.0 neural matrix is currently active.";
+      }
+      return "Command registered. Synthesizing neural vectors... I have logged this request into the command stream.";
+    }
+
+    /* ── PYWEBVIEW COMMAND INJECTION ────────────────────────────── */
+    window.jarvisCommand = function(cmd) {
+      logConsole("EXTERNAL COMMAND ROUTE: " + cmd);
+      pulseCore();
+      
+      // Parse commands and speak responses or perform action
+      const lowered = cmd.toLowerCase();
+      if (lowered.includes("activate tactical mode") || lowered.includes("tactical mode")) {
+        switchPage('security', document.querySelector('[title="Security"]'));
+        logConsole("ALERT: GESTURE OR VOICE WOKE TACTICAL MODULE SCANNER");
+      } else if (lowered.includes("chat") || lowered.includes("open chat")) {
+        switchPage('chat', document.querySelector('[title="Chat Center"]'));
+      } else if (lowered.includes("widgets") || lowered.includes("show widgets")) {
+        switchPage('widgets', document.querySelector('[title="Command Center Widgets"]'));
+      } else if (lowered.includes("memory") || lowered.includes("show memory")) {
+        switchPage('memory', document.querySelector('[title="Memory Engine"]'));
+      } else if (lowered.includes("agents") || lowered.includes("show agents")) {
+        switchPage('agents', document.querySelector('[title="AI Agents"]'));
+      }
+    }
+
+    window.updateEngineStatus = function(engine, status, desc) {
+      const statusEl = document.getElementById(`${engine}-status`);
+      const descEl = document.getElementById(`${engine}-desc`);
+      if (statusEl) {
+        let displayStatus = "🟢 Healthy";
+        let color = "var(--green)";
+        if (status === "recovering") {
+          displayStatus = "🟡 Recovering";
+          color = "var(--amber)";
+        } else if (status === "offline") {
+          displayStatus = "🔴 Failed";
+          color = "var(--red)";
+        }
+        statusEl.innerText = displayStatus;
+        statusEl.style.color = color;
+        statusEl.style.borderColor = color;
+      }
+      if (descEl && desc) {
+        descEl.innerText = desc;
+      }
+    }
+
+    let safeModeAlerted = false;
+    window.setSafeMode = function(active) {
+      const banner = document.getElementById("safe-mode-banner");
+      const brand = document.querySelector(".jarvis-brand span");
+      if (banner) {
+        banner.style.display = active ? "block" : "none";
+      }
+      if (brand) {
+        brand.innerText = active ? "SAFE MODE" : "OS v7.0";
+        brand.style.borderColor = active ? "var(--amber)" : "var(--neon-blue)";
+        brand.style.color = active ? "var(--amber)" : "var(--neon-blue)";
+      }
+      if (active && !safeModeAlerted) {
+        safeModeAlerted = true;
+        logConsole("WARNING: JARVIS entered Safe Mode. Non-essential engines disabled.");
+      } else if (!active) {
+        safeModeAlerted = false;
+      }
+    }
+
+    let currentProtectedAction = null;
+
+    window.showProtectedActionPrompt = function(actionId, explanation, components) {
+      currentProtectedAction = actionId;
+      document.getElementById("protected-action-title").innerText = actionId.replace(/_/g, " ").toUpperCase();
+      document.getElementById("protected-action-explanation").innerText = explanation;
+      document.getElementById("protected-action-components").innerText = components;
+      document.getElementById("protected-action-modal").style.display = "flex";
+      logConsole("WARNING: High-impact system repair requested. Prompting user confirmation.");
+    };
+
+    window.confirmProtectedAction = function() {
+      if (currentProtectedAction && window.pywebview && window.pywebview.api) {
+        logConsole("USER APPROVED: Executing protected system repair: " + currentProtectedAction);
+        window.pywebview.api.approve_protected_action(currentProtectedAction).then(report => {
+          displayRepairReport(report);
+          closeProtectedActionModal();
+          triggerDiagnosticsScan();
+        });
+      }
+    };
+
+    window.closeProtectedActionModal = function() {
+      document.getElementById("protected-action-modal").style.display = "none";
+      currentProtectedAction = null;
+    };
+
+    window.triggerDiagnosticsScan = function() {
+      logConsole("DIAGNOSTICS: Initiating Windows health scan...");
+      
+      let isThreeLoaded = typeof THREE !== 'undefined';
+      const frontendStatusEl = document.getElementById("diag-status-frontend");
+      const backendStatusEl = document.getElementById("diag-status-backend");
+      const apiStatusEl = document.getElementById("diag-status-api");
+      const handlersStatusEl = document.getElementById("diag-status-handlers");
+      
+      if (frontendStatusEl) {
+        if (isThreeLoaded) {
+          frontendStatusEl.innerText = "🟢 RUNNING";
+          frontendStatusEl.style.color = "var(--green)";
+        } else {
+          frontendStatusEl.innerText = "🟡 OFFLINE CORE";
+          frontendStatusEl.style.color = "var(--amber)";
+        }
+      }
+      
+      if (window.pywebview && window.pywebview.api) {
+        if (backendStatusEl) {
+          backendStatusEl.innerText = "🟢 CONNECTED";
+          backendStatusEl.style.color = "var(--green)";
+        }
+        
+        if (typeof window.pywebview.api.get_diagnostics_status === 'function') {
+          window.pywebview.api.get_diagnostics_status().then(status => {
+            if (apiStatusEl) {
+              if (status.groq_configured && status.gemini_configured) {
+                apiStatusEl.innerText = "🟢 CONFIGURED";
+                apiStatusEl.style.color = "var(--green)";
+              } else if (status.groq_configured || status.gemini_configured) {
+                apiStatusEl.innerText = "🟡 PARTIAL";
+                apiStatusEl.style.color = "var(--amber)";
+              } else {
+                apiStatusEl.innerText = "🔴 MISSING";
+                apiStatusEl.style.color = "var(--red)";
+              }
+            }
+            if (backendStatusEl && status.backend === "online") {
+              backendStatusEl.innerText = "🟢 CONNECTED";
+              backendStatusEl.style.color = "var(--green)";
+            }
+
+            // Live backend AI status
+            const groqKeyEl = document.getElementById("diag-groq-key");
+            const groqEnabledEl = document.getElementById("diag-groq-enabled");
+            const routingStatusEl = document.getElementById("diag-routing-status");
+
+            if (groqKeyEl) {
+              groqKeyEl.innerText = status.groq_key_loaded ? "🟢 TRUE" : "🔴 FALSE";
+              groqKeyEl.style.color = status.groq_key_loaded ? "var(--green)" : "var(--red)";
+            }
+            if (groqEnabledEl) {
+              groqEnabledEl.innerText = status.groq_enabled ? "🟢 TRUE" : "🔴 FALSE";
+              groqEnabledEl.style.color = status.groq_enabled ? "var(--green)" : "var(--red)";
+            }
+            if (routingStatusEl) {
+              routingStatusEl.innerText = status.ai_routing_status === "Cloud Routing (Groq)" ? "🟢 CLOUD (GROQ)" : "🔴 LOCAL-ONLY";
+              routingStatusEl.style.color = status.ai_routing_status === "Cloud Routing (Groq)" ? "var(--green)" : "var(--red)";
+            }
+          }).catch(err => {
+            logConsole("DIAGNOSTICS ERROR: Failed to poll diagnostics status: " + err, "error");
+          });
+        }
+      } else {
+        if (backendStatusEl) {
+          backendStatusEl.innerText = "🔴 DISCONNECTED";
+          backendStatusEl.style.color = "var(--red)";
+        }
+        if (apiStatusEl) {
+          apiStatusEl.innerText = "🔴 OFFLINE SIM";
+          apiStatusEl.style.color = "var(--red)";
+        }
+      }
+      
+      if (handlersStatusEl) {
+        const candidates = Array.from(document.querySelectorAll(
+          "button, a, .nav-item, .vital-card, .launcher-btn, .mode-btn, .layer-btn, .sec-stat-card, .agent-row, [onclick]"
+        ));
+        const elements = Array.from(new Set(candidates));
+        let broken = 0;
+        elements.forEach(el => {
+          const onclickAttr = el.getAttribute("onclick");
+          if (onclickAttr) {
+            const funcMatch = onclickAttr.trim().match(/^([a-zA-Z0-9_$]+)\s*\(/);
+            if (funcMatch) {
+              const funcName = funcMatch[1];
+              if (typeof window[funcName] !== 'function') {
+                broken++;
+              }
+            }
+          }
+        });
+        if (broken === 0) {
+          handlersStatusEl.innerText = `🟢 AUDITED (${elements.length})`;
+          handlersStatusEl.style.color = "var(--green)";
+        } else {
+          handlersStatusEl.innerText = `🔴 BROKEN (${broken})`;
+          handlersStatusEl.style.color = "var(--red)";
+        }
+      }
+
+      if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.run_system_diagnostics === 'function') {
+        window.pywebview.api.run_system_diagnostics();
+      } else {
+        displayScores({health: 85, performance: 90, security: 100, stability: 70});
+      }
+    };
+
+    window.triggerSystemSafeRepairs = function() {
+      logConsole("REPAIR: Running safe automated repairs...");
+      if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.trigger_system_repair === 'function') {
+        const repairs = ["clear_temp", "flush_dns", "optimize_memory", "rebuild_index"];
+        repairs.forEach(rep => {
+          window.pywebview.api.trigger_system_repair(rep).then(report => {
+            displayRepairReport(report);
+          });
+        });
+        setTimeout(triggerDiagnosticsScan, 3000);
+      }
+    };
+
+    window.triggerSingleRepair = function(repairId, isSafe, explanation, components) {
+      if (!isSafe) {
+        window.showProtectedActionPrompt(repairId, explanation, components);
+      } else {
+        logConsole("REPAIR: Running repair " + repairId);
+        if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.trigger_system_repair === 'function') {
+          window.pywebview.api.trigger_system_repair(repairId).then(report => {
+            displayRepairReport(report);
+            triggerDiagnosticsScan();
+          });
+        }
+      }
+    };
+
+    window.showDiagnosticsReport = function(scores, issues, telemetry) {
+      displayScores(scores);
+      displayIssues(issues);
+    };
+
+    function displayScores(scores) {
+      document.getElementById("score-health").innerText = scores.health;
+      document.getElementById("score-perf").innerText = scores.performance;
+      document.getElementById("score-security").innerText = scores.security;
+      document.getElementById("score-stability").innerText = scores.stability;
+
+      const scoreIds = ["score-health", "score-perf", "score-security", "score-stability"];
+      scoreIds.forEach(id => {
+        const score = parseInt(document.getElementById(id).innerText);
+        const color = score > 80 ? "var(--green)" : score > 50 ? "var(--amber)" : "var(--red)";
+        document.getElementById(id).style.color = color;
+      });
+    }
+
+    function displayIssues(issues) {
+      const list = document.getElementById("diagnostics-issues-list");
+      list.innerHTML = "";
+      if (!issues || issues.length === 0) {
+        list.innerHTML = `<div style="color: var(--green); text-align: center; margin-top: 40px; font-family: var(--font-mono); letter-spacing: 1px;">🟢 NO ANOMALIES DETECTED. SYSTEM RUNNING OPTIMALLY.</div>`;
+        return;
+      }
+
+      issues.forEach(item => {
+        const row = document.createElement("div");
+        row.style.background = "rgba(255,255,255,0.02)";
+        row.style.border = "1px solid rgba(0, 191, 255, 0.1)";
+        row.style.borderRadius = "4px";
+        row.style.padding = "10px";
+        row.style.display = "flex";
+        row.style.justifyContent = "space-between";
+        row.style.alignItems = "center";
+        row.style.marginBottom = "5px";
+        
+        const info = document.createElement("div");
+        info.innerHTML = `
+          <div style="font-weight: bold; font-family: var(--font-display); font-size: 11px; color: ${item.safe ? 'var(--cyan)' : 'var(--amber)'}">${item.issue.toUpperCase()}</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 2px;">${item.desc}</div>
+        `;
+        
+        const actionBtn = document.createElement("button");
+        actionBtn.className = "boot-btn";
+        actionBtn.style.padding = "4px 10px";
+        actionBtn.style.fontSize = "9px";
+        actionBtn.style.borderColor = item.safe ? "var(--green)" : "var(--amber)";
+        actionBtn.style.color = item.safe ? "var(--green)" : "var(--amber)";
+        actionBtn.innerText = item.safe ? "FIX PROBLEM" : "AUTHORIZE FIX";
+        
+        const exp = (item.explanation || "").replace(/'/g, "\\'");
+        const comp = (item.components || "").replace(/'/g, "\\'");
+        actionBtn.onclick = () => window.triggerSingleRepair(item.id, item.safe, exp, comp);
+        
+        row.appendChild(info);
+        row.appendChild(actionBtn);
+        list.appendChild(row);
+      });
+    }
+
+    function displayRepairReport(report) {
+      const feed = document.getElementById("diagnostics-reports-feed");
+      
+      const line = document.createElement("div");
+      line.style.borderLeft = "2px solid " + (report.status === "Success" ? "var(--green)" : "var(--red)");
+      line.style.paddingLeft = "8px";
+      line.style.marginBottom = "8px";
+      line.innerHTML = `
+        <div style="font-weight: bold; color: var(--cyan);">[REPAIR REPORT] - ${report.action}</div>
+        <div>Root Cause: ${report.root_cause}</div>
+        <div>Result: ${report.result}</div>
+        <div>Status: <span style="color: ${report.status === 'Success' ? 'var(--green)' : 'var(--red)'}">${report.status}</span></div>
+      `;
+      feed.appendChild(line);
+      feed.scrollTop = feed.scrollHeight;
+    }
+
+    /* ── LIVE CLOCK UPDATE ──────────────────────────────────────── */
+    function updateClock() {
+      const now = new Date();
+      document.getElementById("live-time").innerText = now.toLocaleTimeString();
+      const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+      const dText = `${days[now.getDay()]} · ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+      document.getElementById("live-date").innerText = dText;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    /* ── DEVELOPER DIAGNOSTICS & SELF-HEALING SYSTEM ──────────────── */
+    function toggleDevDiagnostics() {
+      const panel = document.getElementById("dev-diagnostics-panel");
+      if (panel.style.display === "none" || !panel.style.display) {
+        panel.style.display = "block";
+        runDiagnosticsAudit();
+      } else {
+        panel.style.display = "none";
+      }
+    }
+
+    // Toggle diagnostics on double click of brand and keyboard shortcut
+    window.addEventListener("keydown", (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') {
+        toggleDevDiagnostics();
+      }
+    });
+
+    document.querySelector('.jarvis-brand').addEventListener('dblclick', toggleDevDiagnostics);
+    document.querySelector('.jarvis-brand').style.cursor = "pointer";
+
+    function runDiagnosticsAudit() {
+      const logs = [];
+      const logContainer = document.getElementById("diag-log-container");
+      logContainer.innerHTML = "";
+
+      const candidates = Array.from(document.querySelectorAll(
+        "button, a, .nav-item, .vital-card, .launcher-btn, .mode-btn, .layer-btn, .sec-stat-card, .agent-row, [onclick]"
+      ));
+      const elements = Array.from(new Set(candidates));
+
+      let foundCount = elements.length;
+      let workingCount = 0;
+      let brokenCount = 0;
+      let blockedCount = 0;
+
+      elements.forEach((el, index) => {
+        let hasHandler = false;
+        let isBroken = false;
+        let isBlocked = false;
+
+        const onclickAttr = el.getAttribute("onclick");
+        if (onclickAttr) {
+          hasHandler = true;
+          const funcMatch = onclickAttr.trim().match(/^([a-zA-Z0-9_$]+)\s*\(/);
+          if (funcMatch) {
+            const funcName = funcMatch[1];
+            if (typeof window[funcName] !== 'function') {
+              isBroken = true;
+              logs.push(`[BROKEN] Element calling missing function: ${funcName}`);
+            }
+          }
+        }
+
+        // Heal vital-cards and agent-rows if they lack standard onclick
+        if (el.classList.contains("vital-card") || el.classList.contains("agent-row")) {
+          if (!onclickAttr) {
+            hasHandler = true;
+            autoHealCard(el, index, logs);
+          }
+        }
+
+        if (isElementBlocked(el)) {
+          isBlocked = true;
+          blockedCount++;
+          const rect = el.getBoundingClientRect();
+          const cx = rect.left + rect.width / 2;
+          const cy = rect.top + rect.height / 2;
+          const topEl = document.elementFromPoint(cx, cy);
+          if (topEl) {
+            logs.push(`[BLOCKED] Element blocked by overlay layer. Applying pointer-events: none.`);
+            topEl.style.pointerEvents = 'none';
+          }
+        }
+
+        if (hasHandler && !isBroken) {
+          workingCount++;
+        } else {
+          brokenCount++;
+          selfRepairElement(el, index, onclickAttr, logs);
+        }
+      });
+
+      document.getElementById("diag-btn-found").innerText = foundCount;
+      document.getElementById("diag-btn-working").innerText = workingCount;
+      document.getElementById("diag-btn-broken").innerText = brokenCount;
+      document.getElementById("diag-btn-blocked").innerText = blockedCount;
+
+      if (logs.length === 0) {
+        logContainer.innerHTML = "<div>🟢 All interaction elements verified working.</div>";
+      } else {
+        logs.forEach(msg => {
+          const div = document.createElement("div");
+          div.style.marginBottom = "4px";
+          if (msg.includes("[BROKEN]")) div.style.color = "var(--red)";
+          else if (msg.includes("[BLOCKED]")) div.style.color = "var(--amber)";
+          else div.style.color = "var(--green)";
+          div.innerText = msg;
+          logContainer.appendChild(div);
+        });
+      }
+    }
+
+    function isElementBlocked(el) {
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return false;
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      if (cx < 0 || cx > window.innerWidth || cy < 0 || cy > window.innerHeight) return false;
+      const topEl = document.elementFromPoint(cx, cy);
+      if (!topEl) return false;
+      if (topEl === el || el.contains(topEl) || topEl.contains(el)) {
+        return false;
+      }
+      const topStyle = window.getComputedStyle(topEl);
+      if (topStyle.pointerEvents === 'none') {
+        return false;
+      }
+      return true;
+    }
+
+    function autoHealCard(el, index, logs) {
+      el.style.cursor = "pointer";
+      el.addEventListener("click", () => {
+        pulseCore();
+        if (el.classList.contains("vital-card")) {
+          const titleEl = el.querySelector(".vital-title");
+          const title = titleEl ? titleEl.innerText : "Vitals";
+          logConsole(`[JARVIS] Vitals card clicked: ${title}. Opening diagnostics cockpit.`);
+          switchPage('diagnostics', document.querySelector('[title="Diagnostics Center"]'));
+        } else if (el.classList.contains("agent-row")) {
+          const nameEl = el.querySelector(".agent-name");
+          const name = nameEl ? nameEl.innerText : "Agent";
+          logConsole(`[JARVIS] Agent row clicked: ${name}. Navigating to Active Agents directory.`);
+          switchPage('agents', document.querySelector('[title="AI Agents"]'));
+        }
+      });
+      logs.push(`[HEALED] Restored click handler for cockpit card.`);
+    }
+
+    function selfRepairElement(el, index, onclickAttr, logs) {
+      if (onclickAttr) {
+        const funcMatch = onclickAttr.trim().match(/^([a-zA-Z0-9_$]+)\s*\(/);
+        if (funcMatch) {
+          const funcName = funcMatch[1];
+          window[funcName] = function(...args) {
+            logConsole(`[JARVIS] Self-healed event handler for missing function: ${funcName}`);
+            pulseCore();
+          };
+          logs.push(`[REPAIRED] Generated fallback callback for function ${funcName}.`);
+        }
+      } else {
+        el.addEventListener("click", () => {
+          logConsole(`[JARVIS] Interaction event on element index ${index}`);
+          pulseCore();
+        });
+        logs.push(`[REPAIRED] Bind fallback click listener to element.`);
+      }
+    }
+
+    /* ── SYSTEM SETTINGS MODULE ──────────────────────────────────── */
+    let settingsViewModel = null;
+
+    window.loadSettingsForm = function() {
+      logConsole("SETTINGS: Loading configurations from backend...");
+      if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.get_settings === 'function') {
+        window.pywebview.api.get_settings().then(data => {
+          settingsViewModel = data;
+          
+          function getValue(groupName, keyName, defaultValue = "") {
+            if (data && data.groups && data.groups[groupName]) {
+              const item = data.groups[groupName].find(x => x.key === keyName);
+              return item ? item.value : defaultValue;
+            }
+            return defaultValue;
+          }
+
+          document.getElementById("setting-wake-word").value = getValue("Voice", "voice.wake_word", "jarvis");
+          document.getElementById("setting-tts-provider").value = getValue("Voice", "voice.tts_provider", "edge");
+          document.getElementById("setting-language").value = getValue("General", "general.language", "en");
+          
+          const profileItem = data.groups["Plugins"] ? data.groups["Plugins"].find(x => x.key === "plugins.permission_profile") : null;
+          document.getElementById("setting-safe-mode").checked = profileItem ? (profileItem.value === "safe") : false;
+
+          document.getElementById("setting-gemini-key").value = getValue("API Keys", "GEMINI_API_KEY", "");
+          document.getElementById("setting-groq-key").value = getValue("API Keys", "GROQ_API_KEY", "");
+
+          logConsole("SETTINGS: Configurations loaded successfully.", "success");
+        }).catch(err => {
+          logConsole("SETTINGS ERROR: Fetch settings failed: " + err, "error");
+        });
+      } else {
+        logConsole("SETTINGS WARN: Running in offline simulation. Default settings loaded.", "warn");
+      }
+    };
+
+    window.saveSettingsForm = function() {
+      if (!window.pywebview || !window.pywebview.api) {
+        logConsole("SETTINGS: Pywebview not active. Simulated save.", "warn");
+        return;
+      }
+      
+      const wakeWord = document.getElementById("setting-wake-word").value.trim();
+      const tts = document.getElementById("setting-tts-provider").value.trim();
+      const lang = document.getElementById("setting-language").value.trim();
+      const isSafeMode = document.getElementById("setting-safe-mode").checked;
+      
+      const geminiKey = document.getElementById("setting-gemini-key").value.trim();
+      const groqKey = document.getElementById("setting-groq-key").value.trim();
+      
+      const updates = {
+        "voice.wake_word": wakeWord,
+        "voice.tts_provider": tts,
+        "general.language": lang,
+        "plugins.permission_profile": isSafeMode ? "safe" : "normal",
+        "GEMINI_API_KEY": geminiKey,
+        "GROQ_API_KEY": groqKey
+      };
+      
+      logConsole("SETTINGS: Sending configuration updates to backend...");
+      
+      window.pywebview.api.save_settings(updates).then(result => {
+        if (result && (result.status === "saved" || result.status === "success")) {
+          logConsole("SETTINGS: Saved system configurations successfully!", "success");
+          loadSettingsForm();
+          setTimeout(triggerDiagnosticsScan, 1000);
+        } else {
+          const errors = result ? (result.errors ? result.errors.join("; ") : "validation error") : "unknown response";
+          logConsole("SETTINGS ERROR: Save failed - " + errors, "error");
+        }
+      }).catch(err => {
+        logConsole("SETTINGS ERROR: Bridge execution failure: " + err, "error");
+      });
+    };
+
+    window.testApiKey = function(provider) {
+      const inputEl = document.getElementById(`setting-${provider}-key`);
+      const statusEl = document.getElementById(`test-status-${provider}`);
+      if (!inputEl || !statusEl) return;
+      
+      const keyVal = inputEl.value.trim();
+      if (!keyVal) {
+        statusEl.innerText = "❌ Please enter a key first";
+        statusEl.style.color = "var(--red)";
+        statusEl.style.display = "block";
+        return;
+      }
+      
+      statusEl.innerText = "🔄 Connecting & verifying...";
+      statusEl.style.color = "var(--cyan)";
+      statusEl.style.display = "block";
+      
+      logConsole(`SETTINGS: Testing API key connection for ${provider.toUpperCase()}...`);
+      
+      if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.test_api === 'function') {
+        window.pywebview.api.test_api(provider, keyVal).then(res => {
+          if (res && res.status === "success") {
+            statusEl.innerText = "✅ " + res.message;
+            statusEl.style.color = "var(--green)";
+            logConsole(`SETTINGS: ${provider.toUpperCase()} API connection verified!`, "success");
+          } else {
+            statusEl.innerText = "❌ " + (res ? res.message : "verification failed");
+            statusEl.style.color = "var(--red)";
+            logConsole(`SETTINGS ERROR: ${provider.toUpperCase()} verification failed - ` + (res ? res.message : ""), "error");
+          }
+        }).catch(err => {
+          statusEl.innerText = "❌ Verification bridge error";
+          statusEl.style.color = "var(--red)";
+          logConsole(`SETTINGS ERROR: API test bridge failed: ` + err, "error");
+        });
+      } else {
+        setTimeout(() => {
+          statusEl.innerText = "✅ Connected & verified (Simulation)";
+          statusEl.style.color = "var(--green)";
+          logConsole(`SETTINGS: Verified ${provider.toUpperCase()} API key in simulation mode.`, "success");
+        }, 1200);
+      }
+    };
+
+    window.logRawAPIResponse = function(provider, url, code, responseText, matchesSaved) {
+      const feed = document.getElementById("api-raw-response-feed");
+      const timestampEl = document.getElementById("api-diag-timestamp");
+      if (!feed) return;
+      
+      const timeStr = new Date().toLocaleTimeString();
+      if (timestampEl) {
+        timestampEl.innerText = `LAST RUN: ${timeStr}`;
+      }
+      
+      // Clear initial helper placeholder
+      const placeholder = feed.querySelector("div[style*='rgba(255, 255, 255, 0.45)']");
+      if (placeholder) {
+        feed.innerHTML = "";
+      }
+      
+      const responseCard = document.createElement("div");
+      responseCard.className = "vital-card";
+      responseCard.style.background = "rgba(7, 16, 28, 0.7)";
+      responseCard.style.padding = "10px";
+      responseCard.style.borderWidth = "1px";
+      responseCard.style.borderColor = code === 200 ? "var(--green)" : "var(--red)";
+      responseCard.style.display = "flex";
+      responseCard.style.flexDirection = "column";
+      responseCard.style.gap = "5px";
+      responseCard.style.marginBottom = "5px";
+      
+      const matchesStr = matchesSaved ? "🟢 MATCHES SAVED KEY" : "🟡 DOES NOT MATCH SAVED KEY (SAVE PENDING)";
+      
+      responseCard.innerHTML = `
+        <div style="display: flex; justify-content: space-between; font-weight: bold; color: ${code === 200 ? 'var(--green)' : 'var(--red)'}; font-size: 11px;">
+          <span>PROBE: ${provider.toUpperCase()}</span>
+          <span>HTTP STATUS: ${code}</span>
+        </div>
+        <div style="color: rgba(255, 255, 255, 0.5); font-size: 10px; word-break: break-all;">
+          <strong>URL:</strong> ${url}
+        </div>
+        <div style="color: var(--cyan); font-size: 10px;">
+          <strong>VERIFICATION:</strong> ${matchesStr}
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px; margin-top: 4px;">
+          <strong style="color: rgba(255, 255, 255, 0.75);">RAW RESPONSE:</strong>
+          <pre style="background: rgba(2, 8, 19, 0.85); color: ${code === 200 ? 'var(--green)' : 'var(--amber)'}; padding: 6px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; font-size: 10px; border: 1px solid rgba(0, 191, 255, 0.1); max-height: 120px; user-select: text;">${escapeHtml(responseText)}</pre>
+        </div>
+      `;
+      feed.prepend(responseCard);
+    };
+
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    window.toggleSettingSafeMode = function(active) {
+      logConsole(`SETTINGS: Safe Mode toggle changed to ${active ? 'ENABLED' : 'DISABLED'}`);
+    };
+
+  </script>
+</body>
+</html>

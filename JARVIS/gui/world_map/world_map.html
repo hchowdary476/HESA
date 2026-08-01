@@ -1,0 +1,1763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JARVIS — Global Command Center</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #020810; color: #00D7FF; font-family: 'Orbitron', 'Courier New', monospace; overflow: hidden; width: 100vw; height: 100vh; }
+
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+  #globe-container { position: fixed; inset: 0; z-index: 1; }
+  canvas { display: block; }
+
+  /* ══ HUD OVERLAY ══ */
+  #hud { position: fixed; inset: 0; z-index: 10; pointer-events: none; }
+
+  /* Corner decorations */
+  .corner { position: absolute; width: 60px; height: 60px; border-color: #00D7FF; border-style: solid; opacity: 0.6; }
+  .corner-tl { top: 12px; left: 12px; border-width: 2px 0 0 2px; }
+  .corner-tr { top: 12px; right: 12px; border-width: 2px 2px 0 0; }
+  .corner-bl { bottom: 12px; left: 12px; border-width: 0 0 2px 2px; }
+  .corner-br { bottom: 12px; right: 12px; border-width: 0 2px 2px 0; }
+
+  /* Scanning line */
+  #scan-line { position: absolute; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, #00D7FF44, #00D7FFcc, #00D7FF44, transparent); animation: scan 4s linear infinite; z-index: 12; pointer-events: none; }
+  @keyframes scan { 0% { top: 0; opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+
+  /* ══ TOP BAR ══ */
+  #topbar { position: fixed; top: 0; left: 0; right: 0; height: 52px; z-index: 20; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: linear-gradient(180deg, #020810ee, transparent); border-bottom: 1px solid #00D7FF22; pointer-events: all; }
+  #topbar-title { display: flex; align-items: center; gap: 14px; }
+  #topbar-title .logo-ring { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #00D7FF; display: flex; align-items: center; justify-content: center; animation: ring-pulse 2s ease-in-out infinite; }
+  @keyframes ring-pulse { 0%,100% { box-shadow: 0 0 8px #00D7FF88; } 50% { box-shadow: 0 0 20px #00D7FFcc, 0 0 40px #00D7FF44; } }
+  #topbar-title h1 { font-size: 13px; letter-spacing: 4px; color: #00D7FF; text-shadow: 0 0 20px #00D7FF; }
+  #topbar-title .subtitle { font-size: 9px; color: #4CEBFF88; letter-spacing: 2px; }
+  #topbar-clock { text-align: right; }
+  #topbar-clock .time { font-size: 18px; color: #00D7FF; font-weight: 700; text-shadow: 0 0 15px #00D7FF88; }
+  #topbar-clock .date { font-size: 9px; color: #8FB7C8; letter-spacing: 2px; }
+
+  /* ══ MODE TOOLBAR ══ */
+  #mode-bar { position: fixed; top: 56px; left: 50%; transform: translateX(-50%); z-index: 20; display: flex; gap: 6px; background: #020810cc; border: 1px solid #00D7FF22; border-radius: 40px; padding: 6px 12px; pointer-events: all; backdrop-filter: blur(10px); }
+  .mode-btn { padding: 6px 14px; border-radius: 30px; border: 1px solid #00D7FF44; background: transparent; color: #8FB7C8; font-family: 'Orbitron', monospace; font-size: 10px; letter-spacing: 1px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 6px; }
+  .mode-btn:hover { border-color: #00D7FF; color: #00D7FF; background: #00D7FF11; }
+  .mode-btn.active { border-color: #00D7FF; color: #020810; background: #00D7FF; box-shadow: 0 0 20px #00D7FF88; }
+  .mode-btn .mode-icon { font-size: 13px; }
+
+  /* ══ LEFT PANEL ══ */
+  #left-panel { position: fixed; left: 14px; top: 110px; bottom: 80px; width: 210px; z-index: 20; pointer-events: all; display: flex; flex-direction: column; gap: 8px; }
+  .hud-card { background: #020810cc; border: 1px solid #00D7FF22; border-radius: 6px; padding: 12px 14px; backdrop-filter: blur(8px); }
+  .hud-card-title { font-size: 8px; letter-spacing: 3px; color: #8FB7C8; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .hud-card-title::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #00D7FF; box-shadow: 0 0 8px #00D7FF; animation: blink 1.5s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  .hud-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .hud-label { font-size: 9px; color: #8FB7C8; }
+  .hud-value { font-size: 10px; color: #00D7FF; font-weight: 700; }
+  .hud-value.green { color: #00FFC6; }
+  .hud-value.amber { color: #FFC857; }
+  .hud-value.red { color: #FF4D6D; }
+
+  /* Mini bar */
+  .mini-bar { height: 3px; background: #00D7FF22; border-radius: 2px; margin-top: 4px; overflow: hidden; }
+  .mini-bar-fill { height: 100%; background: linear-gradient(90deg, #00D7FF, #00FFC6); border-radius: 2px; transition: width 1s ease; box-shadow: 0 0 6px #00D7FF; }
+
+  /* ══ RIGHT PANEL ══ */
+  #right-panel { position: fixed; right: 14px; top: 110px; bottom: 80px; width: 210px; z-index: 20; pointer-events: all; display: flex; flex-direction: column; gap: 8px; }
+
+  /* Radar mini */
+  #radar-canvas { display: block; }
+
+  /* Node list */
+  .node-item { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #00D7FF11; }
+  .node-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .node-dot.active { background: #00FFC6; box-shadow: 0 0 8px #00FFC6; animation: blink 1s ease-in-out infinite; }
+  .node-dot.warn { background: #FFC857; box-shadow: 0 0 8px #FFC857; }
+  .node-dot.ai { background: #00D7FF; box-shadow: 0 0 8px #00D7FF; animation: blink 0.8s ease-in-out infinite; }
+  .node-label { font-size: 9px; color: #8FB7C8; }
+  .node-status { font-size: 8px; color: #4CEBFF; margin-left: auto; }
+
+  /* ══ BOTTOM BAR ══ */
+  #bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 68px; z-index: 20; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: linear-gradient(0deg, #020810ee, transparent); border-top: 1px solid #00D7FF22; pointer-events: all; }
+  .bottom-stat { text-align: center; }
+  .bottom-stat .bs-val { font-size: 14px; font-weight: 700; color: #00D7FF; text-shadow: 0 0 10px #00D7FF66; }
+  .bottom-stat .bs-label { font-size: 8px; color: #8FB7C8; letter-spacing: 2px; }
+
+  /* Waveform */
+  #wave-canvas { opacity: 0.7; }
+
+  /* ══ INFO PANEL (click popup) ══ */
+  #info-panel { position: fixed; z-index: 30; width: 280px; background: #020810ee; border: 1px solid #00D7FF; border-radius: 8px; padding: 18px; backdrop-filter: blur(20px); display: none; pointer-events: all; box-shadow: 0 0 40px #00D7FF33, inset 0 0 30px #00D7FF08; }
+  #info-panel::before { content: ''; position: absolute; top: -1px; left: 20px; right: 20px; height: 2px; background: linear-gradient(90deg, transparent, #00D7FF, transparent); }
+  #info-panel .panel-title { font-size: 12px; letter-spacing: 3px; color: #00D7FF; margin-bottom: 12px; text-shadow: 0 0 15px #00D7FF; }
+  #info-panel .panel-close { position: absolute; top: 10px; right: 12px; background: transparent; border: 1px solid #00D7FF44; color: #00D7FF; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+  #info-panel .panel-close:hover { background: #00D7FF22; }
+  #info-panel .panel-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #00D7FF11; }
+  #info-panel .panel-key { font-size: 9px; color: #8FB7C8; }
+  #info-panel .panel-val { font-size: 10px; color: #00D7FF; font-weight: 700; }
+  #info-panel .panel-val.green { color: #00FFC6; }
+  #info-panel .panel-val.amber { color: #FFC857; }
+
+  /* ══ VOICE COMMAND BAR ══ */
+  #voice-bar { position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%); z-index: 25; background: #020810cc; border: 1px solid #00D7FF44; border-radius: 30px; padding: 7px 20px; display: flex; align-items: center; gap: 10px; pointer-events: all; backdrop-filter: blur(10px); transition: all 0.3s; }
+  #voice-bar .vb-icon { width: 10px; height: 10px; border-radius: 50%; background: #00FFC6; animation: blink 1.2s ease-in-out infinite; box-shadow: 0 0 8px #00FFC6; }
+  #voice-bar .vb-text { font-size: 9px; color: #8FB7C8; letter-spacing: 2px; }
+  #voice-bar.listening { border-color: #00FFC6; }
+  #voice-bar.listening .vb-text { color: #00FFC6; }
+
+  /* Notification toast */
+  #toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); z-index: 50; background: #020810ee; border: 1px solid #00D7FF; border-radius: 6px; padding: 10px 20px; font-size: 10px; letter-spacing: 2px; color: #00D7FF; display: none; animation: toast-in 0.3s ease; backdrop-filter: blur(10px); box-shadow: 0 0 30px #00D7FF44; }
+  @keyframes toast-in { from { opacity: 0; transform: translateX(-50%) translateY(-10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+  /* Holographic grid overlay */
+  #holo-grid { position: fixed; inset: 0; z-index: 2; pointer-events: none; background:
+    repeating-linear-gradient(0deg, transparent, transparent 59px, #00D7FF08 60px),
+    repeating-linear-gradient(90deg, transparent, transparent 59px, #00D7FF08 60px); animation: grid-drift 8s linear infinite; }
+  @keyframes grid-drift { 0%{opacity:0.4;} 50%{opacity:0.7;} 100%{opacity:0.4;} }
+
+  /* Data stream lines */
+  .data-stream { position: fixed; top: 0; bottom: 0; width: 1px; background: linear-gradient(180deg, transparent, #00D7FF44, #00D7FF22, transparent); animation: stream-flow 3s linear infinite; z-index: 3; pointer-events: none; }
+  @keyframes stream-flow { 0%{opacity:0;} 20%{opacity:1;} 80%{opacity:1;} 100%{opacity:0;} }
+
+  /* Zoom controls */
+  #zoom-controls { position: fixed; right: 235px; top: 50%; transform: translateY(-50%); z-index: 20; display: flex; flex-direction: column; gap: 6px; pointer-events: all; }
+  .zoom-btn { width: 36px; height: 36px; background: #020810cc; border: 1px solid #00D7FF44; border-radius: 4px; color: #00D7FF; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; backdrop-filter: blur(8px); }
+  .zoom-btn:hover { background: #00D7FF22; border-color: #00D7FF; box-shadow: 0 0 15px #00D7FF44; }
+
+  /* Coordinates display */
+  #coords { position: fixed; bottom: 74px; left: 240px; z-index: 20; font-size: 9px; color: #8FB7C8; letter-spacing: 1px; }
+
+  /* Loading screen */
+  #loading { position: fixed; inset: 0; background: #020810; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+  #loading h2 { font-size: 20px; letter-spacing: 6px; color: #00D7FF; text-shadow: 0 0 30px #00D7FF; }
+  #loading-bar { width: 300px; height: 3px; background: #00D7FF11; border-radius: 2px; overflow: hidden; }
+  #loading-fill { height: 100%; background: linear-gradient(90deg, #00D7FF, #00FFC6); border-radius: 2px; width: 0; transition: width 0.3s ease; box-shadow: 0 0 10px #00D7FF; }
+  #loading-status { font-size: 9px; color: #8FB7C8; letter-spacing: 3px; }
+
+  /* Threat overlay */
+  #threat-overlay { display: none; }
+
+  /* ══ TACTICAL MODE CSS ══ */
+  .mode-btn.tactical-active { border-color: #FF4D6D !important; color: #020810 !important; background: #FF4D6D !important; box-shadow: 0 0 20px #FF4D6D88 !important; }
+
+  /* Tactical layer toggles panel */
+  #tactical-panel { position: fixed; top: 100px; left: 50%; transform: translateX(-50%); z-index: 25; background: #020810ee; border: 1px solid #FF4D6D44; border-radius: 8px; padding: 10px 14px; display: none; flex-wrap: wrap; gap: 6px; pointer-events: all; backdrop-filter: blur(10px); max-width: 700px; justify-content: center; }
+  .layer-btn { padding: 5px 12px; border-radius: 20px; border: 1px solid #FF4D6D44; background: transparent; color: #8FB7C8; font-family: 'Orbitron', monospace; font-size: 9px; letter-spacing: 1px; cursor: pointer; transition: all 0.3s; }
+  .layer-btn:hover { border-color: #FF4D6D; color: #FF4D6D; }
+  .layer-btn.layer-on { background: #FF4D6D22; border-color: #FF4D6D; color: #FF4D6D; box-shadow: 0 0 10px #FF4D6D44; }
+  .layer-btn.iss-on { border-color: #00FFC6; color: #00FFC6; background: #00FFC622; }
+  .layer-btn.quake-on { border-color: #FF4D6D; color: #FF4D6D; background: #FF4D6D22; }
+  .layer-btn.aircraft-on { border-color: #FFC857; color: #FFC857; background: #FFC85722; }
+  .layer-btn.cyber-on { border-color: #FF4D6D; color: #FF4D6D; background: #FF4D6D22; }
+  .layer-btn.marine-on { border-color: #00D7FF; color: #00D7FF; background: #00D7FF22; }
+  .layer-btn.space-on { border-color: #FFC857; color: #FFC857; background: #FFC85722; }
+
+  /* Space weather HUD card addition */
+  #space-weather-card { display: none; }
+
+  /* AI Alert ticker */
+  #alert-ticker { position: fixed; top: 52px; left: 0; right: 0; height: 22px; z-index: 19; background: #FF4D6D11; border-bottom: 1px solid #FF4D6D44; display: none; overflow: hidden; }
+  #alert-ticker-inner { white-space: nowrap; font-size: 9px; color: #FF4D6D; letter-spacing: 2px; line-height: 22px; padding-left: 100%; display: inline-block; animation: ticker-scroll 30s linear infinite; }
+  @keyframes ticker-scroll { 0%{transform:translateX(0);} 100%{transform:translateX(-100%);} }
+
+  /* ISS marker */
+  .iss-label { position: fixed; background: #00FFC611; border: 1px solid #00FFC6; border-radius: 4px; padding: 2px 8px; font-size: 8px; color: #00FFC6; pointer-events: none; z-index: 22; display: none; }
+</style>
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div id="loading">
+  <div class="logo-ring" style="width:60px;height:60px;border-radius:50%;border:2px solid #00D7FF;display:flex;align-items:center;justify-content:center;animation:ring-pulse 1s ease-in-out infinite;box-shadow:0 0 40px #00D7FF44;">
+    <span style="font-size:22px;color:#00D7FF;">🌍</span>
+  </div>
+  <h2>GLOBAL COMMAND CENTER</h2>
+  <div id="loading-bar"><div id="loading-fill"></div></div>
+  <div id="loading-status">INITIALIZING HOLOGRAPHIC INTERFACE...</div>
+</div>
+
+<!-- Main Containers -->
+<div id="globe-container"></div>
+<div id="holo-grid"></div>
+<div id="scan-line"></div>
+
+<!-- HUD Overlay -->
+<div id="hud">
+  <div class="corner corner-tl"></div>
+  <div class="corner corner-tr"></div>
+  <div class="corner corner-bl"></div>
+  <div class="corner corner-br"></div>
+</div>
+
+<!-- Top Bar -->
+<div id="topbar">
+  <div id="topbar-title">
+    <div class="logo-ring"><span style="font-size:14px;">🌐</span></div>
+    <div>
+      <h1>J.A.R.V.I.S — GLOBAL COMMAND CENTER</h1>
+      <div class="subtitle">HOLOGRAPHIC WORLD INTERFACE  v4.7.2  ●  ONLINE</div>
+    </div>
+  </div>
+  <div id="topbar-clock">
+    <div class="time" id="clock-time">00:00:00</div>
+    <div class="date" id="clock-date">LOADING...</div>
+  </div>
+</div>
+
+<!-- Mode Toolbar -->
+<div id="mode-bar">
+  <button class="mode-btn active" id="btn-earth" onclick="setMode('earth')"><span class="mode-icon">🌍</span> EARTH</button>
+  <button class="mode-btn" id="btn-satellite" onclick="setMode('satellite')"><span class="mode-icon">🛰</span> SATELLITE</button>
+  <button class="mode-btn" id="btn-network" onclick="setMode('network')"><span class="mode-icon">🌐</span> NETWORK</button>
+  <button class="mode-btn" id="btn-security" onclick="setMode('security')"><span class="mode-icon">🛡</span> SECURITY</button>
+  <button class="mode-btn" id="btn-ai" onclick="setMode('ai')"><span class="mode-icon">🤖</span> AI AGENTS</button>
+  <button class="mode-btn" id="btn-comms" onclick="setMode('comms')"><span class="mode-icon">📡</span> COMMS</button>
+  <button class="mode-btn" id="btn-tactical" onclick="setMode('tactical')" style="border-color:#FF4D6D44;color:#FF4D6D88;"><span class="mode-icon">⚡</span> TACTICAL</button>
+</div>
+
+<!-- AI Alert Ticker -->
+<div id="alert-ticker">
+  <span id="alert-ticker-inner">⚡ TACTICAL MODE ACTIVE &nbsp;●&nbsp; ISS ALTITUDE: 408km &nbsp;●&nbsp; SOLAR KP INDEX: 2.4 &nbsp;●&nbsp; CYBER THREAT LEVEL: MODERATE &nbsp;●&nbsp; USGS: M4.1 QUAKE DETECTED NEAR JAPAN &nbsp;●&nbsp; AIRCRAFT TRACKED: 847 &nbsp;●&nbsp; MARINE VESSELS: 1,247 &nbsp;●&nbsp; AI ALERT: ANOMALY DETECTED IN SECTOR 7 &nbsp;●&nbsp; SPACE WEATHER: SOLAR WIND 420 km/s &nbsp;●&nbsp;</span>
+</div>
+
+<!-- Tactical Layer Controls -->
+<div id="tactical-panel">
+  <button class="layer-btn" id="layer-iss" onclick="toggleLayer('iss')">🛸 ISS TRACKING</button>
+  <button class="layer-btn" id="layer-quake" onclick="toggleLayer('quake')">🌍 EARTHQUAKES</button>
+  <button class="layer-btn" id="layer-aircraft" onclick="toggleLayer('aircraft')">✈ AIRCRAFT</button>
+  <button class="layer-btn" id="layer-marine" onclick="toggleLayer('marine')">🚢 MARINE VESSELS</button>
+  <button class="layer-btn" id="layer-cyber" onclick="toggleLayer('cyber')">🔴 CYBER THREATS</button>
+  <button class="layer-btn" id="layer-space" onclick="toggleLayer('space')">☀ SPACE WEATHER</button>
+  <button class="layer-btn" id="layer-weather" onclick="toggleLayer('weather')">🌧 WEATHER RADAR</button>
+  <button class="layer-btn" id="layer-all" onclick="enableAllLayers()" style="border-color:#FF4D6D;color:#FF4D6D;">⚡ ALL LAYERS</button>
+</div>
+
+<!-- Left Panel -->
+<div id="left-panel">
+  <div class="hud-card">
+    <div class="hud-card-title">MY LOCATION</div>
+    <div class="hud-row"><span class="hud-label">CITY</span><span class="hud-value" id="loc-city">DETECTING...</span></div>
+    <div class="hud-row"><span class="hud-label">LAT</span><span class="hud-value" id="loc-lat">--°</span></div>
+    <div class="hud-row"><span class="hud-label">LON</span><span class="hud-value" id="loc-lon">--°</span></div>
+    <div class="hud-row"><span class="hud-label">TIMEZONE</span><span class="hud-value green" id="loc-tz">--</span></div>
+    <div class="hud-row"><span class="hud-label">STATUS</span><span class="hud-value green">ONLINE</span></div>
+  </div>
+
+  <div class="hud-card">
+    <div class="hud-card-title">NETWORK STATUS</div>
+    <div class="hud-row"><span class="hud-label">NODES</span><span class="hud-value green" id="net-nodes">247</span></div>
+    <div class="hud-row"><span class="hud-label">ACTIVE</span><span class="hud-value green" id="net-active">189</span></div>
+    <div class="hud-row"><span class="hud-label">TRAFFIC</span><span class="hud-value amber" id="net-traffic">4.2 TB/s</span></div>
+    <div class="hud-row"><span class="hud-label">LATENCY</span><span class="hud-value" id="net-latency">12ms</span></div>
+    <div class="mini-bar"><div class="mini-bar-fill" id="bar-network" style="width:77%"></div></div>
+  </div>
+
+  <div class="hud-card">
+    <div class="hud-card-title">GLOBAL TIME ZONES</div>
+    <div class="hud-row"><span class="hud-label">UTC-8 PST</span><span class="hud-value" id="tz-pst">--:--</span></div>
+    <div class="hud-row"><span class="hud-label">UTC+0 GMT</span><span class="hud-value" id="tz-gmt">--:--</span></div>
+    <div class="hud-row"><span class="hud-label">UTC+5:30 IST</span><span class="hud-value green" id="tz-ist">--:--</span></div>
+    <div class="hud-row"><span class="hud-label">UTC+8 CST</span><span class="hud-value" id="tz-cst">--:--</span></div>
+    <div class="hud-row"><span class="hud-label">UTC+9 JST</span><span class="hud-value" id="tz-jst">--:--</span></div>
+  </div>
+
+  <div class="hud-card">
+    <div class="hud-card-title">WEATHER LAYER</div>
+    <div class="hud-row"><span class="hud-label">TEMP</span><span class="hud-value amber" id="wx-temp">-- °C</span></div>
+    <div class="hud-row"><span class="hud-label">HUMIDITY</span><span class="hud-value" id="wx-hum">--%</span></div>
+    <div class="hud-row"><span class="hud-label">CONDITION</span><span class="hud-value green" id="wx-cond">--</span></div>
+    <div class="hud-row"><span class="hud-label">WIND</span><span class="hud-value" id="wx-wind">-- km/h</span></div>
+  </div>
+</div>
+
+<!-- Right Panel -->
+<div id="right-panel">
+  <div class="hud-card">
+    <div class="hud-card-title">RADAR SCAN</div>
+    <canvas id="radar-canvas" width="180" height="140"></canvas>
+  </div>
+
+  <div class="hud-card">
+    <div class="hud-card-title">AI AGENTS ONLINE</div>
+    <div id="agent-list">
+      <div class="node-item"><div class="node-dot ai"></div><span class="node-label">JARVIS-CORE</span><span class="node-status">ACTIVE</span></div>
+      <div class="node-item"><div class="node-dot ai"></div><span class="node-label">AGENT-NY-01</span><span class="node-status">PROC</span></div>
+      <div class="node-item"><div class="node-dot ai"></div><span class="node-label">AGENT-LN-03</span><span class="node-status">IDLE</span></div>
+      <div class="node-item"><div class="node-dot active"></div><span class="node-label">AGENT-MU-07</span><span class="node-status">ACTIVE</span></div>
+      <div class="node-item"><div class="node-dot ai"></div><span class="node-label">AGENT-TK-02</span><span class="node-status">SCAN</span></div>
+      <div class="node-item"><div class="node-dot warn"></div><span class="node-label">AGENT-SG-05</span><span class="node-status">WARN</span></div>
+    </div>
+  </div>
+
+  <div class="hud-card">
+    <div class="hud-card-title">THREAT INTELLIGENCE</div>
+    <div class="hud-row"><span class="hud-label">THREATS BLOCKED</span><span class="hud-value green">1,247</span></div>
+    <div class="hud-row"><span class="hud-label">ACTIVE ALERTS</span><span class="hud-value amber" id="threat-count">3</span></div>
+    <div class="hud-row"><span class="hud-label">RISK LEVEL</span><span class="hud-value amber">MODERATE</span></div>
+    <div class="hud-row"><span class="hud-label">LAST SCAN</span><span class="hud-value" id="last-scan">--:--:--</span></div>
+    <div class="mini-bar"><div class="mini-bar-fill" style="width:38%;background:linear-gradient(90deg,#FFC857,#FF4D6D);"></div></div>
+  </div>
+
+  <div class="hud-card">
+    <div class="hud-card-title">CONNECTED DEVICES</div>
+    <div class="node-item"><div class="node-dot active"></div><span class="node-label">WORKSTATION-01</span><span class="node-status">SYNC</span></div>
+    <div class="node-item"><div class="node-dot active"></div><span class="node-label">MOBILE-DEVICE</span><span class="node-status">SYNC</span></div>
+    <div class="node-item"><div class="node-dot ai"></div><span class="node-label">IOT-SENSOR-7</span><span class="node-status">TX</span></div>
+    <div class="node-item"><div class="node-dot warn"></div><span class="node-label">REMOTE-HUB-3</span><span class="node-status">HIGH</span></div>
+  </div>
+</div>
+
+<!-- Zoom Controls -->
+<div id="zoom-controls">
+  <button class="zoom-btn" onclick="zoomGlobe(1.3)" title="Zoom In">+</button>
+  <button class="zoom-btn" onclick="zoomGlobe(0.7)" title="Zoom Out">−</button>
+  <button class="zoom-btn" onclick="resetGlobe()" title="Reset" style="font-size:14px;">⌂</button>
+  <button class="zoom-btn" onclick="toggleRotation()" title="Pause/Resume" id="rot-btn" style="font-size:14px;">⏸</button>
+</div>
+
+<!-- Coordinates -->
+<div id="coords">LAT: <span id="coord-lat">--</span>  LON: <span id="coord-lon">--</span></div>
+
+<!-- Voice Bar -->
+<div id="voice-bar">
+  <div class="vb-icon"></div>
+  <span class="vb-text">SAY "JARVIS OPEN WORLD MAP" · VOICE COMMANDS ACTIVE</span>
+</div>
+
+<!-- Bottom Bar -->
+<div id="bottom-bar">
+  <div class="bottom-stat"><div class="bs-val" id="stat-countries">195</div><div class="bs-label">COUNTRIES</div></div>
+  <div class="bottom-stat"><div class="bs-val green" id="stat-connections">4,892</div><div class="bs-label">CONNECTIONS</div></div>
+  <div class="bottom-stat"><div class="bs-val amber" id="stat-traffic">8.4 PB/s</div><div class="bs-label">INTERNET TRAFFIC</div></div>
+  <canvas id="wave-canvas" width="280" height="40"></canvas>
+  <div class="bottom-stat"><div class="bs-val" id="stat-agents">24</div><div class="bs-label">AI AGENTS</div></div>
+  <div class="bottom-stat"><div class="bs-val green" id="stat-uptime">99.97%</div><div class="bs-label">UPTIME</div></div>
+  <div class="bottom-stat"><div class="bs-val amber" id="stat-threats">3</div><div class="bs-label">THREATS</div></div>
+</div>
+
+<!-- Info Panel -->
+<div id="info-panel">
+  <div class="panel-title" id="panel-title">LOCATION INTELLIGENCE</div>
+  <button class="panel-close" onclick="closeInfoPanel()">✕</button>
+  <div id="panel-content"></div>
+</div>
+
+<!-- Toast Notification -->
+<div id="toast" id="toast"></div>
+
+<!-- Data Streams -->
+<div class="data-stream" style="left:15%;animation-delay:0s;animation-duration:4s;"></div>
+<div class="data-stream" style="left:30%;animation-delay:1.5s;animation-duration:3.5s;"></div>
+<div class="data-stream" style="left:55%;animation-delay:0.8s;animation-duration:5s;"></div>
+<div class="data-stream" style="left:72%;animation-delay:2.2s;animation-duration:3.8s;"></div>
+<div class="data-stream" style="left:88%;animation-delay:0.4s;animation-duration:4.5s;"></div>
+
+<!-- Three.js via CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+
+<script>
+// ══════════════════════════════════════
+// JARVIS GLOBAL COMMAND CENTER — v4.7.2
+// Three.js Holographic Globe Engine
+// ══════════════════════════════════════
+
+const PALETTE = {
+  cyan:    0x00D7FF, cyanHex: '#00D7FF',
+  green:   0x00FFC6, greenHex: '#00FFC6',
+  amber:   0xFFC857, amberHex: '#FFC857',
+  red:     0xFF4D6D, redHex: '#FF4D6D',
+  bg:      0x020810
+};
+
+// World cities / data nodes
+const CITY_NODES = [
+  { name: 'New York', lat: 40.71, lon: -74.01, type: 'city', pop: '8.3M', weather: 'Cloudy 22°C' },
+  { name: 'London', lat: 51.51, lon: -0.13, type: 'city', pop: '9.0M', weather: 'Rainy 15°C' },
+  { name: 'Tokyo', lat: 35.69, lon: 139.69, type: 'city', pop: '13.9M', weather: 'Clear 28°C' },
+  { name: 'Paris', lat: 48.86, lon: 2.35, type: 'city', pop: '2.1M', weather: 'Sunny 24°C' },
+  { name: 'Dubai', lat: 25.20, lon: 55.27, type: 'city', pop: '3.5M', weather: 'Hot 42°C' },
+  { name: 'Mumbai', lat: 19.08, lon: 72.88, type: 'city', pop: '20.7M', weather: 'Humid 31°C' },
+  { name: 'Hyderabad', lat: 17.39, lon: 78.47, type: 'city', pop: '10.5M', weather: 'Partly Cloudy 34°C' },
+  { name: 'Singapore', lat: 1.35, lon: 103.82, type: 'city', pop: '5.9M', weather: 'Thunderstorm 30°C' },
+  { name: 'Sydney', lat: -33.87, lon: 151.21, type: 'city', pop: '5.3M', weather: 'Clear 21°C' },
+  { name: 'São Paulo', lat: -23.55, lon: -46.63, type: 'city', pop: '12.3M', weather: 'Windy 19°C' },
+  { name: 'Cairo', lat: 30.04, lon: 31.24, type: 'city', pop: '21.3M', weather: 'Sunny 38°C' },
+  { name: 'Moscow', lat: 55.75, lon: 37.62, type: 'city', pop: '12.5M', weather: 'Cold 5°C' },
+  { name: 'Beijing', lat: 39.91, lon: 116.39, type: 'city', pop: '21.5M', weather: 'Hazy 26°C' },
+  { name: 'Chicago', lat: 41.88, lon: -87.63, type: 'city', pop: '2.7M', weather: 'Windy 18°C' },
+  { name: 'Toronto', lat: 43.65, lon: -79.38, type: 'city', pop: '2.9M', weather: 'Clear 20°C' },
+  { name: 'Berlin', lat: 52.52, lon: 13.41, type: 'city', pop: '3.7M', weather: 'Overcast 17°C' },
+  { name: 'Delhi', lat: 28.61, lon: 77.21, type: 'city', pop: '32.9M', weather: 'Hazy 36°C' },
+  { name: 'Bangkok', lat: 13.75, lon: 100.52, type: 'city', pop: '10.7M', weather: 'Hot 33°C' },
+  { name: 'Los Angeles', lat: 34.05, lon: -118.24, type: 'city', pop: '4.0M', weather: 'Sunny 29°C' },
+  { name: 'Seoul', lat: 37.57, lon: 126.98, type: 'city', pop: '9.7M', weather: 'Clear 23°C' },
+];
+
+const AI_AGENTS = [
+  { name: 'JARVIS-CORE', lat: 17.39, lon: 78.47, status: 'ACTIVE', task: 'Voice Processing' },
+  { name: 'AGENT-NY-01', lat: 40.71, lon: -74.01, status: 'PROCESSING', task: 'Data Analysis' },
+  { name: 'AGENT-LN-03', lat: 51.51, lon: -0.13, status: 'IDLE', task: 'Standby' },
+  { name: 'AGENT-TK-02', lat: 35.69, lon: 139.69, status: 'SCANNING', task: 'Threat Intel' },
+  { name: 'AGENT-SG-05', lat: 1.35, lon: 103.82, status: 'WARNING', task: 'High Load' },
+  { name: 'AGENT-MU-07', lat: 19.08, lon: 72.88, status: 'ACTIVE', task: 'ML Training' },
+];
+
+const FLIGHT_PATHS = [
+  [40.71,-74.01, 51.51,-0.13],
+  [19.08,72.88, 35.69,139.69],
+  [40.71,-74.01, 17.39,78.47],
+  [-23.55,-46.63, 51.51,-0.13],
+  [1.35,103.82, 48.86,2.35],
+  [33.87,151.21, 35.69,139.69],
+];
+
+// ══ Three.js Setup ══
+let scene, camera, renderer, globe, clock;
+let earthMesh, cloudMesh, atmosphereMesh;
+let gridLines = [], energyRings = [], connectionLines = [], cityMarkers = [], agentMarkers = [], flightPaths = [];
+let radarRing, satelliteSweep;
+let isDragging = false, previousMouse = {x:0, y:0};
+let targetRotY = 0.003, autoRotate = true;
+let currentMode = 'earth';
+let globeGroup, particleSystem;
+let radarAngle = 0;
+
+function init() {
+  // Scene
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(PALETTE.bg);
+  scene.fog = new THREE.FogExp2(PALETTE.bg, 0.0008);
+
+  // Camera
+  camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 2000);
+  camera.position.set(0, 0, 280);
+
+  // Renderer
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  document.getElementById('globe-container').appendChild(renderer.domElement);
+
+  clock = new THREE.Clock();
+  globeGroup = new THREE.Group();
+  scene.add(globeGroup);
+
+  // ── Starfield
+  buildStarfield();
+  // ── Globe
+  buildEarth();
+  // ── Atmosphere
+  buildAtmosphere();
+  // ── Grid lines
+  buildLatLonGrid();
+  // ── Energy rings
+  buildEnergyRings();
+  // ── City markers
+  buildCityMarkers();
+  // ── Agent markers
+  buildAgentMarkers();
+  // ── Flight paths
+  buildFlightPaths();
+  // ── Connection lines
+  buildConnectionLines();
+  // ── Particle system
+  buildParticles();
+  // ── Satellite ring
+  buildSatelliteRing();
+  // ── Lighting
+  buildLighting();
+
+  // Events
+  renderer.domElement.addEventListener('mousedown', onMouseDown);
+  renderer.domElement.addEventListener('mousemove', onMouseMove);
+  renderer.domElement.addEventListener('mouseup', onMouseUp);
+  renderer.domElement.addEventListener('wheel', onWheel);
+  renderer.domElement.addEventListener('dblclick', onDblClick);
+  renderer.domElement.addEventListener('click', onGlobeClick);
+  window.addEventListener('resize', onResize);
+
+  // Get user location
+  getUserLocation();
+  // Start HUD updates
+  startHUDUpdates();
+  // Radar
+  startRadar();
+  // Waveform
+  startWaveform();
+
+  // Finish loading
+  animateLoading();
+  animate();
+}
+
+function buildStarfield() {
+  const geom = new THREE.BufferGeometry();
+  const count = 8000;
+  const pos = new Float32Array(count * 3);
+  for (let i = 0; i < count*3; i++) {
+    pos[i] = (Math.random() - 0.5) * 3000;
+  }
+  geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.7, transparent: true, opacity: 0.6 });
+  scene.add(new THREE.Points(geom, mat));
+}
+
+function buildEarth() {
+  const geom = new THREE.SphereGeometry(100, 64, 64);
+
+  // Use a procedural shader for the globe when no texture available
+  const mat = new THREE.MeshPhongMaterial({
+    color: 0x003366,
+    emissive: 0x000820,
+    shininess: 30,
+    transparent: true,
+    opacity: 0.98,
+  });
+
+  // Try loading texture from Three.js examples
+  const loader = new THREE.TextureLoader();
+  loader.crossOrigin = 'anonymous';
+
+  earthMesh = new THREE.Mesh(geom, mat);
+  globeGroup.add(earthMesh);
+
+  // Load earth texture
+  loader.load(
+    'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
+    (tex) => { mat.map = tex; mat.needsUpdate = true; },
+    undefined,
+    () => {} // Fail silently, use solid color
+  );
+
+  // Bump map
+  loader.load(
+    'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_normal_2048.jpg',
+    (tex) => { mat.normalMap = tex; mat.needsUpdate = true; },
+    undefined, () => {}
+  );
+
+  // Cloud layer
+  const cloudGeom = new THREE.SphereGeometry(101.5, 48, 48);
+  const cloudMat = new THREE.MeshPhongMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.18,
+    depthWrite: false,
+  });
+  loader.load(
+    'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_clouds_1024.png',
+    (tex) => { cloudMat.alphaMap = tex; cloudMat.needsUpdate = true; },
+    undefined, () => {}
+  );
+  cloudMesh = new THREE.Mesh(cloudGeom, cloudMat);
+  globeGroup.add(cloudMesh);
+}
+
+function buildAtmosphere() {
+  const geom = new THREE.SphereGeometry(105, 48, 48);
+  const mat = new THREE.MeshPhongMaterial({
+    color: PALETTE.cyan,
+    emissive: PALETTE.cyan,
+    emissiveIntensity: 0.05,
+    transparent: true,
+    opacity: 0.06,
+    side: THREE.FrontSide,
+    depthWrite: false,
+  });
+  atmosphereMesh = new THREE.Mesh(geom, mat);
+  scene.add(atmosphereMesh);
+
+  // Outer glow ring
+  const glowGeom = new THREE.SphereGeometry(108, 32, 32);
+  const glowMat = new THREE.MeshPhongMaterial({
+    color: PALETTE.cyan,
+    transparent: true,
+    opacity: 0.02,
+    side: THREE.BackSide,
+    depthWrite: false,
+  });
+  scene.add(new THREE.Mesh(glowGeom, glowMat));
+}
+
+function buildLatLonGrid() {
+  const mat = new THREE.LineBasicMaterial({ color: PALETTE.cyan, transparent: true, opacity: 0.18 });
+  // Latitude lines
+  for (let lat = -80; lat <= 80; lat += 20) {
+    const pts = [];
+    for (let lon = 0; lon <= 360; lon += 3) {
+      pts.push(latLonToVec3(lat, lon, 101.3));
+    }
+    const geom = new THREE.BufferGeometry().setFromPoints(pts);
+    const line = new THREE.Line(geom, mat);
+    globeGroup.add(line);
+    gridLines.push(line);
+  }
+  // Longitude lines
+  for (let lon = 0; lon < 360; lon += 20) {
+    const pts = [];
+    for (let lat = -90; lat <= 90; lat += 3) {
+      pts.push(latLonToVec3(lat, lon, 101.3));
+    }
+    const geom = new THREE.BufferGeometry().setFromPoints(pts);
+    const line = new THREE.Line(geom, mat);
+    globeGroup.add(line);
+    gridLines.push(line);
+  }
+
+  // Equator (brighter)
+  const eqPts = [];
+  for (let lon = 0; lon <= 360; lon += 2) eqPts.push(latLonToVec3(0, lon, 101.5));
+  const eqGeom = new THREE.BufferGeometry().setFromPoints(eqPts);
+  const eqMat = new THREE.LineBasicMaterial({ color: PALETTE.cyan, transparent: true, opacity: 0.5 });
+  globeGroup.add(new THREE.Line(eqGeom, eqMat));
+
+  // Prime meridian
+  const pmPts = [];
+  for (let lat = -90; lat <= 90; lat += 2) pmPts.push(latLonToVec3(lat, 0, 101.5));
+  const pmGeom = new THREE.BufferGeometry().setFromPoints(pmPts);
+  globeGroup.add(new THREE.Line(pmGeom, eqMat));
+}
+
+function buildEnergyRings() {
+  const ringData = [
+    { radius: 115, color: PALETTE.cyan, opacity: 0.5, speed: 0.008 },
+    { radius: 125, color: PALETTE.green, opacity: 0.3, speed: -0.005 },
+    { radius: 135, color: PALETTE.cyan, opacity: 0.2, speed: 0.003 },
+    { radius: 145, color: PALETTE.amber, opacity: 0.15, speed: -0.002 },
+  ];
+  ringData.forEach((rd, i) => {
+    const geom = new THREE.TorusGeometry(rd.radius, 0.8, 8, 128);
+    const mat = new THREE.MeshBasicMaterial({ color: rd.color, transparent: true, opacity: rd.opacity });
+    const ring = new THREE.Mesh(geom, mat);
+    ring.rotation.x = Math.PI / 2 + (i * 0.3);
+    ring.rotation.z = i * 0.5;
+    ring.userData.speed = rd.speed;
+    scene.add(ring);
+    energyRings.push(ring);
+  });
+}
+
+function buildCityMarkers() {
+  CITY_NODES.forEach(city => {
+    const pos = latLonToVec3(city.lat, city.lon, 102);
+    // Pulsing sphere
+    const geom = new THREE.SphereGeometry(1.4, 12, 12);
+    const mat = new THREE.MeshBasicMaterial({ color: PALETTE.cyan, transparent: true, opacity: 0.9 });
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.position.copy(pos);
+    mesh.userData = { ...city };
+    globeGroup.add(mesh);
+    cityMarkers.push(mesh);
+
+    // Spike
+    const spikeDir = pos.clone().normalize();
+    const spikeGeom = new THREE.CylinderGeometry(0, 0.5, 6, 6);
+    const spikeMat = new THREE.MeshBasicMaterial({ color: PALETTE.cyan, transparent: true, opacity: 0.5 });
+    const spike = new THREE.Mesh(spikeGeom, spikeMat);
+    spike.position.copy(pos);
+    spike.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), spikeDir);
+    globeGroup.add(spike);
+  });
+}
+
+function buildAgentMarkers() {
+  AI_AGENTS.forEach(agent => {
+    const pos = latLonToVec3(agent.lat, agent.lon, 103.5);
+    const color = agent.status === 'WARNING' ? PALETTE.amber : (agent.status === 'IDLE' ? 0x8FB7C8 : PALETTE.green);
+    const geom = new THREE.SphereGeometry(2.2, 12, 12);
+    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95 });
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.position.copy(pos);
+    mesh.userData = { ...agent, isAgent: true };
+    globeGroup.add(mesh);
+    agentMarkers.push(mesh);
+
+    // Ring around agent
+    const rGeom = new THREE.TorusGeometry(4, 0.4, 8, 32);
+    const rMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.6 });
+    const ring = new THREE.Mesh(rGeom, rMat);
+    ring.position.copy(pos);
+    const normal = pos.clone().normalize();
+    ring.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), normal);
+    ring.userData.pulseSpeed = 0.05 + Math.random() * 0.03;
+    globeGroup.add(ring);
+  });
+}
+
+function buildFlightPaths() {
+  FLIGHT_PATHS.forEach(([lat1,lon1,lat2,lon2]) => {
+    const p1 = latLonToVec3(lat1, lon1, 102);
+    const p2 = latLonToVec3(lat2, lon2, 102);
+    const mid = p1.clone().add(p2).multiplyScalar(0.5);
+    const dist = p1.distanceTo(p2);
+    mid.normalize().multiplyScalar(102 + dist * 0.28);
+
+    const curve = new THREE.QuadraticBezierCurve3(p1, mid, p2);
+    const pts = curve.getPoints(80);
+    const geom = new THREE.BufferGeometry().setFromPoints(pts);
+    const mat = new THREE.LineBasicMaterial({ color: PALETTE.amber, transparent: true, opacity: 0.6 });
+    const line = new THREE.Line(geom, mat);
+    line.userData = { curve, progress: Math.random(), speed: 0.003 + Math.random() * 0.002 };
+    globeGroup.add(line);
+    flightPaths.push(line);
+
+    // Flight dot
+    const dotGeom = new THREE.SphereGeometry(1.2, 8, 8);
+    const dotMat = new THREE.MeshBasicMaterial({ color: PALETTE.amber });
+    const dot = new THREE.Mesh(dotGeom, dotMat);
+    dot.userData = { curve, progress: Math.random(), speed: line.userData.speed };
+    globeGroup.add(dot);
+    flightPaths.push(dot);
+  });
+}
+
+function buildConnectionLines() {
+  const pairs = [
+    [0,1],[1,3],[3,9],[0,12],[6,12],[5,7],[2,9],[10,3],[11,13],[4,6]
+  ];
+  pairs.forEach(([i,j]) => {
+    const c1 = CITY_NODES[i], c2 = CITY_NODES[j];
+    const p1 = latLonToVec3(c1.lat, c1.lon, 102);
+    const p2 = latLonToVec3(c2.lat, c2.lon, 102);
+    const mid = p1.clone().add(p2).multiplyScalar(0.5);
+    mid.normalize().multiplyScalar(115);
+    const curve = new THREE.QuadraticBezierCurve3(p1, mid, p2);
+    const pts = curve.getPoints(60);
+    const geom = new THREE.BufferGeometry().setFromPoints(pts);
+    const mat = new THREE.LineBasicMaterial({ color: PALETTE.cyan, transparent: true, opacity: 0.25 });
+    const line = new THREE.Line(geom, mat);
+    globeGroup.add(line);
+    connectionLines.push(line);
+  });
+}
+
+function buildParticles() {
+  const count = 500;
+  const geom = new THREE.BufferGeometry();
+  const pos = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const lat = (Math.random() - 0.5) * 180;
+    const lon = Math.random() * 360;
+    const r = 104 + Math.random() * 10;
+    const v = latLonToVec3(lat, lon, r);
+    pos[i*3]=v.x; pos[i*3+1]=v.y; pos[i*3+2]=v.z;
+  }
+  geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({ color: PALETTE.cyan, size: 0.8, transparent: true, opacity: 0.4 });
+  particleSystem = new THREE.Points(geom, mat);
+  globeGroup.add(particleSystem);
+}
+
+function buildSatelliteRing() {
+  // Satellite orbit ring
+  const geom = new THREE.TorusGeometry(140, 0.5, 8, 256);
+  const mat = new THREE.MeshBasicMaterial({ color: PALETTE.green, transparent: true, opacity: 0.3 });
+  const ring = new THREE.Mesh(geom, mat);
+  ring.rotation.x = 0.4;
+  ring.rotation.y = 0.2;
+  scene.add(ring);
+  radarRing = ring;
+
+  // Satellite marker on the ring
+  const satGeom = new THREE.SphereGeometry(2.5, 8, 8);
+  const satMat = new THREE.MeshBasicMaterial({ color: PALETTE.green });
+  const sat = new THREE.Mesh(satGeom, satMat);
+  sat.userData.isSatellite = true;
+  scene.add(sat);
+  energyRings.push(sat);
+}
+
+function buildLighting() {
+  scene.add(new THREE.AmbientLight(0x112244, 1.5));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.8);
+  sun.position.set(300, 100, 200);
+  scene.add(sun);
+  // Rim light (cyan)
+  const rim = new THREE.DirectionalLight(PALETTE.cyan, 0.5);
+  rim.position.set(-200, 0, -100);
+  scene.add(rim);
+}
+
+// ══ Helper: lat/lon → 3D point ══
+function latLonToVec3(lat, lon, radius=100) {
+  const phi = (90 - lat) * Math.PI / 180;
+  const theta = (lon + 180) * Math.PI / 180;
+  return new THREE.Vector3(
+    -radius * Math.sin(phi) * Math.cos(theta),
+     radius * Math.cos(phi),
+     radius * Math.sin(phi) * Math.sin(theta)
+  );
+}
+
+// ══ Animation Loop ══
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const t = clock.getElapsedTime();
+
+  // Auto-rotate globe
+  if (autoRotate) {
+    globeGroup.rotation.y += 0.0015;
+  }
+
+  // Cloud layer slow rotation
+  if (cloudMesh) cloudMesh.rotation.y += 0.0003;
+
+  // Atmosphere pulse
+  if (atmosphereMesh) {
+    atmosphereMesh.material.opacity = 0.04 + 0.02 * Math.sin(t * 1.2);
+  }
+
+  // Energy rings
+  energyRings.forEach((ring, i) => {
+    if (ring.userData.speed) ring.rotation.z += ring.userData.speed;
+    // Satellite position
+    if (ring.userData.isSatellite) {
+      const angle = t * 0.3;
+      ring.position.set(140 * Math.cos(angle), 30 * Math.sin(angle * 0.7), 140 * Math.sin(angle));
+    }
+  });
+
+  // Pulsing city markers
+  cityMarkers.forEach((m, i) => {
+    const scale = 1 + 0.3 * Math.sin(t * 2 + i * 0.7);
+    m.scale.setScalar(scale);
+  });
+
+  // Agent markers pulse
+  agentMarkers.forEach((m, i) => {
+    const scale = 1 + 0.4 * Math.sin(t * 2.5 + i * 1.1);
+    m.scale.setScalar(scale);
+  });
+
+  // Connection lines shimmer
+  connectionLines.forEach((line, i) => {
+    line.material.opacity = 0.15 + 0.15 * Math.sin(t * 1.5 + i * 0.8);
+  });
+
+  // Flight paths — animate dots
+  flightPaths.forEach(obj => {
+    if (obj.userData.curve && obj.isMesh) {
+      obj.userData.progress = (obj.userData.progress + obj.userData.speed) % 1;
+      const pt = obj.userData.curve.getPoint(obj.userData.progress);
+      // Transform from globeGroup local space
+      obj.position.copy(pt);
+    }
+  });
+
+  // Grid line pulse
+  gridLines.forEach((l, i) => {
+    l.material.opacity = 0.12 + 0.08 * Math.sin(t * 0.8 + i * 0.1);
+  });
+
+  // Radar ring rotation
+  if (radarRing) radarRing.rotation.z += 0.004;
+
+  // Particle system slow rotation
+  if (particleSystem) particleSystem.rotation.y -= 0.0008;
+
+  renderer.render(scene, camera);
+}
+
+// ══ Mouse Controls ══
+let mouseDownPos = {x:0,y:0};
+function onMouseDown(e) {
+  isDragging = true;
+  autoRotate = false;
+  previousMouse = {x: e.clientX, y: e.clientY};
+  mouseDownPos = {x: e.clientX, y: e.clientY};
+}
+function onMouseMove(e) {
+  // Update coordinates display
+  const rect = renderer.domElement.getBoundingClientRect();
+  const nx = (e.clientX - rect.left) / rect.width * 2 - 1;
+  const ny = -(e.clientY - rect.top) / rect.height * 2 + 1;
+  document.getElementById('coord-lat').textContent = (ny * 90).toFixed(2) + '°';
+  document.getElementById('coord-lon').textContent = (nx * 180).toFixed(2) + '°';
+
+  if (!isDragging) return;
+  const dx = e.clientX - previousMouse.x;
+  const dy = e.clientY - previousMouse.y;
+  globeGroup.rotation.y += dx * 0.005;
+  globeGroup.rotation.x += dy * 0.005;
+  globeGroup.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, globeGroup.rotation.x));
+  previousMouse = {x: e.clientX, y: e.clientY};
+}
+function onMouseUp(e) {
+  isDragging = false;
+  const dx = Math.abs(e.clientX - mouseDownPos.x);
+  const dy = Math.abs(e.clientY - mouseDownPos.y);
+  if (dx < 5 && dy < 5) return; // treat as click, not drag
+  // Resume auto-rotate after 3s
+  setTimeout(() => { autoRotate = true; }, 3000);
+}
+function onWheel(e) {
+  const dir = e.deltaY > 0 ? 1.1 : 0.9;
+  camera.position.z = Math.max(130, Math.min(500, camera.position.z * dir));
+  e.preventDefault();
+}
+function onDblClick(e) {
+  // Zoom in on double click
+  camera.position.z = Math.max(150, camera.position.z * 0.7);
+  showToast('CAMERA: ZOOM FOCUS');
+}
+function onResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// ══ Globe Click — Detect marker hits ══
+function onGlobeClick(e) {
+  const dx = Math.abs(e.clientX - mouseDownPos.x);
+  const dy = Math.abs(e.clientY - mouseDownPos.y);
+  if (dx > 5 || dy > 5) return;
+
+  const rect = renderer.domElement.getBoundingClientRect();
+  const mouse = new THREE.Vector2(
+    ((e.clientX - rect.left) / rect.width) * 2 - 1,
+    -((e.clientY - rect.top) / rect.height) * 2 + 1
+  );
+  const ray = new THREE.Raycaster();
+  ray.setFromCamera(mouse, camera);
+
+  // Check city markers first
+  const cityHits = ray.intersectObjects(cityMarkers);
+  if (cityHits.length > 0) {
+    const d = cityHits[0].object.userData;
+    showInfoPanel(e.clientX, e.clientY, 'CITY INTELLIGENCE', [
+      ['CITY', d.name],
+      ['LATITUDE', d.lat + '°'],
+      ['LONGITUDE', d.lon + '°'],
+      ['POPULATION', d.pop],
+      ['WEATHER', d.weather],
+      ['STATUS', 'ONLINE', 'green'],
+      ['NET TRAFFIC', (Math.random()*100).toFixed(1) + ' Gbps', 'amber'],
+    ]);
+    flyTo(d.lat, d.lon);
+    return;
+  }
+
+  // Check agent markers
+  const agentHits = ray.intersectObjects(agentMarkers);
+  if (agentHits.length > 0) {
+    const d = agentHits[0].object.userData;
+    const statusColor = d.status === 'WARNING' ? 'amber' : d.status === 'IDLE' ? '' : 'green';
+    showInfoPanel(e.clientX, e.clientY, 'AI AGENT INTELLIGENCE', [
+      ['AGENT ID', d.name],
+      ['STATUS', d.status, statusColor],
+      ['CURRENT TASK', d.task],
+      ['LOCATION', `${d.lat}°, ${d.lon}°`],
+      ['CPU LOAD', (Math.random()*80+10).toFixed(0) + '%', 'amber'],
+      ['MEMORY', (Math.random()*60+20).toFixed(0) + '%'],
+      ['UPTIME', Math.floor(Math.random()*72) + 'h ' + Math.floor(Math.random()*60) + 'm', 'green'],
+    ]);
+    return;
+  }
+}
+
+// ══ Info Panel ══
+function showInfoPanel(x, y, title, rows) {
+  const panel = document.getElementById('info-panel');
+  document.getElementById('panel-title').textContent = title;
+  const content = document.getElementById('panel-content');
+  content.innerHTML = rows.map(([k,v,c]) =>
+    `<div class="panel-row"><span class="panel-key">${k}</span><span class="panel-val${c?' '+c:''}">${v}</span></div>`
+  ).join('');
+  // Position panel
+  let px = x + 20, py = y - 20;
+  if (px + 300 > window.innerWidth) px = x - 320;
+  if (py + 300 > window.innerHeight) py = window.innerHeight - 320;
+  panel.style.left = px + 'px';
+  panel.style.top = py + 'px';
+  panel.style.display = 'block';
+}
+function closeInfoPanel() {
+  document.getElementById('info-panel').style.display = 'none';
+}
+
+// ══ Mode Switching ══
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-'+mode).classList.add('active');
+
+  // Update globe appearance per mode
+  const modeSettings = {
+    'earth':     { color: 0x003366, emissive: 0x000820, ringOpacity: [0.5,0.3,0.2,0.15], connOpacity: 0.25 },
+    'satellite': { color: 0x2d4a1e, emissive: 0x0a1a05, ringOpacity: [0.2,0.5,0.1,0.1], connOpacity: 0.1 },
+    'network':   { color: 0x001133, emissive: 0x000022, ringOpacity: [0.8,0.6,0.4,0.3], connOpacity: 0.8 },
+    'security':  { color: 0x1a0000, emissive: 0x0a0000, ringOpacity: [0.2,0.1,0.6,0.8], connOpacity: 0.15 },
+    'ai':        { color: 0x001a22, emissive: 0x000811, ringOpacity: [0.3,0.8,0.3,0.2], connOpacity: 0.4 },
+    'comms':     { color: 0x00001a, emissive: 0x00000a, ringOpacity: [0.6,0.2,0.8,0.5], connOpacity: 0.6 },
+  };
+  const s = modeSettings[mode] || modeSettings.earth;
+  if (earthMesh) {
+    earthMesh.material.color.setHex(s.color);
+    earthMesh.material.emissive.setHex(s.emissive);
+  }
+  energyRings.forEach((ring, i) => {
+    if (ring.material && s.ringOpacity[i] !== undefined) {
+      ring.material.opacity = s.ringOpacity[i];
+    }
+  });
+  connectionLines.forEach(l => { if(l.material) l.material.opacity = s.connOpacity; });
+
+  // Mode-specific colors
+  const modeColors = {
+    'earth': PALETTE.cyan, 'satellite': PALETTE.green,
+    'network': PALETTE.cyan, 'security': PALETTE.red,
+    'ai': PALETTE.green, 'comms': PALETTE.amber
+  };
+  const col = modeColors[mode] || PALETTE.cyan;
+  gridLines.forEach(l => { if(l.material) l.material.color.setHex(col); });
+  cityMarkers.forEach(m => { if(m.material) m.material.color.setHex(col); });
+
+  showToast(`MODE: ${mode.toUpperCase()} ENGAGED`);
+}
+
+// ══ Fly to location ══
+function flyTo(lat, lon) {
+  const phi = (90 - lat) * Math.PI / 180;
+  const theta = (lon + 180) * Math.PI / 180;
+  const targetRotY = -theta + Math.PI;
+  const targetRotX = -(phi - Math.PI/2);
+  // Animate rotation
+  const startY = globeGroup.rotation.y;
+  const startX = globeGroup.rotation.x;
+  const dur = 60;
+  let frame = 0;
+  autoRotate = false;
+  const anim = setInterval(() => {
+    frame++;
+    const p = Math.min(1, frame/dur);
+    const ease = 1 - Math.pow(1-p, 3);
+    globeGroup.rotation.y = startY + (targetRotY - startY) * ease;
+    globeGroup.rotation.x = startX + (targetRotX - startX) * ease;
+    if (frame >= dur) { clearInterval(anim); setTimeout(() => autoRotate=true, 5000); }
+  }, 16);
+  camera.position.z = 200;
+}
+
+// ══ Zoom controls ══
+function zoomGlobe(factor) {
+  camera.position.z = Math.max(130, Math.min(500, camera.position.z * factor));
+}
+function resetGlobe() {
+  camera.position.set(0,0,280);
+  globeGroup.rotation.set(0,0,0);
+  autoRotate = true;
+  closeInfoPanel();
+  showToast('VIEW: RESET TO GLOBAL');
+}
+function toggleRotation() {
+  autoRotate = !autoRotate;
+  document.getElementById('rot-btn').textContent = autoRotate ? '⏸' : '▶';
+  showToast(autoRotate ? 'ROTATION: ENABLED' : 'ROTATION: PAUSED');
+}
+
+// ══ Toast Notification ══
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.style.display = 'none'; }, 2200);
+}
+
+// ══ HUD Updates ══
+function startHUDUpdates() {
+  updateClock();
+  updateTimezones();
+  updateNetworkStats();
+  updateWeather();
+  setInterval(updateClock, 1000);
+  setInterval(updateTimezones, 60000);
+  setInterval(updateNetworkStats, 3000);
+  setInterval(updateWeather, 30000);
+  setInterval(updateThreats, 5000);
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock-time').textContent = now.toLocaleTimeString('en-US', {hour12: false});
+  document.getElementById('clock-date').textContent = now.toLocaleDateString('en-US', {weekday:'long',year:'numeric',month:'long',day:'numeric'}).toUpperCase();
+  document.getElementById('last-scan').textContent = now.toLocaleTimeString('en-US', {hour12: false});
+}
+
+function updateTimezones() {
+  const now = new Date();
+  const tzMap = {
+    'tz-pst': 'America/Los_Angeles',
+    'tz-gmt': 'UTC',
+    'tz-ist': 'Asia/Kolkata',
+    'tz-cst': 'Asia/Shanghai',
+    'tz-jst': 'Asia/Tokyo',
+  };
+  Object.entries(tzMap).forEach(([id, tz]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = now.toLocaleTimeString('en-US', {timeZone: tz, hour12: false, hour:'2-digit', minute:'2-digit'});
+  });
+}
+
+function updateNetworkStats() {
+  const nodes = 230 + Math.floor(Math.random() * 40);
+  const active = Math.floor(nodes * (0.7 + Math.random() * 0.2));
+  const traffic = (3.5 + Math.random() * 2).toFixed(1);
+  const latency = 8 + Math.floor(Math.random() * 20);
+  document.getElementById('net-nodes').textContent = nodes;
+  document.getElementById('net-active').textContent = active;
+  document.getElementById('net-traffic').textContent = traffic + ' TB/s';
+  document.getElementById('net-latency').textContent = latency + 'ms';
+  document.getElementById('bar-network').style.width = ((active/nodes)*100) + '%';
+  document.getElementById('stat-connections').textContent = (4000 + Math.floor(Math.random() * 2000)).toLocaleString();
+  document.getElementById('stat-traffic').textContent = (7 + Math.random() * 3).toFixed(1) + ' PB/s';
+}
+
+function updateWeather() {
+  const conditions = ['CLEAR', 'CLOUDY', 'RAINY', 'STORM', 'SUNNY', 'WINDY'];
+  const cond = conditions[Math.floor(Math.random() * conditions.length)];
+  const temp = 18 + Math.floor(Math.random() * 20);
+  document.getElementById('wx-temp').textContent = temp + ' °C';
+  document.getElementById('wx-hum').textContent = (40 + Math.floor(Math.random() * 50)) + '%';
+  document.getElementById('wx-cond').textContent = cond;
+  document.getElementById('wx-wind').textContent = (10 + Math.floor(Math.random() * 40)) + ' km/h';
+}
+
+function updateThreats() {
+  const threats = Math.floor(Math.random() * 8);
+  document.getElementById('threat-count').textContent = threats;
+  document.getElementById('stat-threats').textContent = threats;
+  if (threats > 5) {
+    document.getElementById('threat-count').className = 'hud-value red';
+  } else if (threats > 2) {
+    document.getElementById('threat-count').className = 'hud-value amber';
+  } else {
+    document.getElementById('threat-count').className = 'hud-value green';
+  }
+}
+
+// ══ Geolocation ══
+function getUserLocation() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      const lat = pos.coords.latitude.toFixed(2);
+      const lon = pos.coords.longitude.toFixed(2);
+      document.getElementById('loc-lat').textContent = lat + '°';
+      document.getElementById('loc-lon').textContent = lon + '°';
+      document.getElementById('loc-city').textContent = 'YOUR LOCATION';
+      document.getElementById('loc-tz').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop().toUpperCase();
+      flyTo(parseFloat(lat), parseFloat(lon));
+    }, () => {
+      document.getElementById('loc-city').textContent = 'HYDERABAD, IN';
+      document.getElementById('loc-lat').textContent = '17.39°';
+      document.getElementById('loc-lon').textContent = '78.47°';
+      document.getElementById('loc-tz').textContent = 'IST UTC+5:30';
+      flyTo(17.39, 78.47);
+    });
+  } else {
+    document.getElementById('loc-city').textContent = 'HYDERABAD, IN';
+    flyTo(17.39, 78.47);
+  }
+}
+
+// ══ Radar ══
+function startRadar() {
+  const canvas = document.getElementById('radar-canvas');
+  const ctx = canvas.getContext('2d');
+  const cx = 90, cy = 70, r = 60;
+  const dots = Array.from({length:8}, () => ({ angle: Math.random()*Math.PI*2, dist: Math.random()*0.85, bright: 0 }));
+
+  function drawRadar() {
+    ctx.clearRect(0,0,180,140);
+    ctx.fillStyle = '#020810';
+    ctx.fillRect(0,0,180,140);
+
+    // Grid circles
+    for (let i = 1; i <= 4; i++) {
+      ctx.beginPath(); ctx.arc(cx,cy,r*(i/4),0,Math.PI*2);
+      ctx.strokeStyle = '#00D7FF22'; ctx.lineWidth=1; ctx.stroke();
+    }
+    // Cross hairs
+    ctx.strokeStyle = '#00D7FF22'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx-r,cy); ctx.lineTo(cx+r,cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx,cy-r); ctx.lineTo(cx,cy+r); ctx.stroke();
+
+    // Sweep
+    radarAngle = (radarAngle + 0.04) % (Math.PI*2);
+    const sweepGrad = ctx.createConicalGradient ? null : null;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r, radarAngle-0.7, radarAngle);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(cx,cy, cx+Math.cos(radarAngle)*r, cy+Math.sin(radarAngle)*r);
+    grad.addColorStop(0,'#00D7FF00');
+    grad.addColorStop(1,'#00D7FF66');
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Sweep line
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+Math.cos(radarAngle)*r, cy+Math.sin(radarAngle)*r);
+    ctx.strokeStyle='#00D7FFcc'; ctx.lineWidth=1.5; ctx.stroke();
+
+    // Dots
+    dots.forEach(d => {
+      const da = Math.abs(((d.angle - radarAngle) % (Math.PI*2) + Math.PI*2) % (Math.PI*2));
+      if (da < 0.12) d.bright = 1;
+      d.bright *= 0.97;
+      if (d.bright > 0.05) {
+        const x = cx + Math.cos(d.angle)*r*d.dist;
+        const y = cy + Math.sin(d.angle)*r*d.dist;
+        ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2);
+        ctx.fillStyle = `rgba(0,215,255,${d.bright})`;
+        ctx.fill();
+        // Glow
+        ctx.beginPath(); ctx.arc(x,y,6,0,Math.PI*2);
+        ctx.fillStyle = `rgba(0,215,255,${d.bright*0.3})`;
+        ctx.fill();
+      }
+    });
+
+    // Center dot
+    ctx.beginPath(); ctx.arc(cx,cy,3,0,Math.PI*2);
+    ctx.fillStyle='#00D7FF'; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx,cy,6,0,Math.PI*2);
+    ctx.fillStyle='#00D7FF44'; ctx.fill();
+
+    requestAnimationFrame(drawRadar);
+  }
+  drawRadar();
+}
+
+// ══ Waveform ══
+function startWaveform() {
+  const canvas = document.getElementById('wave-canvas');
+  const ctx = canvas.getContext('2d');
+  let phase = 0;
+  function draw() {
+    ctx.clearRect(0,0,280,40);
+    ctx.fillStyle='#020810'; ctx.fillRect(0,0,280,40);
+    ctx.beginPath();
+    ctx.strokeStyle='#00D7FF';
+    ctx.lineWidth = 1.5;
+    for (let x = 0; x < 280; x++) {
+      const y = 20 + 12 * Math.sin(x*0.07+phase) * Math.sin(x*0.02+phase*0.5) * Math.cos(x*0.04);
+      if (x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    // Glow
+    ctx.strokeStyle='#00D7FF44'; ctx.lineWidth=4;
+    ctx.stroke();
+    phase += 0.08;
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// ══ Loading Animation ══
+function animateLoading() {
+  const fill = document.getElementById('loading-fill');
+  const status = document.getElementById('loading-status');
+  const steps = [
+    [0, 'CALIBRATING HOLOGRAPHIC MATRIX...'],
+    [20, 'LOADING GLOBE GEOMETRY...'],
+    [40, 'ESTABLISHING SATELLITE LINK...'],
+    [60, 'CONNECTING AI AGENTS...'],
+    [80, 'INITIALIZING THREAT DETECTION...'],
+    [95, 'ENGAGING NEURAL NETWORK...'],
+    [100, 'GLOBAL COMMAND CENTER ONLINE'],
+  ];
+  let i = 0;
+  const interval = setInterval(() => {
+    if (i < steps.length) {
+      fill.style.width = steps[i][0] + '%';
+      status.textContent = steps[i][1];
+      i++;
+    } else {
+      clearInterval(interval);
+      setTimeout(() => {
+        document.getElementById('loading').style.transition = 'opacity 0.8s';
+        document.getElementById('loading').style.opacity = '0';
+        setTimeout(() => { document.getElementById('loading').style.display = 'none'; }, 800);
+      }, 400);
+    }
+  }, 350);
+}
+
+// ══ TACTICAL COMMAND MODE ENGINE ══════════════════════════════════════════
+
+// Layer state
+const LAYERS = { iss: false, quake: false, aircraft: false, marine: false, cyber: false, space: false, weather: false };
+let issMarker = null, issPosition = null;
+let earthquakeMarkers = [];
+let aircraftMarkers = [];
+let marineMarkers = [];
+let cyberArcs = [];
+let tacticalInterval = null;
+
+// ── ISS Tracking ───────────────────────────────────────────────────────────
+function fetchISS() {
+  fetch('https://api.open-notify.org/iss-now.json')
+    .then(r => r.json())
+    .then(data => {
+      const lat = parseFloat(data.iss_position.latitude);
+      const lon = parseFloat(data.iss_position.longitude);
+      issPosition = {lat, lon};
+      placeISSMarker(lat, lon);
+      showToast('🛸 ISS: ' + lat.toFixed(2) + '°, ' + lon.toFixed(2) + '°');
+      document.getElementById('loc-city').textContent = 'ISS @ ' + lat.toFixed(1) + '°';
+    })
+    .catch(() => {
+      // Simulate ISS orbit if API unavailable
+      const t = Date.now() / 1000;
+      const lat = 51.6 * Math.sin(t * 0.0011);
+      const lon = ((t * 0.065) % 360) - 180;
+      placeISSMarker(lat, lon);
+    });
+}
+
+function placeISSMarker(lat, lon) {
+  if (issMarker) { globeGroup.remove(issMarker); }
+  const pos = latLonToVec3(lat, lon, 115); // ISS orbits ~408km up (scaled)
+  const geom = new THREE.SphereGeometry(2.8, 12, 12);
+  const mat = new THREE.MeshBasicMaterial({ color: PALETTE.green });
+  issMarker = new THREE.Mesh(geom, mat);
+  issMarker.position.copy(pos);
+  issMarker.userData = { isISS: true, lat, lon };
+  // Solar panel cross
+  const panelGeom = new THREE.BoxGeometry(8, 0.4, 1.5);
+  const panelMat = new THREE.MeshBasicMaterial({ color: PALETTE.amber, transparent: true, opacity: 0.8 });
+  const panels = new THREE.Mesh(panelGeom, panelMat);
+  issMarker.add(panels);
+  globeGroup.add(issMarker);
+}
+
+// ── Earthquake Monitoring ──────────────────────────────────────────────────
+function fetchEarthquakes() {
+  const url = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_week.geojson';
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      // Clear old markers
+      earthquakeMarkers.forEach(m => globeGroup.remove(m));
+      earthquakeMarkers = [];
+      const features = (data.features || []).slice(0, 60);
+      features.forEach(f => {
+        const [lon, lat, depth] = f.geometry.coordinates;
+        const mag = f.properties.mag || 2.5;
+        const place = f.properties.place || 'Unknown';
+        const size = Math.max(0.8, mag * 0.7);
+        const color = mag >= 6 ? PALETTE.red : mag >= 5 ? PALETTE.amber : PALETTE.cyan;
+        const pos = latLonToVec3(lat, lon, 101.5);
+        const geom = new THREE.SphereGeometry(size, 10, 10);
+        const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85 });
+        const mesh = new THREE.Mesh(geom, mat);
+        mesh.position.copy(pos);
+        mesh.userData = { isQuake: true, mag, place, lat, lon, depth };
+        globeGroup.add(mesh);
+        earthquakeMarkers.push(mesh);
+        // Pulse ring for large quakes
+        if (mag >= 5) {
+          const rGeom = new THREE.TorusGeometry(size * 3, 0.3, 6, 32);
+          const rMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.4 });
+          const ring = new THREE.Mesh(rGeom, rMat);
+          ring.position.copy(pos);
+          const normal = pos.clone().normalize();
+          ring.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), normal);
+          globeGroup.add(ring);
+          earthquakeMarkers.push(ring);
+        }
+      });
+      showToast('🌍 EARTHQUAKES: ' + features.length + ' LOADED (M2.5+)');
+    })
+    .catch(() => showToast('EARTHQUAKES: OFFLINE DATA'));
+}
+
+// ── Aircraft Tracking (OpenSky Network) ───────────────────────────────────
+function fetchAircraft() {
+  // Fetch aircraft in a broad global bounding box (rate-limited, 60s refresh)
+  const url = 'https://opensky-network.org/api/states/all?lamin=-60&lomin=-180&lamax=75&lomax=180';
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      aircraftMarkers.forEach(m => globeGroup.remove(m));
+      aircraftMarkers = [];
+      const states = (data.states || []).slice(0, 200);
+      states.forEach(s => {
+        const lat = s[6], lon = s[5];
+        if (!lat || !lon) return;
+        const callsign = (s[1] || 'UNKNOWN').trim();
+        const alt = (s[7] || 10000) / 1000; // km
+        const pos = latLonToVec3(lat, lon, 102 + Math.min(alt * 0.3, 5));
+        const geom = new THREE.SphereGeometry(0.6, 6, 6);
+        const mat = new THREE.MeshBasicMaterial({ color: PALETTE.amber, transparent: true, opacity: 0.8 });
+        const mesh = new THREE.Mesh(geom, mat);
+        mesh.position.copy(pos);
+        mesh.userData = { isAircraft: true, callsign, lat, lon, alt };
+        globeGroup.add(mesh);
+        aircraftMarkers.push(mesh);
+      });
+      showToast('✈ AIRCRAFT: ' + states.length + ' TRACKED');
+    })
+    .catch(() => {
+      // Simulate aircraft if API unavailable
+      aircraftMarkers.forEach(m => globeGroup.remove(m));
+      aircraftMarkers = [];
+      for (let i = 0; i < 80; i++) {
+        const lat = (Math.random() - 0.5) * 140;
+        const lon = (Math.random() - 0.5) * 360;
+        const pos = latLonToVec3(lat, lon, 103);
+        const geom = new THREE.SphereGeometry(0.5, 6, 6);
+        const mat = new THREE.MeshBasicMaterial({ color: PALETTE.amber, transparent: true, opacity: 0.7 });
+        const m = new THREE.Mesh(geom, mat);
+        m.position.copy(pos);
+        globeGroup.add(m);
+        aircraftMarkers.push(m);
+      }
+      showToast('✈ AIRCRAFT: SIMULATED 80 FLIGHTS');
+    });
+}
+
+// ── Marine Vessel Tracking (Simulated) ────────────────────────────────────
+function spawnMarineVessels() {
+  marineMarkers.forEach(m => globeGroup.remove(m));
+  marineMarkers = [];
+  const SHIPPING_LANES = [
+    [1,103,51,-0.1], [40,-74,51,-0.1], [35,139,22,114], [-34,151,1,103],
+    [25,55,22,114], [30,31,51,-0.1], [40,-74,19,-70],
+  ];
+  SHIPPING_LANES.forEach(([lat1,lon1,lat2,lon2]) => {
+    for (let i = 0; i < 5; i++) {
+      const t = Math.random();
+      const lat = lat1 + (lat2-lat1)*t + (Math.random()-0.5)*4;
+      const lon = lon1 + (lon2-lon1)*t + (Math.random()-0.5)*4;
+      const pos = latLonToVec3(lat, lon, 101.8);
+      const geom = new THREE.BoxGeometry(1.2, 0.4, 2.5);
+      const mat = new THREE.MeshBasicMaterial({ color: PALETTE.cyan, transparent: true, opacity: 0.7 });
+      const m = new THREE.Mesh(geom, mat);
+      m.position.copy(pos);
+      const normal = pos.clone().normalize();
+      m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), normal);
+      globeGroup.add(m);
+      marineMarkers.push(m);
+    }
+  });
+  showToast('🚢 MARINE VESSELS: ' + marineMarkers.length + ' TRACKED');
+}
+
+// ── Cyber Threat Intelligence (Simulated) ─────────────────────────────────
+const CYBER_THREAT_ORIGINS = [
+  {lat:39.91,lon:116.39,label:'CN-APT'},{lat:55.75,lon:37.62,label:'RU-GRU'},
+  {lat:37.57,lon:126.98,label:'KP-LAZ'},{lat:41.0,lon:28.9,label:'TR-APT'},
+  {lat:35.69,lon:51.42,label:'IR-APT'},{lat:14.69,lon:-17.44,label:'W-AFR'},
+];
+const CYBER_TARGETS = [
+  {lat:40.71,lon:-74.01},{lat:51.51,lon:-0.13},{lat:48.86,lon:2.35},
+  {lat:35.69,lon:139.69},{lat:19.08,lon:72.88},{lat:1.35,lon:103.82},
+  {lat:37.77,lon:-122.4},{lat:52.52,lon:13.41},
+];
+
+function spawnCyberThreats() {
+  cyberArcs.forEach(a => globeGroup.remove(a));
+  cyberArcs = [];
+  CYBER_THREAT_ORIGINS.forEach(origin => {
+    const numTargets = 2 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < numTargets; i++) {
+      const target = CYBER_TARGETS[Math.floor(Math.random() * CYBER_TARGETS.length)];
+      const p1 = latLonToVec3(origin.lat, origin.lon, 102);
+      const p2 = latLonToVec3(target.lat, target.lon, 102);
+      const mid = p1.clone().add(p2).multiplyScalar(0.5);
+      mid.normalize().multiplyScalar(118);
+      const curve = new THREE.QuadraticBezierCurve3(p1, mid, p2);
+      const pts = curve.getPoints(50);
+      const geom = new THREE.BufferGeometry().setFromPoints(pts);
+      const mat = new THREE.LineBasicMaterial({ color: PALETTE.red, transparent: true, opacity: 0.7 });
+      const arc = new THREE.Line(geom, mat);
+      arc.userData = { curve, progress: Math.random(), speed: 0.004 + Math.random() * 0.003, isCyber: true };
+      globeGroup.add(arc);
+      cyberArcs.push(arc);
+      // Moving threat dot
+      const dotGeom = new THREE.SphereGeometry(0.9, 8, 8);
+      const dotMat = new THREE.MeshBasicMaterial({ color: PALETTE.red });
+      const dot = new THREE.Mesh(dotGeom, dotMat);
+      dot.userData = { curve, progress: arc.userData.progress, speed: arc.userData.speed, isCyberDot: true };
+      globeGroup.add(dot);
+      cyberArcs.push(dot);
+    }
+  });
+  showToast('🔴 CYBER THREATS: ' + cyberArcs.length/2 + ' ACTIVE ATTACK PATHS');
+}
+
+// ── Space Weather (NOAA SWPC) ──────────────────────────────────────────────
+function fetchSpaceWeather() {
+  fetch('https://services.swpc.noaa.gov/json/planetary_k_index_1m.json')
+    .then(r => r.json())
+    .then(data => {
+      const latest = data[data.length - 1];
+      const kp = parseFloat(latest.kp_index || 2).toFixed(1);
+      const kpColor = kp >= 7 ? '#FF4D6D' : kp >= 5 ? '#FFC857' : '#00FFC6';
+      document.getElementById('wx-cond').textContent = 'KP-' + kp;
+      document.getElementById('wx-cond').style.color = kpColor;
+      showToast('☀ SPACE WEATHER: Kp=' + kp);
+    })
+    .catch(() => {
+      fetch('https://services.swpc.noaa.gov/products/solar-wind/plasma-1-hour.json')
+        .then(r => r.json())
+        .then(data => {
+          const latest = data[data.length - 1];
+          const speed = parseFloat(latest[2] || 420).toFixed(0);
+          showToast('☀ SOLAR WIND: ' + speed + ' km/s');
+        })
+        .catch(() => showToast('☀ SPACE WEATHER: OFFLINE'));
+    });
+}
+
+// ── Weather Radar (Open-Meteo) ─────────────────────────────────────────────
+function fetchWeatherRadar() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      const lat = pos.coords.latitude.toFixed(2);
+      const lon = pos.coords.longitude.toFixed(2);
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation,wind_speed_10m,weather_code`;
+      fetch(url)
+        .then(r => r.json())
+        .then(d => {
+          const c = d.current;
+          document.getElementById('wx-temp').textContent = c.temperature_2m + ' °C';
+          document.getElementById('wx-wind').textContent = c.wind_speed_10m + ' km/h';
+          document.getElementById('wx-hum').textContent = (c.precipitation > 0 ? c.precipitation + 'mm' : 'Dry');
+          const codes = {0:'CLEAR',1:'MOSTLY CLEAR',2:'PARTLY CLOUDY',3:'OVERCAST',45:'FOGGY',51:'DRIZZLE',61:'RAIN',80:'SHOWERS',95:'STORM'};
+          const cond = codes[c.weather_code] || 'VARIABLE';
+          document.getElementById('wx-cond').textContent = cond;
+          showToast('🌧 WEATHER RADAR: LIVE DATA LOADED');
+        })
+        .catch(() => showToast('WEATHER RADAR: OFFLINE'));
+    }, () => showToast('WEATHER: LOCATION DENIED'));
+  }
+}
+
+// ── Layer Toggle System ────────────────────────────────────────────────────
+function toggleLayer(layer) {
+  LAYERS[layer] = !LAYERS[layer];
+  const btn = document.getElementById('layer-' + layer);
+  if (LAYERS[layer]) {
+    btn.classList.add('layer-on', layer + '-on');
+    activateLayer(layer);
+  } else {
+    btn.classList.remove('layer-on', layer + '-on');
+    deactivateLayer(layer);
+  }
+}
+
+function activateLayer(layer) {
+  switch(layer) {
+    case 'iss':      fetchISS(); tacticalInterval = setInterval(fetchISS, 5000); break;
+    case 'quake':   fetchEarthquakes(); break;
+    case 'aircraft': fetchAircraft(); setInterval(fetchAircraft, 90000); break;
+    case 'marine':  spawnMarineVessels(); break;
+    case 'cyber':   spawnCyberThreats(); break;
+    case 'space':   fetchSpaceWeather(); break;
+    case 'weather': fetchWeatherRadar(); break;
+  }
+}
+
+function deactivateLayer(layer) {
+  switch(layer) {
+    case 'iss':      if(issMarker){globeGroup.remove(issMarker);issMarker=null;} break;
+    case 'quake':   earthquakeMarkers.forEach(m=>globeGroup.remove(m));earthquakeMarkers=[]; break;
+    case 'aircraft': aircraftMarkers.forEach(m=>globeGroup.remove(m));aircraftMarkers=[]; break;
+    case 'marine':  marineMarkers.forEach(m=>globeGroup.remove(m));marineMarkers=[]; break;
+    case 'cyber':   cyberArcs.forEach(a=>globeGroup.remove(a));cyberArcs=[]; break;
+  }
+}
+
+function enableAllLayers() {
+  ['iss','quake','aircraft','marine','cyber','space','weather'].forEach(l => {
+    if(!LAYERS[l]) toggleLayer(l);
+  });
+  showToast('⚡ ALL TACTICAL LAYERS ACTIVE');
+}
+
+// ── Tactical Mode ──────────────────────────────────────────────────────────
+const _origSetMode = setMode;
+setMode = function(mode) {
+  _origSetMode(mode);
+  const tPanel = document.getElementById('tactical-panel');
+  const ticker = document.getElementById('alert-ticker');
+  if (mode === 'tactical') {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-tactical').classList.add('active', 'tactical-active');
+    if(tPanel) tPanel.style.display = 'flex';
+    if(ticker) ticker.style.display = 'block';
+    // Auto-enable key layers
+    if(!LAYERS.iss)   toggleLayer('iss');
+    if(!LAYERS.quake) toggleLayer('quake');
+    if(!LAYERS.cyber) toggleLayer('cyber');
+    showToast('⚡ TACTICAL COMMAND MODE: ENGAGED');
+  } else {
+    if(tPanel) tPanel.style.display = 'none';
+    if(ticker) ticker.style.display = 'none';
+    document.getElementById('btn-tactical').classList.remove('active','tactical-active');
+  }
+};
+
+// Animate tactical elements in main loop — patch animate()
+const _origAnimate = animate;
+function animateTactical(t) {
+  // Animate cyber arcs dots
+  cyberArcs.forEach(obj => {
+    if(obj.userData.isCyberDot && obj.userData.curve) {
+      obj.userData.progress = (obj.userData.progress + obj.userData.speed) % 1;
+      const pt = obj.userData.curve.getPoint(obj.userData.progress);
+      obj.position.copy(pt);
+    }
+    if(obj.userData.isCyber && obj.material) {
+      obj.material.opacity = 0.4 + 0.4 * Math.sin(t * 3);
+    }
+  });
+  // Pulse earthquake markers
+  earthquakeMarkers.forEach((m,i) => {
+    if(m.userData.isQuake) {
+      const s = 1 + 0.4 * Math.sin(t * 3 + i);
+      m.scale.setScalar(s);
+    }
+  });
+  // ISS gentle pulse
+  if(issMarker) {
+    const s = 1 + 0.3 * Math.sin(t * 4);
+    issMarker.scale.setScalar(s);
+  }
+}
+
+// Patch the animate function to include tactical animation
+(function patchAnimate() {
+  const raf = requestAnimationFrame;
+  window.requestAnimationFrame = function(cb) {
+    return raf.call(window, function(ts) {
+      cb(ts);
+    });
+  };
+  // Add tactical tick to clock
+  const origRAF = window.requestAnimationFrame;
+  setInterval(() => {
+    if(clock) animateTactical(clock.getElapsedTime());
+  }, 40);
+})();
+
+// ══ External API — called by Python pywebview ══
+window.jarvisCommand = function(cmd) {
+  cmd = cmd.toLowerCase().trim();
+  if (cmd.includes('world map') || cmd.includes('global')) {
+    showToast('GLOBAL COMMAND CENTER: ACTIVE');
+  } else if (cmd.includes('tactical') || cmd.includes('activate tactical')) {
+    setMode('tactical');
+  } else if (cmd.includes('track iss') || cmd.includes('iss')) {
+    setMode('tactical'); toggleLayer('iss');
+    showToast('🛸 ISS TRACKING: ACTIVE');
+  } else if (cmd.includes('aircraft') || cmd.includes('show aircraft')) {
+    setMode('tactical'); if(!LAYERS.aircraft) toggleLayer('aircraft');
+    showToast('✈ AIRCRAFT TRACKING: ACTIVE');
+  } else if (cmd.includes('cyber threat') || cmd.includes('cyber')) {
+    setMode('tactical'); if(!LAYERS.cyber) toggleLayer('cyber');
+    showToast('🔴 CYBER THREAT LAYER: ACTIVE');
+  } else if (cmd.includes('earthquake') || cmd.includes('quake')) {
+    setMode('tactical'); if(!LAYERS.quake) toggleLayer('quake');
+    showToast('🌍 EARTHQUAKE MONITOR: ACTIVE');
+  } else if (cmd.includes('space weather') || cmd.includes('solar')) {
+    if(!LAYERS.space) toggleLayer('space');
+    showToast('☀ SPACE WEATHER: ACTIVE');
+  } else if (cmd.includes('marine') || cmd.includes('vessel') || cmd.includes('ship')) {
+    setMode('tactical'); if(!LAYERS.marine) toggleLayer('marine');
+    showToast('🚢 MARINE TRACKING: ACTIVE');
+  } else if (cmd.includes('all layers') || cmd.includes('all tactical')) {
+    setMode('tactical'); enableAllLayers();
+  } else if (cmd.includes('india')) {
+    flyTo(20.59, 78.96);
+    showToast('NAVIGATING TO: INDIA');
+  } else if (cmd.includes('hyderabad')) {
+    flyTo(17.39, 78.47);
+    showToast('ZOOM: HYDERABAD, INDIA');
+    camera.position.z = 180;
+  } else if (cmd.includes('network')) {
+    setMode('network');
+  } else if (cmd.includes('weather')) {
+    if(!LAYERS.weather) toggleLayer('weather');
+    showToast('WEATHER LAYER: ENABLED');
+  } else if (cmd.includes('satellite')) {
+    setMode('satellite');
+  } else if (cmd.includes('connection') || cmd.includes('global connection')) {
+    setMode('comms');
+  } else if (cmd.includes('security') || cmd.includes('threat')) {
+    setMode('security');
+  } else if (cmd.includes('ai agent')) {
+    setMode('ai');
+  } else if (cmd.includes('zoom in')) {
+    zoomGlobe(0.7);
+  } else if (cmd.includes('zoom out')) {
+    zoomGlobe(1.3);
+  } else if (cmd.includes('reset')) {
+    resetGlobe();
+  } else {
+    const cityMatch = CITY_NODES.find(c => cmd.includes(c.name.toLowerCase()));
+    if (cityMatch) {
+      flyTo(cityMatch.lat, cityMatch.lon);
+      showToast('NAVIGATING TO: ' + cityMatch.name.toUpperCase());
+    }
+  }
+};
+
+// ══ Voice command recognition (browser API) ══
+function startVoiceRecognition() {
+  if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recog = new SR();
+  recog.continuous = true;
+  recog.interimResults = false;
+  recog.lang = 'en-US';
+  recog.onresult = (e) => {
+    const transcript = e.results[e.results.length-1][0].transcript;
+    if (transcript.toLowerCase().includes('jarvis')) {
+      const vb = document.getElementById('voice-bar');
+      vb.classList.add('listening');
+      document.querySelector('.vb-text').textContent = transcript.toUpperCase();
+      setTimeout(() => {
+        vb.classList.remove('listening');
+        document.querySelector('.vb-text').textContent = 'SAY "JARVIS OPEN WORLD MAP" · VOICE COMMANDS ACTIVE';
+      }, 2000);
+      window.jarvisCommand(transcript);
+    }
+  };
+  recog.onerror = () => {};
+  try { recog.start(); } catch(e) {}
+}
+
+// ══ Init ══
+window.addEventListener('load', () => {
+  init();
+  startVoiceRecognition();
+  
+  // Parse initial mode from query parameters or hash fragment
+  const urlParams = new URLSearchParams(window.location.search);
+  let startMode = urlParams.get('mode');
+  if (!startMode && window.location.hash) {
+    const hash = window.location.hash.substring(1);
+    const hashParams = new URLSearchParams(hash);
+    startMode = hashParams.get('mode');
+    if (!startMode) {
+      if (['earth', 'satellite', 'network', 'security', 'ai', 'comms', 'tactical'].includes(hash)) {
+        startMode = hash;
+      }
+    }
+  }
+  if (startMode) {
+    setTimeout(() => {
+      setMode(startMode);
+    }, 1200); // Wait for the loading overlay slide transition
+  }
+});
+</script>
+</body>
+</html>

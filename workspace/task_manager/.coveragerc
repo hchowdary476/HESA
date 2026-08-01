@@ -1,0 +1,11 @@
+[run]
+source = backend/app
+omit = */tests/*, */__pycache__/*, */migrations/*
+
+[report]
+show_missing = true
+precision = 2
+
+[html]
+directory = coverage_html
+title = task_manager Coverage Report

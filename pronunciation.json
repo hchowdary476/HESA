@@ -1,0 +1,48 @@
+{
+  "version": "2.0",
+  "description": "Advanced Dynamic Pronunciation Dictionary for HESA Speech Subsystem",
+  "entries": {
+    "hemanth": {
+      "display": "Hemanth",
+      "spoken": "హేమంత్",
+      "phoneme": null,
+      "alphabet": "ipa",
+      "language": "auto",
+      "phonetic": "హేమంత్",
+      "ssml_alias": "హేమంత్",
+      "is_personal_name": true,
+      "user_specified": true,
+      "active": true,
+      "provider_overrides": {
+        "edge": "",
+        "azure": "",
+        "kokoro": "",
+        "piper": "",
+        "elevenlabs": "",
+        "pyttsx3": "",
+        "sapi": ""
+      }
+    },
+    "jarvis": {
+      "display": "JARVIS",
+      "spoken": "జార్విస్",
+      "phoneme": null,
+      "alphabet": "ipa",
+      "language": "auto",
+      "phonetic": "జార్విస్",
+      "ssml_alias": "జార్విస్",
+      "is_personal_name": true,
+      "user_specified": true,
+      "active": true,
+      "provider_overrides": {
+        "edge": "",
+        "azure": "",
+        "kokoro": "",
+        "piper": "",
+        "elevenlabs": "",
+        "pyttsx3": "",
+        "sapi": ""
+      }
+    }
+  }
+}

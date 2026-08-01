@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./task_manager.db
+      - SECRET_KEY=change-me-in-production
+    volumes:
+      - backend-data:/app/data
+
+volumes:
+  backend-data:

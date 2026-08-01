@@ -1,0 +1,289 @@
+Found 288 user-facing Python matches:
+launcher.py:93 -> self._show_error_dialog("JARVIS Environment Errors", errors)
+launcher.py:100 -> """Check if JARVIS GUI is already running by probing the dashboard socket port."""
+launcher.py:107 -> self._log("JARVIS GUI already running (port 19106 bound). Skipping.")
+launcher.py:136 -> env["PYTHONPATH"] = str(self.jarvis_root) + os.pathsep + env.get("PYTHONPATH", "")
+launcher.py:149 -> log_lifecycle("LAUNCHER_SUBPROCESS_STARTED", f"JARVIS process spawned with PID {process.pid}")
+launcher.py:150 -> self._log(f"JARVIS launched with PID {process.pid} using {python_exe}. Waiting 5 seconds to verify background startup...")
+launcher.py:155 -> self._log(f"[CRITICAL] JARVIS process {process.pid} exited immediately with code {exit_code}.")
+launcher.py:158 -> self._log(f"JARVIS process {process.pid} is running successfully. Launcher will wait for it...")
+launcher.py:164 -> self._log(f"JARVIS process {process.pid} has exited with code {exit_code}.")
+launcher.py:190 -> full_msg = f"JARVIS could not start:\n\n{detail}"
+launcher.py:276 -> self._log("=== JARVIS Launcher Initiated ===")
+launcher.py:278 -> self._log(f"Current JARVIS Status: {current_status}")
+launcher.py:281 -> self._log("JARVIS is already running. Skipping launch.")
+launcher.py:302 -> parser = argparse.ArgumentParser(description="JARVIS Launcher")
+launcher.py:303 -> parser.add_argument("--status", "-s", action="store_true", help="Report current JARVIS status and exit")
+launcher.py:309 -> print(f"JARVIS Status: {status}")
+agents\agent_base.py:52 -> """Base class for all JARVIS multi-agents."""
+agents\orchestrator.py:34 -> """Check the kill-switch in JARVIS config."""
+app\main.py:26 -> __all__ = ["build_parser", "main", "set_ui_callback", "start_jarvis"]
+config\manager.py:1 -> """Central configuration manager for non-secret Open.Jarvis settings."""
+config\paths.py:29 -> if (candidate / "config").exists() or candidate.name == "Open.Jarvis":
+config\paths.py:30 -> return candidate if candidate.name != "Open.Jarvis" else candidate.parent
+config\paths.py:41 -> explicit = config_path or values.get("JARVIS_CONFIG_PATH")
+config\paths.py:51 -> config_dir = base / "Open.Jarvis"
+config\schema.py:1 -> """Typed configuration schema for non-secret Open.Jarvis settings."""
+config\schema.py:35 -> "general.camera_mode_enabled": FieldDefinition("general.camera_mode_enabled", "bool", False, env_var="JARVIS_CAMERA_MODE_ENABLED"),
+config\schema.py:43 -> "ai.groq_enabled": FieldDefinition("ai.groq_enabled", "bool", False, env_var="JARVIS_ENABLE_GROQ"),
+config\schema.py:44 -> "ai.groq_model": FieldDefinition("ai.groq_model", "string", "llama-3.1-8b-instant", env_var="JARVIS_GROQ_MODEL"),
+config\schema.py:51 -> "ai.timeout": FieldDefinition("ai.timeout", "float", 30.0, env_var="JARVIS_AI_TIMEOUT", minimum=1.0),
+config\schema.py:64 -> "voice.push_to_talk_enabled": FieldDefinition("voice.push_to_talk_enabled", "bool", True, env_var="JARVIS_PUSH_TO_TALK_ENABLED"),
+config\schema.py:89 -> "spotify.enabled": FieldDefinition("spotify.enabled", "bool", False, env_var="JARVIS_ENABLE_SPOTIFY"),
+config\validation.py:1 -> """Validation and normalization for Open.Jarvis configuration."""
+config\__init__.py:1 -> """Central configuration helpers for Open.Jarvis."""
+core\ai_router\ai_orchestrator.py:59 -> fallback = "JarvisSecuredMachineLockSalt"
+core\ai_router\ai_orchestrator.py:324 -> f"### Unified JARVIS Response (Debated from Multi-AI)\n\n"
+core\ai_router\model_installer.py:1 -> """Safe local model installer planning for offline JARVIS profiles."""
+core\ai_router\model_installer.py:173 -> parser = argparse.ArgumentParser(description="Build and verify signed JARVIS offline model catalogs.")
+core\ai_router\offline_profile.py:9 -> """Describe whether JARVIS can run core AI/voice flows locally."""
+core\ai_router\cloud\server.py:52 -> "wake_word": "jarvis",
+core\ai_router\cloud\server.py:122 -> history.append({"user": command, "jarvis": response_text, "timestamp": time.time()})
+core\automation\groq_router.py:77 -> {"action": "ACTION_NAME", "params": {}, "response": "What JARVIS says"}
+core\automation\groq_router.py:80 -> {"actions": [{"action": "ACTION_NAME", "params": {}}, {"action": "ACTION_NAME", "params": {}}], "response": "What JARVIS says"}
+core\automation\groq_router.py:157 -> t = threading.Thread(target=_internet_check_loop, name="jarvis_internet_check", daemon=True)
+core\automation\groq_router.py:249 -> return _env_flag_enabled("JARVIS_ENABLE_GROQ", default=False)
+core\automation\groq_router.py:258 -> return os.getenv("JARVIS_GROQ_MODEL", DEFAULT_GROQ_MODEL).strip() or DEFAULT_GROQ_MODEL
+core\automation\groq_router.py:423 -> resp = "Namaskaram sir. JARVIS siddhanga undi. Mee commands kosam ready ga unnanu sir."
+core\automation\groq_router.py:428 -> resp = "Nenu JARVIS ni sir, mee personal cybernetic assistant. Naa cloud connection online ledu, nenu local ga run avtunnanu sir."
+core\automation\groq_router.py:430 -> resp = "I am JARVIS, your personal cybernetic assistant. My cloud connection is currently offline, so I am running on local fallback routines, sir."
+core\automation\groq_router.py:463 -> primary_provider = os.getenv("JARVIS_PRIMARY_AI", "GROQ").upper()
+core\automation\groq_router.py:464 -> secondary_provider = os.getenv("JARVIS_SECONDARY_AI", "GEMINI").upper()
+core\automation\komutlar.py:1 -> """COMMANDS - All JARVIS commands."""
+core\automation\komutlar.py:33 -> if any(k in command for k in ["goodbye jarvis", "shut down jarvis"]):
+core\automation\komutlar.py:34 -> speak("Farewell, sir. Jarvis shutting down.")
+core\automation\komutlar.py:40 -> lowered_cmd = command.lower().strip().replace("jarvis", "").strip().replace("?", "").replace(".", "")
+core\automation\komutlar.py:100 -> lowered_cmd = command.lower().strip().replace("jarvis", "").strip().replace("?", "").replace(".", "")
+core\automation\komutlar.py:175 -> is_no = lowered_cmd in {"no", "no don't", "no repair", "no jarvis"}
+core\automation\komutlar.py:232 -> normalized_cmd = command.lower().strip().replace("jarvis", "").strip()
+core\automation\komutlar.py:237 -> if k.lower().strip().replace("jarvis", "").strip() == normalized_cmd:
+core\automation\komutlar.py:254 -> add_to_short_term("jarvis", pref_response)
+core\automation\komutlar.py:271 -> add_to_short_term("jarvis", response_text)
+core\automation\local_intent_router.py:190 -> "jarvis wake up":              "wake_jarvis",
+core\automation\local_intent_router.py:191 -> "wake up jarvis":              "wake_jarvis",
+core\automation\local_intent_router.py:192 -> "activate jarvis":             "wake_jarvis",
+core\automation\local_intent_router.py:193 -> "hey jarvis":                  "wake_jarvis",
+core\automation\local_intent_router.py:195 -> "jarvis go to sleep":          "sleep_mode",
+core\automation\local_intent_router.py:196 -> "jarvis standby":              "sleep_mode",
+core\automation\local_intent_router.py:197 -> "jarvis hibernate":            "sleep_mode",
+core\automation\local_intent_router.py:200 -> "jarvis emergency":            "emergency_mode",
+core\automation\local_intent_router.py:204 -> "jarvis status":               "status_report",
+core\automation\local_intent_router.py:306 -> """Match JARVIS world map voice commands."""
+core\automation\local_intent_router.py:429 -> return _payload("register_startup", {"enabled": True}, "Registering JARVIS at Windows startup, sir.")
+core\automation\local_intent_router.py:431 -> return _payload("register_startup", {"enabled": False}, "Removing JARVIS from Windows startup, sir.")
+core\automation\local_intent_router.py:438 -> if cmd.startswith("jarvis "):
+core\automation\__init__.py:1 -> """Command dispatch package for JARVIS."""
+core\automation\domains\ai_actions.py:1 -> """AI Orchestrator action execution domain for JARVIS."""
+core\automation\domains\cyber_actions.py:1 -> """Cyber security action execution domain for JARVIS."""
+core\automation\domains\media_actions.py:34 -> return _env_flag_enabled("JARVIS_ENABLE_SPOTIFY", default=True)
+core\automation\domains\media_actions.py:86 -> "Add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET to .env, then set JARVIS_ENABLE_SPOTIFY=true.",
+core\automation\domains\runtime_actions.py:220 -> file_path = os.path.join(folder, f"jarvis_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png")
+core\automation\domains\runtime_actions.py:491 -> app_name = "JarvisCyberInterface"
+core\automation\domains\runtime_actions.py:496 -> speak("JARVIS has been registered to run automatically on system boot, sir.")
+core\automation\domains\runtime_actions.py:500 -> speak("JARVIS has been removed from Windows startup items, sir.")
+core\automation\domains\runtime_actions.py:502 -> speak("JARVIS was not registered as a startup item, sir.")
+core\automation\domains\__init__.py:1 -> """Domain handlers for JARVIS actions."""
+core\memory\memory_insights.py:54 -> recommendation = "Memory health is strong. Keep using Jarvis and it will keep adapting."
+core\memory\memory_insights.py:58 -> recommendation = "Pruning and preference training would help Jarvis learn faster."
+core\memory\memory_store.py:1 -> """Persistence helpers and base memory schema for JARVIS."""
+core\memory\memory_store.py:25 -> "wake_word": "jarvis",
+core\memory\user_profiles.py:9 -> "wake_word": "jarvis",
+core\memory\user_profiles.py:16 -> """Create a profile skeleton for one Jarvis user."""
+core\security\cyber_engine.py:21 -> self.log_file = Path("JARVIS/core/system/utils/logs/jarvis.log")
+core\security\cyber_engine.py:311 -> "**Study Tip:** Use my quiz prep feature (e.g. *Jarvis, prepare me for Security+*) to drill question scenarios."
+core\security\cyber_engine.py:377 -> "**Core Concept:** DNS translates human-readable domain names (e.g. `jarvis.ai`) into machine-routable IP addresses (e.g. `198.51.100.42`). It is the internet's address book.\n\n"
+core\security\jarvis_admin.py:1 -> """Shared setup, onboarding and health helpers for Open.Jarvis."""
+core\security\jarvis_admin.py:18 -> SETUP_STATE_FILE = SECURITY_DIR / "jarvis_setup.json"
+core\security\jarvis_admin.py:58 -> "# JARVIS recommended local setup",
+core\security\jarvis_admin.py:111 -> lines = ["# JARVIS managed settings"]
+core\security\jarvis_admin_config.py:1 -> """Static admin settings catalogs for JARVIS."""
+core\security\jarvis_admin_config.py:34 -> "default": "jarvis",
+core\security\jarvis_admin_config.py:35 -> "safe_default": "jarvis",
+core\security\jarvis_admin_config.py:36 -> "description": "Wake word used to activate JARVIS. Safe default: keep it short, unique, and easy to say.",
+core\security\jarvis_admin_config.py:42 -> "description": "Seconds JARVIS stays actively listening after wake-up before returning to standby.",
+core\security\public_release.py:193 -> parser = argparse.ArgumentParser(description="Render Open.Jarvis public release readiness.")
+core\security\security_shield.py:1 -> """Backend engine for JARVIS Security Shield."""
+core\software_engineering\__init__.py:1 -> """JARVIS Software Engineering — Package init."""
+core\software_engineering\agents\architect_agent.py:253 -> return f"jarvis_project_{ts}"
+core\software_engineering\agents\backend_agent.py:123 -> description="Auto-generated by JARVIS SE Platform",
+core\software_engineering\agents\frontend_agent.py:109 -> <meta name="description" content="{title} — Built with JARVIS SE Platform" />
+core\software_engineering\agents\mobile_agent.py:310 -> const Text('Built with JARVIS SE Platform', style: TextStyle(color: Colors.grey)),
+core\software_engineering\agents\__init__.py:1 -> """JARVIS Software Engineering Agents — Package init."""
+core\system\autonomous_executor.py:493 -> threading.Thread(target=_run, daemon=True, name=f"jarvis_exec_{int(time.time())}").start()
+core\system\diagnostics_center.py:1 -> """JARVIS Intelligence & Observability Platform - Phase III Telemetry & Diagnostics Center."""
+core\system\gui_crash_reporter.py:375 -> f"JARVIS GUI encountered an unhandled exception:\n\n"
+core\system\gui_crash_reporter.py:389 -> msg.setWindowTitle("JARVIS — Unhandled Exception")
+core\system\gui_crash_reporter.py:398 -> print("JARVIS GUI CRASH DETECTED", file=sys.stderr)
+core\system\observability.py:1 -> """Minimal runtime observability helpers for JARVIS."""
+core\system\service_monitor.py:155 -> "JARVIS continues running")
+core\system\utils\camera_tracker.py:1 -> """Centralized camera tracking and diagnostics utility for JARVIS."""
+core\system\utils\camera_tracker.py:170 -> """Generate and return Camera Health Report for JARVIS startup without opening the device."""
+core\system\utils\jarvis_logging.py:1 -> """Shared logging setup for Open.Jarvis."""
+core\system\utils\jarvis_logging.py:13 -> LOG_FILE = LOG_DIR / "jarvis.log"
+core\system\utils\jarvis_logging.py:44 -> """Return a configured logger that writes to logs/jarvis.log via queue listener."""
+core\system\utils\kontrol.py:1 -> """JARVIS installation and health checker."""
+core\system\utils\memory_helper.py:9 -> """Return total RSS memory in MB of all active JARVIS-related processes."""
+core\system\utils\memory_helper.py:28 -> if "JARVIS" in cmd or any(svc in cmd for svc in ["voice_service", "gesture_service", "service_coordinator", "ai_agents_service", "cloud_service", "supervisor", "ui_jarvis_os"]):
+core\system\utils\memory_helper.py:68 -> """Return count of active threads across all JARVIS processes."""
+core\system\utils\memory_helper.py:85 -> if "JARVIS" in cmd or any(svc in cmd for svc in ["voice_service", "gesture_service", "service_coordinator", "ai_agents_service", "cloud_service", "supervisor", "ui_jarvis_os"]):
+core\system\utils\memory_helper.py:94 -> """Return count of active processes running JARVIS."""
+core\system\utils\memory_helper.py:112 -> if "JARVIS" in cmd or any(svc in cmd for svc in ["voice_service", "gesture_service", "service_coordinator", "ai_agents_service", "cloud_service", "supervisor", "ui_jarvis_os"]):
+core\system\utils\memory_helper.py:160 -> if "JARVIS" in cmd or any(svc in cmd for svc in ["voice_service", "gesture_service", "service_coordinator", "ai_agents_service", "cloud_service", "supervisor", "ui_jarvis_os"]):
+core\system\utils\telugu_formatter.py:1 -> """Telugu native conversation formatting and detection utility for JARVIS."""
+core\system\utils\telugu_formatter.py:101 -> if any(phrase in lowered for phrase in ["good day", "good morning", "all systems online", "systems are ready", "jarvis is ready", "systems are operational"]):
+core\system\utils\telugu_formatter.py:102 -> formatted = "Namaskaram sir. JARVIS siddhanga undi. Mee commands kosam ready ga unnanu sir."
+core\system\utils\telugu_formatter.py:197 -> cmd = re.sub(r"\bjarvis\b", "", cmd).strip()
+core\voice\ses_motoru.py:33 -> ctypes.windll.winmm.mciSendStringW("stop jarvis_tts", None, 0, 0)
+core\voice\ses_motoru.py:34 -> ctypes.windll.winmm.mciSendStringW("close jarvis_tts", None, 0, 0)
+core\voice\ses_motoru.py:37 -> ctypes.windll.winmm.mciSendStringW(f"open {short_path} alias jarvis_tts", None, 0, 0)
+core\voice\ses_motoru.py:38 -> ctypes.windll.winmm.mciSendStringW("play jarvis_tts wait", None, 0, 0)
+core\voice\ses_motoru.py:39 -> ctypes.windll.winmm.mciSendStringW("close jarvis_tts", None, 0, 0)
+core\voice\ses_motoru.py:97 -> if "jarvis.services.voice_service" in cmd_str or "jarvis.services.voice_engine" in cmd_str or "listener_service.py" in cmd_str:
+core\voice\ses_motoru.py:159 -> print(f"JARVIS: {text}")
+core\voice\ses_motoru.py:254 -> speak("All systems online. Jarvis is ready, sir.")
+core\voice\speech_backend.py:24 -> home / ".JARVIS" / "vosk_models",
+core\voice\speech_backend.py:25 -> home / ".JARVIS" / "vosk_model",
+core\voice\speech_backend.py:26 -> home / "AppData" / "Local" / "Open.Jarvis" / "vosk_models",
+core\voice\tts_provider.py:1 -> """TTS provider selection for JARVIS."""
+core\voice\voice_controller.py:18 -> wake_word: str = "jarvis",
+core\voice\voice_pipeline.py:121 -> """Register a callback when JARVIS produces a response."""
+core\voice\voice_pipeline.py:161 -> """Called by wake word detector when 'JARVIS' is heard."""
+core\voice\wake_word.py:33 -> wake_word: str = "jarvis"
+core\voice\wake_word.py:84 -> configured_word = normalize_voice_phrase(wake_word or str(_config_value(config, "wake_word", "jarvis"))) or "jarvis"
+core\voice\wake_word.py:116 -> def __init__(self, wake_word: str = "jarvis", *, enabled: bool = True, cooldown_seconds: float = 1.0, clock: Callable[[], float] | None = None) -> None:
+core\voice\wake_word.py:117 -> self.config = WakeWordConfig(wake_word=normalize_voice_phrase(wake_word) or "jarvis", enabled=enabled, cooldown_seconds=max(0.0, cooldown_seconds))
+evaluation\evaluation_suite.py:15 -> {"id": "stt_wake_word", "category": "stt", "prompt": "Jarvis", "expected": "wake_word_detected"},
+evaluation\eval_artifacts.py:15 -> "report_type": "jarvis_eval_artifact",
+evaluation\eval_measurements.py:19 -> return str(observed).strip().lower() == "jarvis"
+evaluation\eval_runner.py:47 -> parser = argparse.ArgumentParser(description="Run deterministic JARVIS evals.")
+evaluation\eval_runner.py:54 -> result = run_measured_eval_suite(router=_local_router, stt_fixtures={"stt_wake_word": "Jarvis"}) if args.measured else run_eval_suite()
+evaluation\haftalik_guncelleme.py:1 -> """JARVIS weekly feature discovery report."""
+evaluation\haftalik_guncelleme.py:44 -> "python voice assistant jarvis",
+evaluation\haftalik_guncelleme.py:136 -> file_path = _desktop_path() / f"jarvis_report_{report_date}.txt"
+evaluation\haftalik_guncelleme.py:140 -> handle.write(f"  JARVIS WEEKLY FEATURE REPORT - {report_date}\n")
+evaluation\haftalik_guncelleme.py:150 -> handle.write("SUGGESTED NEW FEATURES FOR JARVIS:\n")
+evaluation\haftalik_guncelleme.py:162 -> print("JARVIS weekly update starting...")
+gui\main_window.py:44 -> STARTUP_GREETING = "Namaskaram sir. JARVIS siddhanga undi. Mee commands kosam ready ga unnanu sir."
+gui\main_window.py:75 -> engine.rootContext().setContextProperty("jarvis", bridge)
+gui\main_window.py:103 -> print("[GUI] Duplicate JARVIS GUI instance detected. Exiting.")
+gui\main_window.py:116 -> print(f"[JARVIS] PySide6 not installed: {e}")
+gui\main_window.py:117 -> print("[JARVIS] Run: pip install PySide6>=6.7.0")
+gui\main_window.py:131 -> app.setApplicationName("JARVIS")
+gui\main_window.py:133 -> app.setOrganizationName("Open.Jarvis")
+gui\main_window.py:229 -> bridge.logReceived.emit("✅ JARVIS OS v2.0.0 — QML Interface Active", "ok")
+gui\main_window.py:253 -> elif label == "Exit JARVIS":
+gui\main_window.py:258 -> pystray.MenuItem("Exit JARVIS", on_tray),
+gui\main_window.py:260 -> tray = pystray.Icon("JARVIS", img, "JARVIS OS", menu)
+gui\qml_bridge.py:206 -> self._sys_worker = threading.Thread(target=self._sys_worker_loop, daemon=True, name="jarvis_sys_worker")
+gui\qml_bridge.py:208 -> self._bg_executor = concurrent.futures.ThreadPoolExecutor(max_workers=3, thread_name_prefix="jarvis_bg_worker")
+gui\qml_bridge.py:272 -> if "jarvis:" in lowered:
+gui\qml_bridge.py:286 -> elif message.startswith("JARVIS:"):
+gui\qml_bridge.py:290 -> if self._avatar is not None and message.startswith("JARVIS:"):
+gui\qml_bridge.py:309 -> """Attach the headless JarvisAvatarState instance."""
+gui\qml_bridge.py:379 -> self.showNotification("JARVIS HUD SCREENSHOT", "System screen capture completed successfully.")
+gui\qml_bridge.py:1377 -> return os.getenv("JARVIS_SECONDARY_AI", "GEMINI").upper()
+gui\qml_bridge.py:1837 -> launcher_path = os.path.join(root_dir, "JARVIS", "launcher.py")
+gui\system_tray.py:22 -> "Exit JARVIS" menu item triggers app shutdown.
+gui\system_tray.py:63 -> self.setToolTip("JARVIS — AI Assistant (All systems nominal)")
+gui\system_tray.py:67 -> """Draw a status dot on the JARVIS icon."""
+gui\system_tray.py:122 -> restart_action = QAction("Restart JARVIS", menu)
+gui\system_tray.py:136 -> exit_action = QAction("Exit JARVIS", menu)
+gui\system_tray.py:172 -> "JARVIS — Service Restarting",
+gui\system_tray.py:178 -> "JARVIS — Recovering",
+gui\system_tray.py:184 -> "JARVIS — Service Recovered",
+gui\system_tray.py:190 -> "JARVIS — Service Failed",
+gui\system_tray.py:192 -> f"(max retries exceeded). JARVIS continues running.",
+gui\system_tray.py:209 -> self.setToolTip("JARVIS — Critical service failed")
+gui\system_tray.py:212 -> self.setToolTip("JARVIS — One or more services failed")
+gui\system_tray.py:215 -> self.setToolTip("JARVIS — Service recovering…")
+gui\system_tray.py:218 -> self.setToolTip("JARVIS — All systems nominal")
+gui\system_tray.py:235 -> log_lifecycle("TRAY_EXIT_CLICKED", "Tray context menu 'Exit JARVIS' option triggered")
+gui\system_tray.py:238 -> "Exit JARVIS",
+gui\ui_log_events.py:1 -> """Structured terminal event formatting for the JARVIS cockpit UI."""
+gui\ui_log_events.py:40 -> "jarvis": "ok",
+gui\ui_log_events.py:82 -> if "jarvis:" in lowered or "success" in lowered or "ready" in lowered or "completed" in lowered:
+gui\ui_screenshot_regression.py:1 -> """Screenshot regression checks for the JARVIS desktop QML cockpit."""
+gui\ui_screenshot_regression.py:70 -> engine.rootContext().setContextProperty("jarvis", bridge)
+gui\ui_smoke.py:1 -> """Smoke helpers for validating the desktop UI without starting Jarvis runtime."""
+gui\ui_smoke.py:23 -> engine.rootContext().setContextProperty("jarvis", bridge)
+gui\ui_state.py:1 -> """Assistant state profiles for the JARVIS cockpit UI."""
+gui\ui_state.py:46 -> subtitle="I am a virtual assistant JARVIS, how may I help you?",
+gui\ui_state.py:47 -> status="STANDBY - SAY JARVIS",
+gui\ui_state.py:127 -> if "jarvis:" in lowered:
+plugins\context.py:1 -> """Safe context object exposed to local JARVIS plugins."""
+plugins\loader.py:19 -> spec = importlib.util.spec_from_file_location(f"JARVIS_local_plugin_{plugin_id}", entrypoint)
+plugins\manifest.py:1 -> """Manifest normalization and validation for local JARVIS plugins."""
+plugins\permissions.py:1 -> """Permission registry and validation for local JARVIS plugins."""
+plugins\permissions.py:22 -> "commands.execute": PluginPermission("commands.execute", "high", "Request command execution through JARVIS safety gates."),
+plugins\plugin_runner.py:1 -> """Isolated plugin execution planning for trusted JARVIS plugins."""
+plugins\plugin_runner.py:48 -> workspace_root = Path(tempfile.mkdtemp(prefix=f"jarvis_plugin_{safe_name}_"))
+plugins\plugin_security.py:1 -> """Security helpers for future JARVIS plugins."""
+plugins\plugin_security.py:11 -> TRUST_POLICY_FILE = Path(__file__).resolve().parent / "jarvis_plugin_trust.json"
+plugins\plugin_state.py:12 -> DEFAULT_STATE_FILE = Path(__file__).resolve().parent / "jarvis_plugin_state.json"
+providers\groq.py:152 -> messages=[{"role": "user", "content": f"Summarize this in 3-4 sentences as JARVIS would:\n\n{value}"}],
+providers\__init__.py:1 -> """Local-first AI provider routing for Open.Jarvis."""
+release\artifact_verifier.py:143 -> def verify_release_artifact(path: str | Path, *, app_name: str = "Open.Jarvis") -> dict[str, object]:
+release\artifact_verifier.py:165 -> parser = argparse.ArgumentParser(description="Verify an Open.Jarvis Windows portable folder or ZIP.")
+release\artifact_verifier.py:167 -> parser.add_argument("--app-name", default="Open.Jarvis", help="Expected app/executable folder name.")
+release\portable_policy.py:1 -> """Portable Windows package policy for Open.Jarvis release artifacts."""
+release\portable_policy.py:8 -> DEFAULT_APP_NAME = "Open.Jarvis"
+release\project_audit.py:13 -> AUDIT_ONLY_FILES = {"project_audit.py", "JARVIS/release/project_audit.py"}
+release\project_audit.py:18 -> "JARVIS/runtime/process_runner.py",
+release\project_audit.py:19 -> "JARVIS/release/windows_portable.py",
+release\project_audit.py:20 -> "JARVIS/security/public_release.py",
+release\project_audit.py:129 -> lines = ["# JARVIS Project Audit", "", "## Findings"]
+release\release_build.py:1 -> """Windows release build planning for signed JARVIS artifacts."""
+release\release_build.py:69 -> manifest_path = output_path / f"jarvis-{safe_version}.manifest.json"
+release\release_build.py:70 -> signature_path = output_path / f"jarvis-{safe_version}.sig"
+release\release_build.py:71 -> metadata_path = output_path / f"jarvis-{safe_version}.release.json"
+release\release_build.py:90 -> artifact_path = "dist/JARVIS.exe"
+release\release_build.py:103 -> "JARVIS",
+release\release_build.py:105 -> "JARVIS/ui/world_map/world_map.html;JARVIS/ui/world_map",
+release\release_build.py:107 -> "JARVIS/ui/jarvis_os/jarvis_os.html;JARVIS/ui/jarvis_os",
+release\release_build.py:130 -> parser = argparse.ArgumentParser(description="Build signed JARVIS release metadata for an existing artifact.")
+release\release_build.py:132 -> parser.add_argument("--artifact", required=True, help="Path to the built JARVIS artifact.")
+release\repo_hygiene.py:1 -> """Check and clean local-only files before publishing JARVIS."""
+release\repo_hygiene.py:247 -> parser = argparse.ArgumentParser(description="Check local-only files before publishing JARVIS.")
+release\windows_portable.py:53 -> "JARVIS/ui/world_map/world_map.html;JARVIS/ui/world_map",
+release\windows_portable.py:55 -> "JARVIS/ui/jarvis_os/jarvis_os.html;JARVIS/ui/jarvis_os",
+release\windows_portable.py:204 -> parser = argparse.ArgumentParser(description="Build or dry-run an Open.Jarvis Windows portable package.")
+runtime\e2e_readiness.py:6 -> "ui_start": "UI opens and renders the main Jarvis shell.",
+runtime\gesture_control.py:1 -> """JARVIS Gesture Control Module — MediaPipe Tasks API + OpenCV + PyAutoGUI interaction."""
+runtime\gesture_control.py:68 -> self.hud_name = "JARVIS — Gesture HUD"
+runtime\gesture_control.py:211 -> gesture_label = "PALM DETECTED - WAKING JARVIS"
+runtime\gesture_control.py:318 -> frame, "JARVIS SYSTEM GESTURE HUD", (15, h - 15),
+runtime\jarvis_runtime.py:1 -> """Runtime loop for JARVIS."""
+runtime\jarvis_runtime.py:82 -> logger.info("JARVIS startup sequence initiated.")
+runtime\jarvis_runtime.py:93 -> record_runtime_event("startup", "JARVIS startup sequence initiated", "info", {"offline_stt": recognition_mode()})
+runtime\orchestrator.py:21 -> if any(k in command for k in ["goodbye jarvis", "shut down jarvis", "bye jarvis"]):
+runtime\readiness.py:42 -> t = threading.Thread(target=_check, name="jarvis_mic_probe", daemon=True)
+runtime\readiness.py:58 -> groq_enabled = _env_flag_enabled(values, "JARVIS_ENABLE_GROQ", default=False)
+runtime\readiness.py:59 -> spotify_enabled = _env_flag_enabled(values, "JARVIS_ENABLE_SPOTIFY", default=True)
+runtime\runtime_safety.py:29 -> "Jarvis wants to run a sensitive action.\n"
+runtime\self_healing.py:1 -> """JARVIS Autonomous Self-Healing Engine."""
+runtime\self_healing.py:179 -> "file": f"JARVIS/services/{service_name}",
+runtime\smart_activation.py:6 -> • Wake words: "Jarvis", "Hey Jarvis", "Friday"
+runtime\smart_activation.py:28 -> WAKE_WORDS = ["jarvis", "hey jarvis", "friday", "wake up", "jarvis wake up"]
+runtime\smart_activation.py:29 -> CLAP_ENERGY_THRESHOLD = float(os.getenv("JARVIS_CLAP_THRESHOLD", "0.18"))
+runtime\smart_activation.py:50 -> """Thread-safe 4-state FSM for JARVIS activation."""
+runtime\smart_activation.py:370 -> """Single clap → activate JARVIS."""
+runtime\timer.py:33 -> send_log(f"JARVIS: {message}")
+runtime\voice_personality.py:1 -> """Voice personality helpers for JARVIS."""
+runtime\voice_personality.py:22 -> "It's been a pleasure serving you today, sir. Jarvis signing off.",
+runtime\voice_personality.py:26 -> "Goodbye, sir. It was an honour, as always. Jarvis shutting down.",
+runtime\voice_personality.py:49 -> greeting = "Good morning, sir. All systems online. Jarvis is ready, sir."
+runtime\voice_personality.py:51 -> greeting = "Good afternoon, sir. All systems online. Jarvis is ready, sir."
+runtime\voice_personality.py:53 -> greeting = "Good evening, sir. All systems online. Jarvis is ready, sir."
+runtime\voice_personality.py:55 -> greeting = "Good night, sir. All systems online. Jarvis is ready, sir."
+runtime\voice_personality.py:58 -> send_log(f"JARVIS: {greeting}")
+runtime\voice_personality.py:81 -> send_log(f"JARVIS: {joke}")
+runtime\workflow_engine.py:1 -> """Simple workflow planner for multi-step Jarvis tasks."""
+runtime\__init__.py:1 -> """Runtime helpers for JARVIS."""
+sdk\base_agent.py:1 -> """Base class for building custom JARVIS AI Agents."""
+sdk\base_tool.py:1 -> """Base class for building custom JARVIS tools."""
+services\cloud_service.py:21 -> base_port = int(os.environ.get("JARVIS_CLOUD_PORT", str(DEFAULT_CLOUD_PORT)))
+services\supervisor.py:183 -> return os.path.join(local_appdata, "Open.Jarvis", "settings.json")
+services\supervisor.py:193 -> "wake_word": "jarvis",
+services\supervisor.py:383 -> env["JARVIS_SERVICE_NAME"] = name
+services\supervisor.py:514 -> full_msg = msg if msg == "Welcome back." else f"[JARVIS] {msg}"
+services\supervisor.py:999 -> print("[SUPERVISOR] Starting JARVIS Multi-Process Supervisor CORE...")

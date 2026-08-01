@@ -1,0 +1,93 @@
+[
+  {
+    "run_id": "2c963ac8-6d17-4696-8af4-730ff9f2fac5",
+    "agent": "planner",
+    "step": 1,
+    "input": "add a button that shows current time",
+    "output": "I could not reach any online AI engine, sir, and the local Ollama instance is currently unreachable.",
+    "tokens_estimate": 31,
+    "elapsed_ms": 6133.0,
+    "status": "success",
+    "retry_count": 0,
+    "timestamp": "2026-07-02T08:14:27.832804+00:00",
+    "model_used": "qwen2:latest"
+  },
+  {
+    "run_id": "2c963ac8-6d17-4696-8af4-730ff9f2fac5",
+    "agent": "coding",
+    "step": 2,
+    "input": "add a button that shows current time",
+    "output": "I could not reach any online AI engine, sir, and the local Ollama instance is currently unreachable.",
+    "tokens_estimate": 31,
+    "elapsed_ms": 6139.2,
+    "status": "success",
+    "retry_count": 0,
+    "timestamp": "2026-07-02T08:14:33.981949+00:00",
+    "model_used": "qwen2:latest"
+  },
+  {
+    "run_id": "2c963ac8-6d17-4696-8af4-730ff9f2fac5",
+    "agent": "testing",
+    "step": 3,
+    "input": "add a button that shows current time\n\nContext:\nI could not reach any online AI engine, sir, and the local Ollama instance is currently unreachable.",
+    "output": "I could not reach any online AI engine, sir, and the local Ollama instance is currently unreachable.",
+    "tokens_estimate": 54,
+    "elapsed_ms": 6155.8,
+    "status": "success",
+    "retry_count": 0,
+    "timestamp": "2026-07-02T08:14:40.145866+00:00",
+    "model_used": "qwen2:latest"
+  },
+  {
+    "run_id": "2c963ac8-6d17-4696-8af4-730ff9f2fac5",
+    "agent": "review",
+    "step": 4,
+    "input": "add a button that shows current time\n\nContext:\n[\n  {\n    \"subtask_id\": 1,\n    \"subtask_title\": \"Implement request\",\n    \"code\": \"I could not reach any online AI engine, sir, and the local Ollama instance is currently unreachable.\",\n    \"test_passed\": true,\n    \"attempts\": 1\n  }\n]",
+    "output": "I could not reach any online AI engine, sir, and the local Ollama instance is currently unreachable.",
+    "tokens_estimate": 72,
+    "elapsed_ms": 6143.3,
+    "status": "success",
+    "retry_count": 0,
+    "timestamp": "2026-07-02T08:14:46.294461+00:00",
+    "model_used": "qwen2:latest"
+  },
+  {
+    "run_id": "4dd5ac93-e1ba-4d19-b0c2-37fa08fb2cf8",
+    "agent": "planner",
+    "step": 1,
+    "input": "some task",
+    "output": "I could not reach any online AI engine, sir, and the local Ollama instance is currently unreachable.",
+    "tokens_estimate": 24,
+    "elapsed_ms": 6099.4,
+    "status": "success",
+    "retry_count": 0,
+    "timestamp": "2026-07-02T08:15:00.100700+00:00",
+    "model_used": "qwen2:latest"
+  },
+  {
+    "run_id": "4dd5ac93-e1ba-4d19-b0c2-37fa08fb2cf8",
+    "agent": "coding",
+    "step": 2,
+    "input": "some task",
+    "output": "I could not reach any online AI engine, sir, and the local Ollama instance is currently unreachable.",
+    "tokens_estimate": 24,
+    "elapsed_ms": 6086.4,
+    "status": "success",
+    "retry_count": 0,
+    "timestamp": "2026-07-02T08:15:06.195328+00:00",
+    "model_used": "qwen2:latest"
+  },
+  {
+    "run_id": "4dd5ac93-e1ba-4d19-b0c2-37fa08fb2cf8",
+    "agent": "testing",
+    "step": 3,
+    "input": "some task\n\nContext:\nI could not reach any online AI engine, sir, and the local Ollama instance is currently unreachable.",
+    "output": "I could not reach any online AI engine, sir, and the local Ollama instance is currently unreachable.",
+    "tokens_estimate": 48,
+    "elapsed_ms": 6111.5,
+    "status": "success",
+    "retry_count": 0,
+    "timestamp": "2026-07-02T08:15:12.310858+00:00",
+    "model_used": "qwen2:latest"
+  }
+]
