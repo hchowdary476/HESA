@@ -21,14 +21,14 @@ import json
 import os
 import re
 import threading
-import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 DEFAULT_PRONUNCIATION_FILE = "pronunciation.json"
 
 
 # ── Language & Script Classifier ──────────────────────────────────────────────
+
 
 class LanguageDetector:
     """Classifies script and language types for multi-language TTS support."""
@@ -54,7 +54,7 @@ class LanguageDetector:
         return False
 
     @classmethod
-    def detect_languages(cls, text: str) -> List[str]:
+    def detect_languages(cls, text: str) -> list[str]:
         """Detect all languages/scripts present in text."""
         detected = set()
         has_latin = False
@@ -84,23 +84,21 @@ class LanguageDetector:
 
 # ── Automated Mispronunciation Detector ────────────────────────────────────────
 
+
 class PronunciationDetector:
     """
     Automated detector identifying non-name terms susceptible to mispronunciation.
     Strict constraint: NEVER automatically guesses or rewrites personal names.
     """
 
-    ACRONYM_PATTERN = re.compile(r'\b[A-Z]{2,6}\b')
-    CAMEL_CASE_PATTERN = re.compile(r'\b[A-Z][a-z]+[A-Z][a-zA-Z]*\b')
-    UNUSUAL_CLUSTERS = re.compile(
-        r'\b\w*(?:cz|sz|zh|kh|gh|dh|th|bh|ph|shr|ks|ts|dhy|thya|chary|shna|krish|bhag)\w*\b',
-        re.IGNORECASE
-    )
+    ACRONYM_PATTERN = re.compile(r"\b[A-Z]{2,6}\b")
+    CAMEL_CASE_PATTERN = re.compile(r"\b[A-Z][a-z]+[A-Z][a-zA-Z]*\b")
+    UNUSUAL_CLUSTERS = re.compile(r"\b\w*(?:cz|sz|zh|kh|gh|dh|th|bh|ph|shr|ks|ts|dhy|thya|chary|shna|krish|bhag)\w*\b", re.IGNORECASE)
 
     @classmethod
-    def detect_candidates(cls, text: str) -> List[Dict[str, Any]]:
+    def detect_candidates(cls, text: str) -> list[dict[str, Any]]:
         candidates = []
-        words = re.findall(r'\b[A-Za-z0-9_-]+\b', text)
+        words = re.findall(r"\b[A-Za-z0-9_-]+\b", text)
         seen = set()
 
         for word in words:
@@ -119,7 +117,7 @@ class PronunciationDetector:
             if cls.CAMEL_CASE_PATTERN.match(word):
                 reasons.append("CamelCase Compound")
                 confidence += 0.6
-                split_words = re.findall(r'[A-Z][a-z]*', word)
+                split_words = re.findall(r"[A-Z][a-z]*", word)
                 if split_words:
                     suggested_phonetic = " ".join(split_words)
 
@@ -129,17 +127,15 @@ class PronunciationDetector:
 
             if reasons:
                 seen.add(word.lower())
-                candidates.append({
-                    "word": word,
-                    "reasons": reasons,
-                    "confidence": min(1.0, confidence),
-                    "suggested_phonetic": suggested_phonetic
-                })
+                candidates.append(
+                    {"word": word, "reasons": reasons, "confidence": min(1.0, confidence), "suggested_phonetic": suggested_phonetic}
+                )
 
         return candidates
 
 
 # ── Dynamic Pronunciation Dictionary ─────────────────────────────────────────
+
 
 class PronunciationDictionary:
     """
@@ -147,10 +143,10 @@ class PronunciationDictionary:
     pronunciation mappings in `pronunciation.json`.
     """
 
-    def __init__(self, filepath: Union[str, Path] = DEFAULT_PRONUNCIATION_FILE) -> None:
+    def __init__(self, filepath: str | Path = DEFAULT_PRONUNCIATION_FILE) -> None:
         self.filepath = Path(filepath)
         self._lock = threading.RLock()
-        self._entries: Dict[str, Dict[str, Any]] = {}
+        self._entries: dict[str, dict[str, Any]] = {}
         self.load()
 
     def load(self) -> None:
@@ -161,7 +157,7 @@ class PronunciationDictionary:
                 return
 
             try:
-                with open(self.filepath, "r", encoding="utf-8") as f:
+                with open(self.filepath, encoding="utf-8") as f:
                     data = json.load(f)
 
                 if isinstance(data, dict):
@@ -185,9 +181,10 @@ class PronunciationDictionary:
                                 "is_personal_name": v.get("is_personal_name", False),
                                 "user_specified": v.get("user_specified", True),
                                 "active": v.get("active", True),
-                                "provider_overrides": v.get("provider_overrides", {
-                                    "edge": "", "azure": "", "kokoro": "", "piper": "", "elevenlabs": "", "pyttsx3": "", "sapi": ""
-                                })
+                                "provider_overrides": v.get(
+                                    "provider_overrides",
+                                    {"edge": "", "azure": "", "kokoro": "", "piper": "", "elevenlabs": "", "pyttsx3": "", "sapi": ""},
+                                ),
                             }
             except Exception as err:
                 print(f"[PRONUNCIATION] Error loading {self.filepath}: {err}")
@@ -197,13 +194,13 @@ class PronunciationDictionary:
         self,
         word: str,
         spoken: str,
-        phonetic: Optional[str] = None,
-        phoneme: Optional[str] = None,
+        phonetic: str | None = None,
+        phoneme: str | None = None,
         alphabet: str = "ipa",
         language: str = "auto",
         is_personal_name: bool = False,
-        provider_overrides: Optional[Dict[str, str]] = None
-    ) -> Dict[str, Any]:
+        provider_overrides: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
         spk = spoken
         phon = phonetic or spk
         return {
@@ -217,9 +214,8 @@ class PronunciationDictionary:
             "is_personal_name": is_personal_name,
             "user_specified": True,
             "active": True,
-            "provider_overrides": provider_overrides or {
-                "edge": "", "azure": "", "kokoro": "", "piper": "", "elevenlabs": "", "pyttsx3": "", "sapi": ""
-            }
+            "provider_overrides": provider_overrides
+            or {"edge": "", "azure": "", "kokoro": "", "piper": "", "elevenlabs": "", "pyttsx3": "", "sapi": ""},
         }
 
     def save(self) -> None:
@@ -227,7 +223,7 @@ class PronunciationDictionary:
             payload = {
                 "version": "2.0",
                 "description": "Advanced Dynamic Pronunciation Dictionary for HESA Speech Subsystem",
-                "entries": self._entries
+                "entries": self._entries,
             }
             try:
                 temp_path = self.filepath.with_suffix(".tmp")
@@ -237,15 +233,15 @@ class PronunciationDictionary:
             except Exception as err:
                 print(f"[PRONUNCIATION] Failed to save {self.filepath}: {err}")
 
-    def get_all(self) -> Dict[str, Dict[str, Any]]:
+    def get_all(self) -> dict[str, dict[str, Any]]:
         with self._lock:
             return json.loads(json.dumps(self._entries))
 
-    def get_entry(self, word: str) -> Optional[Dict[str, Any]]:
+    def get_entry(self, word: str) -> dict[str, Any] | None:
         with self._lock:
             return self._entries.get(word.strip().lower())
 
-    def set_full_entry(self, word: str, entry_dict: Dict[str, Any]) -> None:
+    def set_full_entry(self, word: str, entry_dict: dict[str, Any]) -> None:
         with self._lock:
             key = word.strip().lower()
             if not key:
@@ -261,7 +257,7 @@ class PronunciationDictionary:
                 "is_personal_name": entry_dict.get("is_personal_name", False),
                 "user_specified": True,
                 "active": entry_dict.get("active", True),
-                "provider_overrides": entry_dict.get("provider_overrides", {})
+                "provider_overrides": entry_dict.get("provider_overrides", {}),
             }
             self.save()
 
@@ -269,13 +265,13 @@ class PronunciationDictionary:
         self,
         word: str,
         spoken: str,
-        display: Optional[str] = None,
-        phonetic: Optional[str] = None,
-        phoneme: Optional[str] = None,
+        display: str | None = None,
+        phonetic: str | None = None,
+        phoneme: str | None = None,
         alphabet: str = "ipa",
         language: str = "auto",
         is_personal_name: bool = False,
-        provider_overrides: Optional[Dict[str, str]] = None
+        provider_overrides: dict[str, str] | None = None,
     ) -> None:
         with self._lock:
             key = word.strip().lower()
@@ -291,7 +287,7 @@ class PronunciationDictionary:
                 alphabet=alphabet,
                 language=language,
                 is_personal_name=is_personal_name,
-                provider_overrides=provider_overrides
+                provider_overrides=provider_overrides,
             )
             self._entries[key] = schema
             self.save()
@@ -312,6 +308,7 @@ class PronunciationDictionary:
 
 
 # ── Provider Strategy Resolver ─────────────────────────────────────────
+
 
 class TTSProviderAdapter:
     """
@@ -338,7 +335,7 @@ class TTSProviderAdapter:
     def supports_native_scripts(self) -> bool:
         return self._supports_native
 
-    def resolve_pronunciation(self, original: str, entry: Dict[str, Any]) -> Tuple[str, str, int]:
+    def resolve_pronunciation(self, original: str, entry: dict[str, Any]) -> tuple[str, str, int]:
         """
         Evaluate entry through 5-Tier Priority Order.
         Returns: (formatted_string, selected_method_description, priority_tier)
@@ -373,7 +370,11 @@ class TTSProviderAdapter:
             return spoken, f"Priority 4: Native-Script Spoken Form ('{spoken}')", 4
 
         # Priority 5: Phonetic ASCII fallback
-        fallback = phonetic_fallback if not (LanguageDetector.contains_native_script(phonetic_fallback) and not self.supports_native_scripts()) else original
+        fallback = (
+            phonetic_fallback
+            if not (LanguageDetector.contains_native_script(phonetic_fallback) and not self.supports_native_scripts())
+            else original
+        )
         return fallback, f"Priority 5: Phonetic Fallback ('{fallback}')", 5
 
 
@@ -382,7 +383,7 @@ class EdgeTTSProviderAdapter(TTSProviderAdapter):
     def __init__(self):
         super().__init__("edge", supports_ssml=True, supports_phonemes=True, supports_native=True)
 
-    def resolve_pronunciation(self, original: str, entry: Dict[str, Any]) -> Tuple[str, str, int]:
+    def resolve_pronunciation(self, original: str, entry: dict[str, Any]) -> tuple[str, str, int]:
         provider_key = self.name.lower()
         overrides = entry.get("provider_overrides") or {}
         provider_override = overrides.get(provider_key)
@@ -414,32 +415,38 @@ class EdgeTTSProviderAdapter(TTSProviderAdapter):
         phonetic_fallback = entry.get("phonetic") or entry.get("display") or original
         return phonetic_fallback, f"Priority 5: Phonetic Fallback ('{phonetic_fallback}')", 5
 
+
 class AzureSpeechProviderAdapter(TTSProviderAdapter):
     def __init__(self):
         super().__init__("azure", supports_ssml=True, supports_phonemes=True, supports_native=True)
+
 
 class ElevenLabsProviderAdapter(TTSProviderAdapter):
     def __init__(self):
         super().__init__("elevenlabs", supports_ssml=True, supports_phonemes=True, supports_native=True)
 
+
 class KokoroProviderAdapter(TTSProviderAdapter):
     def __init__(self):
         super().__init__("kokoro", supports_ssml=False, supports_phonemes=False, supports_native=True)
+
 
 class PiperProviderAdapter(TTSProviderAdapter):
     def __init__(self):
         super().__init__("piper", supports_ssml=False, supports_phonemes=False, supports_native=True)
 
+
 class PyTTSx3ProviderAdapter(TTSProviderAdapter):
     def __init__(self):
         super().__init__("pyttsx3", supports_ssml=False, supports_phonemes=False, supports_native=False)
+
 
 class SAPIFallbackProviderAdapter(TTSProviderAdapter):
     def __init__(self):
         super().__init__("sapi", supports_ssml=False, supports_phonemes=False, supports_native=False)
 
 
-PROVIDER_ADAPTERS: Dict[str, TTSProviderAdapter] = {
+PROVIDER_ADAPTERS: dict[str, TTSProviderAdapter] = {
     "edge": EdgeTTSProviderAdapter(),
     "edgetts": EdgeTTSProviderAdapter(),
     "edge_fallback": KokoroProviderAdapter(),
@@ -456,6 +463,7 @@ PROVIDER_ADAPTERS: Dict[str, TTSProviderAdapter] = {
 
 # ── Intelligent Pronunciation Engine ──────────────────────────────────────────
 
+
 class PronunciationEngine:
     """
     Main Advanced Personal Name & Pronunciation Engine for HESA.
@@ -468,17 +476,17 @@ class PronunciationEngine:
     - 100% UI Immutability
     """
 
-    _instance: Optional[PronunciationEngine] = None
+    _instance: PronunciationEngine | None = None
     _lock = threading.Lock()
 
-    def __new__(cls, filepath: Union[str, Path] = DEFAULT_PRONUNCIATION_FILE) -> PronunciationEngine:
+    def __new__(cls, filepath: str | Path = DEFAULT_PRONUNCIATION_FILE) -> PronunciationEngine:
         with cls._lock:
             if cls._instance is None:
                 cls._instance = super().__new__(cls)
                 cls._instance._dictionary = PronunciationDictionary(filepath)
                 cls._instance._detector = PronunciationDetector()
                 cls._instance._lang_detector = LanguageDetector()
-                cls._instance._profile_cache: Dict[str, Any] = {}
+                cls._instance._profile_cache: dict[str, Any] = {}
             return cls._instance
 
     @property
@@ -501,10 +509,10 @@ class PronunciationEngine:
         self,
         name: str,
         preferred_pronunciation: str,
-        phoneme: Optional[str] = None,
+        phoneme: str | None = None,
         alphabet: str = "ipa",
         language: str = "auto",
-        provider_overrides: Optional[Dict[str, str]] = None
+        provider_overrides: dict[str, str] | None = None,
     ) -> None:
         self._dictionary.set_entry(
             word=name,
@@ -514,16 +522,12 @@ class PronunciationEngine:
             alphabet=alphabet,
             language=language,
             is_personal_name=True,
-            provider_overrides=provider_overrides
+            provider_overrides=provider_overrides,
         )
         self.clear_cache()
 
     def set_native_script_pronunciation(
-        self,
-        display_name: str,
-        native_spoken_form: str,
-        phonetic_fallback: Optional[str] = None,
-        language: str = "auto"
+        self, display_name: str, native_spoken_form: str, phonetic_fallback: str | None = None, language: str = "auto"
     ) -> None:
         self._dictionary.set_entry(
             word=display_name,
@@ -531,11 +535,11 @@ class PronunciationEngine:
             spoken=native_spoken_form,
             phonetic=phonetic_fallback or native_spoken_form,
             language=language,
-            is_personal_name=True
+            is_personal_name=True,
         )
         self.clear_cache()
 
-    def regenerate_pronunciation_profile(self, word: str, language: str = "auto") -> Dict[str, Any]:
+    def regenerate_pronunciation_profile(self, word: str, language: str = "auto") -> dict[str, Any]:
         """
         Generate recommended SSML aliases, spoken forms, and provider overrides for a name.
         """
@@ -563,14 +567,14 @@ class PronunciationEngine:
                 "kokoro": spoken_suggestion,
                 "piper": spoken_suggestion,
                 "pyttsx3": existing.get("phonetic") or word,
-                "sapi": existing.get("phonetic") or word
-            }
+                "sapi": existing.get("phonetic") or word,
+            },
         }
         self._dictionary.set_full_entry(word, updated)
         self.clear_cache()
         return updated
 
-    def process_for_tts_debug(self, text: str, provider: str = "edge") -> Dict[str, Any]:
+    def process_for_tts_debug(self, text: str, provider: str = "edge") -> dict[str, Any]:
         """
         Pronunciation Debug Mode.
         Returns telemetry:
@@ -588,7 +592,7 @@ class PronunciationEngine:
                 "ssml_generated": False,
                 "provider_selected": provider,
                 "final_text_sent_to_tts": text or "",
-                "strategy_log": []
+                "strategy_log": [],
             }
 
         adapter = self.get_adapter(provider)
@@ -601,25 +605,21 @@ class PronunciationEngine:
                 "ssml_generated": False,
                 "provider_selected": adapter.name,
                 "final_text_sent_to_tts": text,
-                "strategy_log": ["No dictionary entries active."]
+                "strategy_log": ["No dictionary entries active."],
             }
 
         normalized = text
         used_ssml = False
         strategy_log = []
 
-        sorted_entries = sorted(
-            entries.items(),
-            key=lambda x: (x[1].get("is_personal_name", False), len(x[0])),
-            reverse=True
-        )
+        sorted_entries = sorted(entries.items(), key=lambda x: (x[1].get("is_personal_name", False), len(x[0])), reverse=True)
 
         for word_key, entry in sorted_entries:
             if not entry.get("active", True):
                 continue
 
             target_word = entry.get("display") or word_key
-            pattern = re.compile(r'\b' + re.escape(target_word) + r'\b', re.IGNORECASE)
+            pattern = re.compile(r"\b" + re.escape(target_word) + r"\b", re.IGNORECASE)
 
             def _replacer(match: re.Match) -> str:
                 nonlocal used_ssml
@@ -642,10 +642,10 @@ class PronunciationEngine:
             "ssml_generated": used_ssml,
             "provider_selected": adapter.name,
             "final_text_sent_to_tts": final_text,
-            "strategy_log": strategy_log
+            "strategy_log": strategy_log,
         }
 
-    def process_for_tts(self, text: str, provider: str = "edge", language: Optional[str] = None) -> str:
+    def process_for_tts(self, text: str, provider: str = "edge", language: str | None = None) -> str:
         """
         Normalize raw text for the TTS engine with LRU caching.
         Original text is NEVER mutated in place; returns transient audio string.
@@ -669,7 +669,7 @@ class PronunciationEngine:
 
         return res
 
-    def detect_potential_mispronunciations(self, text: str) -> List[Dict[str, Any]]:
+    def detect_potential_mispronunciations(self, text: str) -> list[dict[str, Any]]:
         return self._detector.detect_candidates(text)
 
 

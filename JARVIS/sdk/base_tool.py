@@ -1,7 +1,9 @@
 """Base class for building custom JARVIS tools."""
 
 from __future__ import annotations
-from typing import Callable
+
+from collections.abc import Callable
+
 
 class BaseTool:
     """Wrapper that developers can use to define new functions for multi-agent use."""

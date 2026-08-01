@@ -1,10 +1,10 @@
 import os
-import sys
-from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QMessageBox
-from PySide6.QtGui import QIcon, QAction, QPixmap, QPainter, QColor
-from PySide6.QtCore import Qt, QTimer, Signal, QMetaObject, Qt as QtCore
 
-from JARVIS.core.system.utils.gui_lifecycle_logger import log_lifecycle, log_close_reason
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap
+from PySide6.QtWidgets import QMenu, QMessageBox, QSystemTrayIcon
+
+from JARVIS.core.system.utils.gui_lifecycle_logger import log_close_reason, log_lifecycle
 
 
 class SystemTrayManager(QSystemTrayIcon):
@@ -40,13 +40,14 @@ class SystemTrayManager(QSystemTrayIcon):
         self.voice_enabled = True
         try:
             from JARVIS.config.manager import ConfigManager
+
             config_mgr = ConfigManager()
             config_mgr.load()
             self.voice_enabled = config_mgr.get("voice.voice_enabled", True)
         except Exception:
             pass
 
-        self.service_health = {}          # {name: status_string}
+        self.service_health = {}  # {name: status_string}
 
         self._setup_tray_icon()
         self._create_context_menu()
@@ -87,10 +88,10 @@ class SystemTrayManager(QSystemTrayIcon):
         painter.setRenderHint(QPainter.Antialiasing)
 
         color_map = {
-            "red":    QColor(239, 68, 68),
+            "red": QColor(239, 68, 68),
             "yellow": QColor(245, 158, 11),
             "orange": QColor(249, 115, 22),
-            "green":  QColor(16, 185, 129),
+            "green": QColor(16, 185, 129),
         }
         color = color_map.get(status, QColor(16, 185, 129))
 
@@ -169,28 +170,22 @@ class SystemTrayManager(QSystemTrayIcon):
         # Only show balloon on meaningful transitions (not on every HEALTHY poll)
         if status == "RESTARTING" and prev != "RESTARTING":
             self.showMessage(
-                "HESA — Service Restarting",
-                f"⟳ {service_name.replace('_', ' ').title()} is restarting…",
-                QSystemTrayIcon.Warning, 4000
+                "HESA — Service Restarting", f"⟳ {service_name.replace('_', ' ').title()} is restarting…", QSystemTrayIcon.Warning, 4000
             )
         elif status == "RECOVERING" and prev != "RECOVERING":
             self.showMessage(
-                "HESA — Recovering",
-                f"↻ {service_name.replace('_', ' ').title()} recovery in progress…",
-                QSystemTrayIcon.Warning, 4000
+                "HESA — Recovering", f"↻ {service_name.replace('_', ' ').title()} recovery in progress…", QSystemTrayIcon.Warning, 4000
             )
         elif status == "RECOVERED":
             self.showMessage(
-                "HESA — Service Recovered",
-                f"✓ {service_name.replace('_', ' ').title()} is back online.",
-                QSystemTrayIcon.Information, 4000
+                "HESA — Service Recovered", f"✓ {service_name.replace('_', ' ').title()} is back online.", QSystemTrayIcon.Information, 4000
             )
         elif status == "FAILED":
             self.showMessage(
                 "HESA — Service Failed",
-                f"✗ {service_name.replace('_', ' ').title()} failed permanently "
-                f"(max retries exceeded). HESA continues running.",
-                QSystemTrayIcon.Critical, 8000
+                f"✗ {service_name.replace('_', ' ').title()} failed permanently (max retries exceeded). HESA continues running.",
+                QSystemTrayIcon.Critical,
+                8000,
             )
 
     def _update_tray_appearance(self):
@@ -236,12 +231,8 @@ class SystemTrayManager(QSystemTrayIcon):
         reply = QMessageBox.question(
             None,
             "Exit HESA",
-            "Exit completely or minimize to tray?\n\n"
-            "• Exit: Close all background services\n"
-            "• Minimize: Keep running in system tray",
-            QMessageBox.StandardButton.Close
-            | QMessageBox.StandardButton.Minimize
-            | QMessageBox.StandardButton.Cancel,
+            "Exit completely or minimize to tray?\n\n• Exit: Close all background services\n• Minimize: Keep running in system tray",
+            QMessageBox.StandardButton.Close | QMessageBox.StandardButton.Minimize | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Minimize,
         )
         if reply == QMessageBox.StandardButton.Close:

@@ -6,7 +6,7 @@ import logging
 from typing import Any
 
 from JARVIS.core.security.cyber_engine import CyberSecurityEngine
-from JARVIS.runtime.ui_bridge import send_log, send_state
+from JARVIS.runtime.ui_bridge import send_log
 
 logger = logging.getLogger("jarvis.cyber_actions")
 
@@ -14,6 +14,7 @@ logger = logging.getLogger("jarvis.cyber_actions")
 def _update_bridge(property_name: str, value: str):
     try:
         from JARVIS.gui.qml_bridge import JarvisBridge
+
         if JarvisBridge._instance:
             setattr(JarvisBridge._instance, f"_{property_name}", value)
             signal = getattr(JarvisBridge._instance, f"{property_name}Changed")

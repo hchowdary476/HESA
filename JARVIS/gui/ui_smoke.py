@@ -7,29 +7,29 @@ def run_ui_smoke() -> dict:
     """Instantiate the PySide6 application, load QML, and close it immediately."""
     import os
     import sys
-    from PySide6.QtWidgets import QApplication
-    from PySide6.QtQml import QQmlApplicationEngine
+
     from PySide6.QtCore import QUrl
+    from PySide6.QtQml import QQmlApplicationEngine
+    from PySide6.QtWidgets import QApplication
+
     from JARVIS.gui.qml_bridge import JarvisBridge
     from JARVIS.gui.ui_avatar import JarvisAvatarState
 
     app = QApplication.instance() or QApplication(sys.argv)
-    
+
     avatar = JarvisAvatarState()
     bridge = JarvisBridge()
     bridge.attach_avatar(avatar)
-    
+
     engine = QQmlApplicationEngine()
     engine.rootContext().setContextProperty("jarvis", bridge)
-    
-    assets_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "..", "assets")
-    )
+
+    assets_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "assets"))
     engine.rootContext().setContextProperty("assetsPath", assets_path)
-    
+
     qml_main = os.path.join(os.path.dirname(__file__), "qml", "main.qml")
     engine.load(QUrl.fromLocalFile(qml_main))
-    
+
     if not engine.rootObjects():
         return {
             "status": "error",
@@ -37,16 +37,16 @@ def run_ui_smoke() -> dict:
             "geometry": "",
             "widgets": 0,
         }
-        
+
     root_obj = engine.rootObjects()[0]
     title = root_obj.property("title")
     width = root_obj.property("width")
     height = root_obj.property("height")
-    
+
     # Clean up
     avatar.stop()
     bridge.stop()
-    
+
     return {
         "status": "ok",
         "title": title,

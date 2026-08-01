@@ -1,49 +1,79 @@
 """Unit and integration tests for the JARVIS Tool SDK."""
 
-import unittest
-import os
 import json
+import os
+import unittest
+
+from tool_base import ToolBase
 from tool_manager import ToolManager
 from tool_result import ToolResult
-from tool_base import ToolBase
 from tools.windows_tools import ClipboardTool
-from tools.browser_tools import BrowserOpenTool
-from tools.cyber_tools import CVETool
+
 
 class DummyInvalidTool(ToolBase):
     """Test helper for invalid registration."""
+
     def __init__(self) -> None:
         super().__init__("Dummy Invalid", "1.0")
-    def validate(self, **kwargs) -> bool: return True
-    def execute(self, **kwargs) -> ToolResult: return ToolResult(True, "done")
-    def rollback(self) -> bool: return True
-    def health(self) -> dict: return {}
-    def permissions(self) -> list: return []
-    def metrics(self) -> dict: return {}
-    def initialize(self) -> bool: return False  # Fails init
-    def shutdown(self) -> bool: return True
+
+    def validate(self, **kwargs) -> bool:
+        return True
+
+    def execute(self, **kwargs) -> ToolResult:
+        return ToolResult(True, "done")
+
+    def rollback(self) -> bool:
+        return True
+
+    def health(self) -> dict:
+        return {}
+
+    def permissions(self) -> list:
+        return []
+
+    def metrics(self) -> dict:
+        return {}
+
+    def initialize(self) -> bool:
+        return False  # Fails init
+
+    def shutdown(self) -> bool:
+        return True
+
 
 class DummyStrictTool(ToolBase):
     """Test helper for strict validation and permissions."""
+
     def __init__(self) -> None:
         super().__init__("Dummy Strict", "1.0")
+
     def validate(self, **kwargs) -> bool:
         return "required_arg" in kwargs
+
     def execute(self, **kwargs) -> ToolResult:
         if kwargs.get("should_fail"):
             return ToolResult(False, None, "Execution failure simulation")
         return ToolResult(True, "Success")
+
     def rollback(self) -> bool:
         self.rolled_back = True
         return True
-    def health(self) -> dict: return {}
+
+    def health(self) -> dict:
+        return {}
+
     def permissions(self) -> list:
-        return ["restricted_scope"] # Requires restricted scope
-    def metrics(self) -> dict: return {}
+        return ["restricted_scope"]  # Requires restricted scope
+
+    def metrics(self) -> dict:
+        return {}
+
     def initialize(self) -> bool:
         self.rolled_back = False
         return True
-    def shutdown(self) -> bool: return True
+
+    def shutdown(self) -> bool:
+        return True
 
 
 class TestJARVISToolSDK(unittest.TestCase):
@@ -67,7 +97,7 @@ class TestJARVISToolSDK(unittest.TestCase):
         """Verify execution blocks when a tool requires ungranted scopes."""
         tool = DummyStrictTool()
         self.manager.register_tool(tool)
-        
+
         # 'restricted_scope' is not in granted permissions list
         res = self.manager.execute_tool("Dummy Strict", required_arg=True)
         self.assertFalse(res.success)
@@ -78,7 +108,7 @@ class TestJARVISToolSDK(unittest.TestCase):
         tool = DummyStrictTool()
         self.manager.register_tool(tool)
         self.manager.granted_permissions.add("restricted_scope")
-        
+
         # Missing 'required_arg'
         res = self.manager.execute_tool("Dummy Strict")
         self.assertFalse(res.success)
@@ -89,7 +119,7 @@ class TestJARVISToolSDK(unittest.TestCase):
         tool = DummyStrictTool()
         self.manager.register_tool(tool)
         self.manager.granted_permissions.add("restricted_scope")
-        
+
         res = self.manager.execute_tool("Dummy Strict", required_arg=True, should_fail=True)
         self.assertFalse(res.success)
         self.assertTrue(tool.rolled_back)
@@ -101,15 +131,15 @@ class TestJARVISToolSDK(unittest.TestCase):
             "version": "1.0",
             "plugin_entry": "plugin.py",
             "class_name": "PluginTool",
-            "permissions": ["filesystem"]
+            "permissions": ["filesystem"],
         }
-        
+
         # Create temp folder inside workspace for the plugin mock
         plugin_dir = "logs/mock_plugin"
         os.makedirs(plugin_dir, exist_ok=True)
         manifest_path = os.path.join(plugin_dir, "manifest.json")
         entry_path = os.path.join(plugin_dir, "plugin.py")
-        
+
         plugin_code = """
 from tool_base import ToolBase
 from tool_result import ToolResult
@@ -126,16 +156,16 @@ class PluginTool(ToolBase):
     def initialize(self): return True
     def shutdown(self): return True
 """
-        
+
         with open(manifest_path, "w") as f:
             json.dump(manifest, f)
         with open(entry_path, "w") as f:
             f.write(plugin_code)
-            
+
         success = self.manager.load_plugin(manifest_path)
         self.assertTrue(success)
         self.assertIn("plugin_tool", self.manager.tools)
-        
+
         # Clean up files
         try:
             os.remove(manifest_path)

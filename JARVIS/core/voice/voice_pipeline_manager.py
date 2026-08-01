@@ -7,14 +7,10 @@ with watchdog protection, sub-second timing logs, and fault-tolerant subsystem r
 
 from __future__ import annotations
 
-import json
-import logging
-import os
-import sys
 import threading
 import time
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any
 
 VOICE_ENGINE_LOG = Path("logs/voice_engine.log")
 WAKE_LOG = Path("logs/wake.log")
@@ -47,7 +43,7 @@ class VoicePipelineManager:
     4. Edge TTS Engine (ses_motoru)
     """
 
-    _instance: Optional[VoicePipelineManager] = None
+    _instance: VoicePipelineManager | None = None
     _lock = threading.Lock()
 
     def __new__(cls) -> VoicePipelineManager:
@@ -85,12 +81,13 @@ class VoicePipelineManager:
         _log_voice_event(VOICE_ENGINE_LOG, "VOICE", "Initializing microphone...")
         try:
             import sounddevice as sd
+
             devs = sd.query_devices()
             mic_ms = (time.perf_counter() - mic_t0) * 1000
             self._subsystems["microphone"] = "READY"
             self._timing_report["microphone"] = round(mic_ms, 1)
             _log_voice_event(VOICE_ENGINE_LOG, "VOICE", f"Microphone READY ({mic_ms:.0f} ms)")
-        except Exception as e:
+        except Exception:
             mic_ms = (time.perf_counter() - mic_t0) * 1000
             self._subsystems["microphone"] = "READY"
             self._timing_report["microphone"] = round(mic_ms, 1)
@@ -107,6 +104,7 @@ class VoicePipelineManager:
         _log_voice_event(WAKE_LOG, "WAKE", "Loading SAI wake model...")
         try:
             from JARVIS.core.voice.openwakeword_engine import get_openwakeword_engine
+
             oww = get_openwakeword_engine()
             oww_ms = (time.perf_counter() - oww_t0) * 1000
             self._subsystems["openwakeword"] = "READY"
@@ -130,6 +128,7 @@ class VoicePipelineManager:
         _log_voice_event(STT_LOG, "STT", "Loading Faster-Whisper STT model...")
         try:
             from JARVIS.core.voice.faster_whisper_engine import get_faster_whisper_engine
+
             fw = get_faster_whisper_engine()
             fw.initialize_async()
             stt_ms = (time.perf_counter() - stt_t0) * 1000
@@ -153,6 +152,7 @@ class VoicePipelineManager:
         _log_voice_event(TTS_LOG, "TTS", "Initializing Edge TTS engine...")
         try:
             from JARVIS.core.voice.ses_motoru import VoiceEngine
+
             ve = VoiceEngine()
             tts_ms = (time.perf_counter() - tts_t0) * 1000
             self._subsystems["edge_tts"] = "READY"
@@ -173,16 +173,18 @@ class VoicePipelineManager:
         # Update voice_diagnostics.json
         try:
             from JARVIS.core.voice.ses_motoru import VoiceEngine
+
             ve = VoiceEngine()
             ve.set_listener_state("READY")
         except Exception:
             pass
 
-    def get_health_diagnostics(self) -> Dict[str, Any]:
+    def get_health_diagnostics(self) -> dict[str, Any]:
         """Return operational health status for all 8 voice subcomponents."""
         stt_status = "OFFLINE"
         try:
             from JARVIS.core.voice.faster_whisper_engine import get_faster_whisper_engine
+
             fw = get_faster_whisper_engine()
             stt_status = "READY" if fw.is_loaded() else ("LOADING" if fw.is_loading() else "ERROR")
         except Exception:
@@ -198,7 +200,7 @@ class VoicePipelineManager:
             "pronunciation_engine": "READY",
             "edge_tts": self._subsystems.get("edge_tts", "OFFLINE"),
             "speaker": "READY",
-            "timing_ms": self._timing_report.copy()
+            "timing_ms": self._timing_report.copy(),
         }
 
 

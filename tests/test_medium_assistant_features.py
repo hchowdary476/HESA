@@ -30,6 +30,7 @@ class MediumAssistantFeaturesTests(unittest.TestCase):
             chat = type("Chat", (), {"completions": RateLimitedCompletions()})()
 
         import os
+
         with (
             patch("JARVIS.core.automation.groq_router.is_internet_available", return_value=True),
             patch("JARVIS.core.automation.groq_router.is_groq_cooling_down", return_value=False),
@@ -59,7 +60,10 @@ class MediumAssistantFeaturesTests(unittest.TestCase):
         context = {"speak": spoken.append, "logger": DummyLogger()}
 
         with (
-            patch("JARVIS.core.automation.domains.memory_actions.get_stats", return_value={"total_commands": 8, "notes_count": 2, "habits_count": 1}),
+            patch(
+                "JARVIS.core.automation.domains.memory_actions.get_stats",
+                return_value={"total_commands": 8, "notes_count": 2, "habits_count": 1},
+            ),
             patch("JARVIS.core.automation.domains.memory_actions.summarize_recent_activity", return_value="Recent activity summary."),
         ):
             result = handle_memory_action("daily_summary", {}, context)

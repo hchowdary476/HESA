@@ -11,10 +11,10 @@ Validation is now fully delegated to venv_resolver + EnvironmentValidator so tha
 """
 
 import os
-import sys
-import subprocess
-import time
 import socket
+import subprocess
+import sys
+import time
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -22,8 +22,8 @@ from pathlib import Path
 # works when invoked as `python JARVIS/launcher.py` from the project root OR
 # as `python -m JARVIS.launcher` from anywhere.
 # ---------------------------------------------------------------------------
-_JARVIS_DIR  = Path(__file__).resolve().parent        # .../Open.Jarvis-main/JARVIS
-_PROJECT_ROOT = _JARVIS_DIR.parent                    # .../Open.Jarvis-main
+_JARVIS_DIR = Path(__file__).resolve().parent  # .../Open.Jarvis-main/JARVIS
+_PROJECT_ROOT = _JARVIS_DIR.parent  # .../Open.Jarvis-main
 
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
@@ -32,7 +32,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 class Launcher:
     def __init__(self):
         self.jarvis_root = _PROJECT_ROOT
-        self.log_file    = self.jarvis_root / "logs" / "startup.log"
+        self.log_file = self.jarvis_root / "logs" / "startup.log"
 
     # ------------------------------------------------------------------ #
     #  Public API                                                          #
@@ -52,34 +52,28 @@ class Launcher:
         # Step 1: resolve the venv (auto-repair if necessary)
         try:
             from JARVIS.core.system.venv_resolver import get_resolved_env
+
             resolved = get_resolved_env()
             self._log(f"Resolved env: {resolved.source} -> {resolved.python_exe}")
             if resolved.created:
-                self._log(
-                    f"[ENV REPAIR] Virtual environment was auto-created at "
-                    f"{resolved.venv_root}. See logs/venv_resolver.log."
-                )
+                self._log(f"[ENV REPAIR] Virtual environment was auto-created at {resolved.venv_root}. See logs/venv_resolver.log.")
         except Exception as exc:
             self._log(f"[ERROR] venv_resolver failed: {exc}")
             self._show_error_dialog(
-                "Environment Resolver Error",
-                [f"venv_resolver raised: {exc}",
-                 "Check logs/venv_resolver.log for details."]
+                "Environment Resolver Error", [f"venv_resolver raised: {exc}", "Check logs/venv_resolver.log for details."]
             )
             return False
 
         # Step 2: run the full EnvironmentValidator (per-package checks etc.)
         try:
             from JARVIS.core.system.environment_validator import EnvironmentValidator
+
             validator = EnvironmentValidator()
             ok = validator.validate_all()
             report = validator.get_report()
         except Exception as exc:
             self._log(f"[ERROR] EnvironmentValidator raised: {exc}")
-            self._show_error_dialog(
-                "Validation Error",
-                [f"EnvironmentValidator raised: {exc}"]
-            )
+            self._show_error_dialog("Validation Error", [f"EnvironmentValidator raised: {exc}"])
             return False
 
         # Log warnings (non-blocking)
@@ -102,7 +96,7 @@ class Launcher:
         try:
             s.bind(("127.0.0.1", 19106))
             s.close()
-            return True   # port free — safe to launch
+            return True  # port free — safe to launch
         except OSError:
             self._log("JARVIS GUI already running (port 19106 bound). Skipping.")
             return False
@@ -116,6 +110,7 @@ class Launcher:
         python_exe: Path
         try:
             from JARVIS.core.system.venv_resolver import get_resolved_env
+
             resolved_str = get_resolved_env().python_exe
             pyw_str = resolved_str.replace("python.exe", "pythonw.exe")
             if os.name == "nt" and os.path.exists(pyw_str):
@@ -128,8 +123,11 @@ class Launcher:
 
         main_script = self.jarvis_root / "jarvis.py"
 
-        from JARVIS.core.system.utils.gui_lifecycle_logger import log_lifecycle, log_close_reason
-        log_lifecycle("LAUNCHER_PRE_FLIGHT", f"Initiating launch of {main_script} using {python_exe} (current sys.executable: {sys.executable})")
+        from JARVIS.core.system.utils.gui_lifecycle_logger import log_close_reason, log_lifecycle
+
+        log_lifecycle(
+            "LAUNCHER_PRE_FLIGHT", f"Initiating launch of {main_script} using {python_exe} (current sys.executable: {sys.executable})"
+        )
         self._log(f"Interpreter diagnostics: sys.executable={sys.executable}, launch_python={python_exe}")
 
         startupinfo = None
@@ -151,7 +149,7 @@ class Launcher:
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            creationflags=creationflags
+            creationflags=creationflags,
         )
 
         log_lifecycle("LAUNCHER_SUBPROCESS_STARTED", f"JARVIS process spawned with PID {process.pid}")
@@ -185,6 +183,7 @@ class Launcher:
             example = self.jarvis_root / ".env.example"
             if example.exists():
                 import shutil
+
                 shutil.copy2(example, env_file)
                 self._log("Created .env from .env.example")
         return env_file.exists()
@@ -199,6 +198,7 @@ class Launcher:
         try:
             import tkinter as tk
             from tkinter import messagebox
+
             root = tk.Tk()
             root.withdraw()
             messagebox.showerror(title, full_msg)
@@ -226,6 +226,7 @@ class Launcher:
         # 1. Check if waiting for dependencies
         try:
             from JARVIS.core.system.venv_resolver import get_resolved_env
+
             resolved = get_resolved_env()
             if resolved.missing_packages or resolved.created:
                 return "waiting for dependencies"
@@ -247,7 +248,8 @@ class Launcher:
             if gui_state_file.exists():
                 try:
                     import json
-                    with open(gui_state_file, "r", encoding="utf-8") as f:
+
+                    with open(gui_state_file, encoding="utf-8") as f:
                         state_data = json.load(f)
                     if state_data.get("window_state") == "hidden":
                         return "minimized to tray"
@@ -307,6 +309,7 @@ class Launcher:
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser(description="JARVIS Launcher")
     parser.add_argument("--status", "-s", action="store_true", help="Report current JARVIS status and exit")
     args = parser.parse_args()

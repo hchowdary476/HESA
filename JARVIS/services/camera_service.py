@@ -1,10 +1,12 @@
-import os
-import time
 import json
+import os
 import threading
+import time
+
 import psutil
 
 start_time = time.time()
+
 
 def publish_heartbeat():
     hb_dir = os.path.join("logs", "heartbeats")
@@ -25,17 +27,20 @@ def publish_heartbeat():
                 "cpu_usage": round(cpu, 1),
                 "memory_usage": round(ram, 1),
                 "last_heartbeat": now,
-                "timestamp": now
+                "timestamp": now,
             }
             with open(hb_path, "w") as f:
                 json.dump(hb_data, f)
             # Log to logs/service_heartbeat.log
             timestamp_str = time.strftime("%Y-%m-%d %H:%M:%S")
             with open("logs/service_heartbeat.log", "a", encoding="utf-8") as lf:
-                lf.write(f"[{timestamp_str}] Service camera_engine heartbeat: CPU={hb_data['cpu_usage']}%, RAM={hb_data['memory_usage']}MB, Uptime={uptime}s\n")
+                lf.write(
+                    f"[{timestamp_str}] Service camera_engine heartbeat: CPU={hb_data['cpu_usage']}%, RAM={hb_data['memory_usage']}MB, Uptime={uptime}s\n"
+                )
         except Exception:
             pass
         time.sleep(2)
+
 
 def camera_loop():
     camera_path = os.path.join("logs", "camera_status.json")
@@ -45,14 +50,12 @@ def camera_loop():
             status = "STANDBY"
             try:
                 from JARVIS.core.system.utils.camera_tracker import get_cached_camera_status
+
                 status = get_cached_camera_status()
             except Exception:
                 pass
-                
-            report = {
-                "status": status,
-                "timestamp": time.time()
-            }
+
+            report = {"status": status, "timestamp": time.time()}
             os.makedirs(os.path.dirname(camera_path), exist_ok=True)
             with open(camera_path, "w") as f:
                 json.dump(report, f)
@@ -60,9 +63,12 @@ def camera_loop():
             pass
         time.sleep(5)
 
+
 if __name__ == "__main__":
     import sys
+
     from JARVIS.core.system.utils.port_manager import PortManager
+
     lock_socket = PortManager.acquire_service_lock("camera_service", 19108)
     if lock_socket is None:
         print("[CAMERA ENGINE] Duplicate instance detected. Exiting.")
@@ -70,8 +76,9 @@ if __name__ == "__main__":
     try:
         threading.Thread(target=publish_heartbeat, daemon=True).start()
         camera_loop()
-    except Exception as e:
+    except Exception:
         import traceback
+
         timestamp_str = time.strftime("%Y-%m-%d %H:%M:%S")
         os.makedirs("logs", exist_ok=True)
         with open("logs/service_crash.log", "a", encoding="utf-8") as cf:

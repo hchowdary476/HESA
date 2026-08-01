@@ -19,13 +19,13 @@ Schema of each log entry
     "timestamp":      str       # ISO-8601 UTC
 }
 """
+
 from __future__ import annotations
 
 import json
 import os
 import threading
-import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 _LOCK = threading.Lock()
@@ -37,7 +37,7 @@ _MAX_OUTPUT_CHARS = 4000
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _truncate(text: str, limit: int) -> str:
@@ -96,7 +96,7 @@ class TaskQueue:
             existing: list[dict[str, Any]] = []
             if os.path.exists(_LOG_PATH):
                 try:
-                    with open(_LOG_PATH, "r", encoding="utf-8") as f:
+                    with open(_LOG_PATH, encoding="utf-8") as f:
                         existing = json.load(f)
                     if not isinstance(existing, list):
                         existing = []
@@ -114,7 +114,7 @@ class TaskQueue:
             if not os.path.exists(_LOG_PATH):
                 return []
             try:
-                with open(_LOG_PATH, "r", encoding="utf-8") as f:
+                with open(_LOG_PATH, encoding="utf-8") as f:
                     data = json.load(f)
                 return data if isinstance(data, list) else []
             except Exception:

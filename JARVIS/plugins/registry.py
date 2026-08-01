@@ -15,7 +15,9 @@ def _read_manifest(path: Path) -> tuple[dict[str, Any], list[str]]:
     try:
         return json.loads(path.read_text(encoding="utf-8")), []
     except (OSError, JSONDecodeError) as exc:
-        return {"name": path.parent.name, "version": "unknown", "entrypoint": "", "permissions": []}, [f"manifest could not be read: {exc.__class__.__name__}"]
+        return {"name": path.parent.name, "version": "unknown", "entrypoint": "", "permissions": []}, [
+            f"manifest could not be read: {exc.__class__.__name__}"
+        ]
 
 
 def discover_plugin_manifests(root: Path | str) -> list[dict[str, Any]]:

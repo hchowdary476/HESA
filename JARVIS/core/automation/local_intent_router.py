@@ -127,88 +127,118 @@ WORLD_MAP_ACTIONS: dict[str, str] = {
 }
 WORLD_MAP_FLY_PREFIXES = ("show ", "zoom to ", "fly to ", "navigate to ", "focus on ")
 WORLD_MAP_COUNTRIES = (
-    "india", "china", "usa", "uk", "japan", "russia", "germany", "france",
-    "australia", "brazil", "canada", "south korea", "singapore", "dubai",
-    "hyderabad", "mumbai", "delhi", "london", "new york", "tokyo", "paris",
-    "sydney", "beijing", "moscow", "berlin", "bangkok", "los angeles", "seoul",
-    "cairo", "toronto", "chicago",
+    "india",
+    "china",
+    "usa",
+    "uk",
+    "japan",
+    "russia",
+    "germany",
+    "france",
+    "australia",
+    "brazil",
+    "canada",
+    "south korea",
+    "singapore",
+    "dubai",
+    "hyderabad",
+    "mumbai",
+    "delhi",
+    "london",
+    "new york",
+    "tokyo",
+    "paris",
+    "sydney",
+    "beijing",
+    "moscow",
+    "berlin",
+    "bangkok",
+    "los angeles",
+    "seoul",
+    "cairo",
+    "toronto",
+    "chicago",
 )
 
 TACTICAL_ACTIONS: dict[str, str] = {
     # Mode
-    "activate tactical mode":      "tactical_mode",
-    "tactical mode":               "tactical_mode",
-    "tactical command mode":       "tactical_mode",
-    "enable tactical mode":        "tactical_mode",
-    "show tactical overlay":       "tactical_mode",
+    "activate tactical mode": "tactical_mode",
+    "tactical mode": "tactical_mode",
+    "tactical command mode": "tactical_mode",
+    "enable tactical mode": "tactical_mode",
+    "show tactical overlay": "tactical_mode",
     # ISS
-    "track iss":                   "tactical_iss",
-    "show iss":                    "tactical_iss",
-    "iss tracking":                "tactical_iss",
-    "where is the iss":            "tactical_iss",
+    "track iss": "tactical_iss",
+    "show iss": "tactical_iss",
+    "iss tracking": "tactical_iss",
+    "where is the iss": "tactical_iss",
     "international space station": "tactical_iss",
     # Aircraft
-    "show aircraft":               "tactical_aircraft",
-    "show aircraft near me":       "tactical_aircraft",
-    "track aircraft":              "tactical_aircraft",
-    "show flights":                "tactical_aircraft",
-    "live flight tracking":        "tactical_aircraft",
+    "show aircraft": "tactical_aircraft",
+    "show aircraft near me": "tactical_aircraft",
+    "track aircraft": "tactical_aircraft",
+    "show flights": "tactical_aircraft",
+    "live flight tracking": "tactical_aircraft",
     # Earthquakes
-    "show earthquakes":            "tactical_quakes",
-    "earthquake monitor":          "tactical_quakes",
-    "seismic activity":            "tactical_quakes",
-    "show seismic data":           "tactical_quakes",
+    "show earthquakes": "tactical_quakes",
+    "earthquake monitor": "tactical_quakes",
+    "seismic activity": "tactical_quakes",
+    "show seismic data": "tactical_quakes",
     # Cyber threats
-    "show cyber threats":          "tactical_cyber",
-    "cyber threat intelligence":   "tactical_cyber",
-    "show cyber attacks":          "tactical_cyber",
-    "cyber attack map":            "tactical_cyber",
-    "threat intelligence":         "tactical_cyber",
-    "show attack map":             "tactical_cyber",
+    "show cyber threats": "tactical_cyber",
+    "cyber threat intelligence": "tactical_cyber",
+    "show cyber attacks": "tactical_cyber",
+    "cyber attack map": "tactical_cyber",
+    "threat intelligence": "tactical_cyber",
+    "show attack map": "tactical_cyber",
     # Space weather
-    "show space weather":          "tactical_space",
-    "space weather":               "tactical_space",
-    "solar weather":               "tactical_space",
-    "geomagnetic storm":           "tactical_space",
-    "show kp index":               "tactical_space",
-    "solar wind":                  "tactical_space",
+    "show space weather": "tactical_space",
+    "space weather": "tactical_space",
+    "solar weather": "tactical_space",
+    "geomagnetic storm": "tactical_space",
+    "show kp index": "tactical_space",
+    "solar wind": "tactical_space",
     # Marine
-    "show marine vessels":         "tactical_marine",
-    "marine tracking":             "tactical_marine",
-    "track ships":                 "tactical_marine",
-    "vessel tracking":             "tactical_marine",
-    "show ship traffic":           "tactical_marine",
+    "show marine vessels": "tactical_marine",
+    "marine tracking": "tactical_marine",
+    "track ships": "tactical_marine",
+    "vessel tracking": "tactical_marine",
+    "show ship traffic": "tactical_marine",
     # Weather radar
-    "display weather radar":       "tactical_weather",
-    "show weather radar":          "tactical_weather",
-    "weather radar":               "tactical_weather",
-    "live weather":                "tactical_weather",
+    "display weather radar": "tactical_weather",
+    "show weather radar": "tactical_weather",
+    "weather radar": "tactical_weather",
+    "live weather": "tactical_weather",
     # All layers
-    "enable all layers":           "tactical_all",
-    "all tactical layers":         "tactical_all",
-    "full tactical display":       "tactical_all",
-    "maximum tactical":            "tactical_all",
+    "enable all layers": "tactical_all",
+    "all tactical layers": "tactical_all",
+    "full tactical display": "tactical_all",
+    "maximum tactical": "tactical_all",
 }
 
 ACTIVATION_ACTIONS: dict[str, str] = {
     # Wake
-    "hesa wake up":              "wake_jarvis",
-    "wake up hesa":              "wake_jarvis",
-    "activate hesa":             "wake_jarvis",
-    "hey hesa":                  "wake_jarvis",
+    "hesa wake up": "wake_jarvis",
+    "wake up hesa": "wake_jarvis",
+    "activate hesa": "wake_jarvis",
+    "hey hesa": "wake_jarvis",
     # Standby
-    "hesa go to sleep":          "sleep_mode",
-    "hesa standby":              "sleep_mode",
-    "hesa hibernate":            "sleep_mode",
-    "sleep mode":                  "sleep_mode",
+    "hesa go to sleep": "sleep_mode",
+    "hesa standby": "sleep_mode",
+    "hesa hibernate": "sleep_mode",
+    "sleep mode": "sleep_mode",
     # Emergency
-    "hesa emergency":            "emergency_mode",
-    "emergency mode":              "emergency_mode",
-    "red alert":                   "emergency_mode",
+    "hesa emergency": "emergency_mode",
+    "emergency mode": "emergency_mode",
+    "red alert": "emergency_mode",
     # Status
     "hesa status":               "status_report",
     "system status":               "status_report",
     "all systems check":           "status_report",
+    # Language modes
+    "telugu mode":                 "telugu_mode",
+    "english mode":                "english_mode",
+    "auto language mode":          "auto_language_mode",
 }
 
 
@@ -316,7 +346,7 @@ def _match_world_map(normalized: str) -> ActionPayload | None:
     # Fly-to / zoom-to patterns
     for prefix in WORLD_MAP_FLY_PREFIXES:
         if normalized.startswith(prefix):
-            target = normalized[len(prefix):].strip()
+            target = normalized[len(prefix) :].strip()
             if target in WORLD_MAP_COUNTRIES:
                 return _payload(
                     "worldmap_fly_to",
@@ -339,6 +369,20 @@ def _match_activation(normalized: str) -> ActionPayload | None:
     """Match smart activation / standby / mode commands."""
     if normalized in ACTIVATION_ACTIONS:
         action = ACTIVATION_ACTIONS[normalized]
+        if action == "telugu_mode":
+            from JARVIS.core.memory.memory_preferences import set_preference
+            set_preference("language_mode", "telugu")
+            set_preference("preferred_language", "telugu")
+            return _payload("talk", {}, "Telugu mode enabled sir.")
+        if action == "english_mode":
+            from JARVIS.core.memory.memory_preferences import set_preference
+            set_preference("language_mode", "english")
+            set_preference("preferred_language", "english")
+            return _payload("talk", {}, "English mode enabled sir.")
+        if action == "auto_language_mode":
+            from JARVIS.core.memory.memory_preferences import set_preference
+            set_preference("language_mode", "auto")
+            return _payload("talk", {}, "Automatic language detection enabled sir.")
         return _payload(action, {"command": normalized}, f"Processing {action.replace('_', ' ')}, sir.")
     return None
 
@@ -361,7 +405,7 @@ def _match_search_files(normalized: str) -> ActionPayload | None:
     prefixes = ("find file ", "find files for ", "search computer for ")
     for prefix in prefixes:
         if normalized.startswith(prefix):
-            query = normalized[len(prefix):].strip()
+            query = normalized[len(prefix) :].strip()
             if query:
                 return _payload("search_files", {"query": query}, f"Searching the system for {query}, sir.")
     return None
@@ -424,7 +468,15 @@ def _match_media_control(normalized: str) -> ActionPayload | None:
 
 
 def _match_hardware_stats(normalized: str) -> ActionPayload | None:
-    if normalized in {"hardware stats", "hardware status", "system usage", "system diagnostic", "system status", "diagnostics", "check system status"}:
+    if normalized in {
+        "hardware stats",
+        "hardware status",
+        "system usage",
+        "system diagnostic",
+        "system status",
+        "diagnostics",
+        "check system status",
+    }:
         return _payload("get_hardware_stats", {}, "Querying hardware monitoring services, sir.")
     return None
 
@@ -439,10 +491,15 @@ def _match_pronunciation_setting(raw_command: str) -> ActionPayload | None:
         pron = m1.group(2).strip()
         try:
             from JARVIS.core.voice.pronunciation_engine import get_pronunciation_engine
+
             get_pronunciation_engine().set_native_script_pronunciation(name, pron)
         except Exception:
             pass
-        return _payload("set_personal_pronunciation", {"name": name, "replacement": pron}, f"Understood. I will pronounce {name} as {pron} from now on, sir.")
+        return _payload(
+            "set_personal_pronunciation",
+            {"name": name, "replacement": pron},
+            f"Understood. I will pronounce {name} as {pron} from now on, sir.",
+        )
 
     # Pattern 2: Pronounce X as/like Y
     m2 = re.search(r"pronounce ([a-zA-Z0-9_\-]+) (?:as|like) (.+)", cmd, re.IGNORECASE)
@@ -451,10 +508,15 @@ def _match_pronunciation_setting(raw_command: str) -> ActionPayload | None:
         pron = m2.group(2).strip()
         try:
             from JARVIS.core.voice.pronunciation_engine import get_pronunciation_engine
+
             get_pronunciation_engine().set_native_script_pronunciation(name, pron)
         except Exception:
             pass
-        return _payload("set_personal_pronunciation", {"name": name, "replacement": pron}, f"Understood. I will pronounce {name} as {pron} from now on, sir.")
+        return _payload(
+            "set_personal_pronunciation",
+            {"name": name, "replacement": pron},
+            f"Understood. I will pronounce {name} as {pron} from now on, sir.",
+        )
 
     return None
 
@@ -477,22 +539,29 @@ def _match_cyber_and_ai(normalized: str) -> ActionPayload | None:
     for prov in ["chatgpt", "gemini", "claude", "grok", "deepseek", "ollama"]:
         for prefix in [f"ask {prov} ", f"use {prov} "]:
             if cmd.startswith(prefix):
-                prompt = cmd[len(prefix):].strip()
+                prompt = cmd[len(prefix) :].strip()
                 return _payload("ai_query", {"provider": prov, "prompt": prompt}, f"Querying {prov.title()} with prompt: {prompt}, sir.")
 
     # Debate patterns
     for prefix in ["compare all ais ", "compare ais ", "ai debate "]:
         if cmd.startswith(prefix):
-            prompt = cmd[len(prefix):].strip()
+            prompt = cmd[len(prefix) :].strip()
             return _payload("ai_debate", {"prompt": prompt}, "Initiating multi-AI debate session, sir.")
 
     # Failover patterns
     if cmd.startswith("query with failover "):
-        prompt = cmd[len("query with failover "):].strip()
+        prompt = cmd[len("query with failover ") :].strip()
         return _payload("ai_failover", {"prompt": prompt})
 
     # Cyber Security patterns
-    if cmd in ["analyze logs", "analyze security logs", "analyze today s security logs", "analyze today's security logs", "audit logs", "analyze these logs"]:
+    if cmd in [
+        "analyze logs",
+        "analyze security logs",
+        "analyze today s security logs",
+        "analyze today's security logs",
+        "audit logs",
+        "analyze these logs",
+    ]:
         return _payload("cyber_analyze_logs")
 
     if cmd in ["suspicious process check", "process audit", "suspicious processes", "check processes"]:
@@ -510,7 +579,13 @@ def _match_cyber_and_ai(normalized: str) -> ActionPayload | None:
     if cmd in ["review security architecture", "review architecture", "security architecture review", "review this security architecture"]:
         return _payload("cyber_review_arch")
 
-    if cmd in ["threat landscape", "summarize threat landscape", "global threat landscape", "summarize today s threat landscape", "summarize today's threat landscape"]:
+    if cmd in [
+        "threat landscape",
+        "summarize threat landscape",
+        "global threat landscape",
+        "summarize today s threat landscape",
+        "summarize today's threat landscape",
+    ]:
         return _payload("cyber_threat_landscape")
 
     if cmd in ["explain packet capture", "pcap analysis", "analyze packet capture"]:
@@ -563,13 +638,13 @@ def _match_cyber_and_ai(normalized: str) -> ActionPayload | None:
         "create ",
     ]:
         if cmd.startswith(prefix):
-            suffix = cmd[len(prefix):].strip()
+            suffix = cmd[len(prefix) :].strip()
             topic = suffix
             if topic.endswith(" roadmap"):
                 topic = topic[:-8].strip()
             elif topic.endswith(" study plan"):
                 topic = topic[:-11].strip()
-            
+
             # If the command makes sense as a roadmap command
             if "roadmap" in cmd or "study plan" in cmd:
                 return _payload("cyber_learning_roadmap", {"topic": topic})
@@ -580,7 +655,8 @@ def _match_cyber_and_ai(normalized: str) -> ActionPayload | None:
 def route_local_intent(command: str) -> ActionPayload | None:
     """Return an action payload for common commands that do not need an LLM."""
 
-    from JARVIS.core.system.utils.telugu_formatter import detect_language, normalize_telugu_command, match_telugu_intent
+    from JARVIS.core.system.utils.telugu_formatter import detect_language, match_telugu_intent, normalize_telugu_command
+
     if detect_language(command) == "telugu":
         # First try database matching
         match_res = match_telugu_intent(command)
@@ -588,7 +664,7 @@ def route_local_intent(command: str) -> ActionPayload | None:
             intent = match_res.get("intent")
             target = match_res.get("target")
             confidence = match_res.get("confidence", 0.0)
-            
+
             if confidence >= 0.60:
                 if intent == "talk":
                     return _payload("talk", {}, target)
@@ -629,7 +705,7 @@ def route_local_intent(command: str) -> ActionPayload | None:
                     res = route_local_intent(target)
                     if res:
                         return res
-                        
+
         # Fallback to normalize_telugu_command
         command = normalize_telugu_command(command)
 
@@ -643,14 +719,25 @@ def route_local_intent(command: str) -> ActionPayload | None:
 
     if normalized == "what are you doing":
         from JARVIS.core.memory.memory_preferences import get_preference
-        resp = "Mee commands kosam ready ga unnanu sir." if get_preference("preferred_language") == "telugu" else "I am processing system analytics and standing by for your instructions, sir."
+
+        resp = (
+            "Mee commands kosam ready ga unnanu sir."
+            if get_preference("preferred_language") == "telugu"
+            else "I am processing system analytics and standing by for your instructions, sir."
+        )
         return _payload("talk", {}, resp)
     if normalized == "how are you":
         from JARVIS.core.memory.memory_preferences import get_preference
-        resp = "Avunu sir, anni systems normal ga pani chestunnayi." if get_preference("preferred_language") == "telugu" else "All systems are operational and performing within optimal parameters, sir."
+
+        resp = (
+            "Avunu sir, anni systems normal ga pani chestunnayi."
+            if get_preference("preferred_language") == "telugu"
+            else "All systems are operational and performing within optimal parameters, sir."
+        )
         return _payload("talk", {}, resp)
     if normalized == "thanks":
         from JARVIS.core.memory.memory_preferences import get_preference
+
         resp = "Welcome sir." if get_preference("preferred_language") == "telugu" else "You are very welcome, sir."
         return _payload("talk", {}, resp)
 
@@ -704,6 +791,7 @@ def classify_intent(command: str) -> tuple[str, ActionPayload | str]:
 
     # 1. Memory Queries & Profile Preferences
     from JARVIS.core.memory.memory_preferences import detect_and_save_preference
+
     mem_response = detect_and_save_preference(command)
     if mem_response:
         return ("MEMORY_QUERY", _payload("talk", {}, mem_response))
@@ -726,7 +814,27 @@ def classify_intent(command: str) -> tuple[str, ActionPayload | str]:
         return ("AUTOMATION", _payload("automation", {"command": command}))
 
     # 4. AI Query Classification
-    coding_keywords = {"code", "program", "function", "compile", "debug", "script", "python", "javascript", "java", "c++", "c#", "html", "css", "rust", "golang", "typescript", "git", "database", "sql"}
+    coding_keywords = {
+        "code",
+        "program",
+        "function",
+        "compile",
+        "debug",
+        "script",
+        "python",
+        "javascript",
+        "java",
+        "c++",
+        "c#",
+        "html",
+        "css",
+        "rust",
+        "golang",
+        "typescript",
+        "git",
+        "database",
+        "sql",
+    }
     if any(k in cmd_low for k in coding_keywords):
         return ("AI_QUERY", "coding")
 
@@ -738,4 +846,3 @@ def classify_intent(command: str) -> tuple[str, ActionPayload | str]:
 
 
 __all__ = ["normalize_command", "route_local_intent", "classify_intent"]
-

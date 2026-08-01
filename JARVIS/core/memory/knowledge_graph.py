@@ -1,13 +1,15 @@
 """Knowledge Graph for semantic linking of conversations, projects, files, notes, tasks, and rules."""
 
 from __future__ import annotations
-import os
+
 import json
-import logging
+import os
 from typing import Any
+
 from JARVIS.core.system.utils.jarvis_logging import get_logger
 
 logger = get_logger("knowledge_graph")
+
 
 class KnowledgeGraph:
     """Manages an in-memory property graph with local JSON persistence."""
@@ -25,7 +27,7 @@ class KnowledgeGraph:
         self._initialized = True
         self.graph_path = os.path.abspath(os.path.join("logs", "knowledge_graph.json"))
         self.nodes: dict[str, dict[str, Any]] = {}  # node_id -> {type, label, properties}
-        self.edges: list[dict[str, Any]] = []      # list of {source, target, relation, properties}
+        self.edges: list[dict[str, Any]] = []  # list of {source, target, relation, properties}
         self.load()
         if not os.path.exists(self.graph_path):
             self.save()
@@ -34,7 +36,7 @@ class KnowledgeGraph:
         """Load knowledge graph from JSON file."""
         if os.path.exists(self.graph_path):
             try:
-                with open(self.graph_path, "r", encoding="utf-8") as f:
+                with open(self.graph_path, encoding="utf-8") as f:
                     data = json.load(f)
                     self.nodes = data.get("nodes", {})
                     self.edges = data.get("edges", [])
@@ -52,20 +54,13 @@ class KnowledgeGraph:
         os.makedirs(os.path.dirname(self.graph_path), exist_ok=True)
         try:
             with open(self.graph_path, "w", encoding="utf-8") as f:
-                json.dump({
-                    "nodes": self.nodes,
-                    "edges": self.edges
-                }, f, indent=2)
+                json.dump({"nodes": self.nodes, "edges": self.edges}, f, indent=2)
         except Exception as e:
             logger.error("Failed to save Knowledge Graph: %s", e)
 
     def add_node(self, node_id: str, node_type: str, label: str, properties: dict | None = None) -> None:
         """Add or update a node in the graph."""
-        self.nodes[node_id] = {
-            "type": node_type,
-            "label": label,
-            "properties": properties or {}
-        }
+        self.nodes[node_id] = {"type": node_type, "label": label, "properties": properties or {}}
         self.save()
 
     def add_edge(self, source: str, target: str, relation: str, properties: dict | None = None) -> None:
@@ -73,7 +68,7 @@ class KnowledgeGraph:
         if source not in self.nodes or target not in self.nodes:
             logger.warning("Attempted to add edge between non-existent nodes: %s -> %s", source, target)
             return
-        
+
         # Check if identical edge already exists
         for edge in self.edges:
             if edge["source"] == source and edge["target"] == target and edge["relation"] == relation:
@@ -81,12 +76,7 @@ class KnowledgeGraph:
                 self.save()
                 return
 
-        self.edges.append({
-            "source": source,
-            "target": target,
-            "relation": relation,
-            "properties": properties or {}
-        })
+        self.edges.append({"source": source, "target": target, "relation": relation, "properties": properties or {}})
         self.save()
 
     def get_node(self, node_id: str) -> dict | None:
@@ -133,7 +123,7 @@ class KnowledgeGraph:
         matched = self.semantic_search(query)
         if not matched:
             return ""
-            
+
         context_parts = []
         for node in matched[:5]:  # limit to top 5
             part = f"- Node [{node['type']}] {node['label']}"

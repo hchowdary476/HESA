@@ -61,7 +61,9 @@ class ConfigManager:
                 raise ValueError("; ".join(result.errors))
             self.paths.config_dir.mkdir(parents=True, exist_ok=True)
             payload = {"schema_version": 1, "settings": result.normalized}
-            handle = tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=self.paths.config_dir, delete=False, prefix="settings-", suffix=".tmp")
+            handle = tempfile.NamedTemporaryFile(
+                "w", encoding="utf-8", dir=self.paths.config_dir, delete=False, prefix="settings-", suffix=".tmp"
+            )
             temp_path = Path(handle.name)
             try:
                 with handle:

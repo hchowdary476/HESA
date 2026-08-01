@@ -120,6 +120,9 @@ def infer_state_from_message(message: str) -> str | None:
         for state in ASSISTANT_STATE_ORDER:
             if state.lower() in lowered:
                 return state
+    # Background supervisor/service monitor status messages should not change user UI state to ERROR
+    if any(prefix in lowered for prefix in ("[supervisor]", "[servicemonitor]", "[env error]", "⚙️", "✓")) or "service '" in lowered:
+        return None
     if "error" in lowered or "failed" in lowered:
         return "ERROR"
     if "[speaking]" in lowered or "speaking started" in lowered:

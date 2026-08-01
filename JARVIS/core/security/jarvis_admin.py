@@ -8,16 +8,14 @@ import os
 from collections.abc import Iterable
 from pathlib import Path
 
-from JARVIS.core.voice.speech_backend import offline_stt_available, recognition_mode
 from JARVIS.core.security.jarvis_admin_config import KNOWN_LIMITATIONS, MANAGED_ENV_KEYS, SETTINGS_GUIDE
-
 from JARVIS.core.system.utils.env_helper import find_env_file
+from JARVIS.core.voice.speech_backend import offline_stt_available, recognition_mode
 
 SECURITY_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SECURITY_DIR.parent.parent
 SETUP_STATE_FILE = SECURITY_DIR / "jarvis_setup.json"
 ENV_FILE = find_env_file()
-
 
 
 def format_actionable_message(title: str, why: str, fix: str) -> str:
@@ -110,8 +108,8 @@ def write_env_settings(settings: dict, path: Path | None = None) -> Path:
 
     lines = ["# JARVIS managed settings"]
     for key in MANAGED_ENV_KEYS:
-        val = current.get(key, '')
-        if val != '':
+        val = current.get(key, "")
+        if val != "":
             lines.append(f"{key}={val}")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return path

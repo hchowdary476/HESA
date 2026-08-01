@@ -51,7 +51,9 @@ class PluginContext:
                 log_method("[plugin:%s] %s", self.plugin_id, safe_message)
         return notification
 
-    def register_command(self, name: str, metadata: dict[str, Any] | None = None, handler: Callable[..., Any] | None = None) -> dict[str, Any]:
+    def register_command(
+        self, name: str, metadata: dict[str, Any] | None = None, handler: Callable[..., Any] | None = None
+    ) -> dict[str, Any]:
         """Register command metadata without exposing the raw command dispatcher."""
 
         self.require_permission("commands.register")
@@ -84,7 +86,12 @@ class PluginContext:
         """Deny-by-default memory write facade until a real adapter is provided."""
 
         self.require_permission("memory.write")
-        return {"status": "unavailable", "scope": str(scope), "value": mask_sensitive_value(value), "reason": "memory adapter is not configured"}
+        return {
+            "status": "unavailable",
+            "scope": str(scope),
+            "value": mask_sensitive_value(value),
+            "reason": "memory adapter is not configured",
+        }
 
     def request_filesystem_read(self, relative_path: str) -> dict[str, Any]:
         """Deny-by-default filesystem read facade."""
@@ -96,14 +103,24 @@ class PluginContext:
         """Deny-by-default filesystem write facade."""
 
         self.require_permission("filesystem.write")
-        return {"status": "blocked", "path": str(relative_path), "bytes": len(str(content)), "reason": "filesystem adapter is not configured"}
+        return {
+            "status": "blocked",
+            "path": str(relative_path),
+            "bytes": len(str(content)),
+            "reason": "filesystem adapter is not configured",
+        }
 
     def request_provider(self, provider_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         """Deny-by-default provider facade for cloud/local model requests."""
 
         permission = "groq.request" if provider_id == "groq" else "network.request"
         self.require_permission(permission)
-        return {"status": "unavailable", "provider": provider_id, "payload": mask_sensitive_value(payload), "reason": "provider adapter is not configured"}
+        return {
+            "status": "unavailable",
+            "provider": provider_id,
+            "payload": mask_sensitive_value(payload),
+            "reason": "provider adapter is not configured",
+        }
 
 
 def build_plugin_context(

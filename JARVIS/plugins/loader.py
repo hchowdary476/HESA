@@ -7,10 +7,10 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
+from JARVIS.core.security.path_safety import validate_path_within_root
 from JARVIS.plugins.context import PluginContext, build_plugin_context
 from JARVIS.plugins.errors import PluginLoadError, PluginRuntimeError
 from JARVIS.plugins.lifecycle import available_hooks, build_hook_result
-from JARVIS.core.security.path_safety import validate_path_within_root
 
 PLUGIN_FAILURE_EXCEPTIONS = (Exception,)
 
@@ -66,7 +66,15 @@ def load_plugin(entry: dict[str, Any], *, logger: Any = None) -> dict[str, Any]:
     except (PluginLoadError, PluginRuntimeError) as exc:
         return {"id": plugin_id, "status": "failed", "issues": exc.issues or [str(exc)], "hooks": [], "diagnostic": exc.as_diagnostic()}
 
-    return {"id": plugin_id, "status": "loaded", "issues": [], "hooks": hooks, "hook_results": results, "context": context, "module": module}
+    return {
+        "id": plugin_id,
+        "status": "loaded",
+        "issues": [],
+        "hooks": hooks,
+        "hook_results": results,
+        "context": context,
+        "module": module,
+    }
 
 
 def load_enabled_plugins(registry: dict[str, Any], *, logger: Any = None) -> dict[str, Any]:

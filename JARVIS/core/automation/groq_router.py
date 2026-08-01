@@ -6,8 +6,10 @@ import os
 
 from dotenv import load_dotenv
 
+from JARVIS.core.security.jarvis_admin import format_actionable_message
 from JARVIS.core.system.observability import record_runtime_event
-from JARVIS.providers import GroqProvider, ProviderRequest, ProviderRouter
+from JARVIS.core.system.utils.jarvis_logging import get_logger
+from JARVIS.providers import GroqProvider, ProviderRequest
 from JARVIS.providers.groq import (
     DEFAULT_GROQ_MODEL,
     GROQ_COOLDOWN_SECONDS,
@@ -15,8 +17,6 @@ from JARVIS.providers.groq import (
     extract_action_json,
     is_groq_cooling_down,
 )
-from JARVIS.core.security.jarvis_admin import format_actionable_message
-from JARVIS.core.system.utils.jarvis_logging import get_logger
 
 # Lazy import Groq to avoid 661ms + 991ms startup penalty
 try:
@@ -33,21 +33,23 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 client = None
 _groq_initialized = False
 
+
 def get_groq_client():
     """Lazy load Groq client on first use (saves 1.6s at startup)."""
     global client, _groq_initialized
-    
+
     if _groq_initialized:
         return client
-    
+
     _groq_initialized = True
-    
+
     if not GROQ_API_KEY:
         logger.warning("Groq API key not found. Running local backup routing, sir.")
         return None
-    
+
     try:
         from groq import Groq
+
         client = Groq(api_key=GROQ_API_KEY)
         logger.info("Groq API client initialized (lazy loaded).")
         return client
@@ -57,6 +59,7 @@ def get_groq_client():
     except Exception as e:
         logger.error(f"Failed to initialize Groq client: {e}")
         return None
+
 
 SYSTEM_PROMPT = """
 You are HESA, Tony Stark's personal AI assistant from Iron Man.
@@ -119,13 +122,14 @@ Available actions:
 - "talk": {}
 """
 
+import datetime
+import json
 import socket
 import threading
 import time
-import json
-import datetime
-import urllib.request
 import urllib.parse
+import urllib.request
+
 from JARVIS.core.memory import build_context_prompt
 
 # Background internet check caching
@@ -133,6 +137,7 @@ _cached_internet_status = True
 _cached_latency_ms = 0.0
 _internet_check_thread_started = False
 _internet_check_lock = threading.Lock()
+
 
 def _internet_check_loop():
     global _cached_internet_status, _cached_latency_ms
@@ -150,6 +155,7 @@ def _internet_check_loop():
                 _cached_latency_ms = 0.0
         time.sleep(5.0)
 
+
 def is_internet_available() -> bool:
     global _internet_check_thread_started
     if not _internet_check_thread_started:
@@ -159,20 +165,18 @@ def is_internet_available() -> bool:
     with _internet_check_lock:
         return _cached_internet_status
 
+
 def get_cached_latency() -> float:
     with _internet_check_lock:
         return _cached_latency_ms
+
 
 def update_provider_stats(status: dict, provider: str, success: bool, elapsed_ms: float):
     if "stats" not in status:
         status["stats"] = {}
     for p in ["GROQ", "GEMINI", "OLLAMA"]:
         if p not in status["stats"]:
-            status["stats"][p] = {
-                "response_time": "0ms",
-                "last_success": "Never",
-                "last_failure": "Never"
-            }
+            status["stats"][p] = {"response_time": "0ms", "last_success": "Never", "last_failure": "Never"}
     p_stats = status["stats"][provider.upper()]
     p_stats["response_time"] = f"{elapsed_ms:.1f}ms"
     now_str = datetime.datetime.now().isoformat()
@@ -181,24 +185,25 @@ def update_provider_stats(status: dict, provider: str, success: bool, elapsed_ms
     else:
         p_stats["last_failure"] = now_str
 
+
 def get_hybrid_ai_status() -> dict:
     path = os.path.join("logs", "hybrid_ai_status.json")
     status_data = None
     if os.path.exists(path):
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 status_data = json.load(f)
         except Exception:
             pass
-            
+
     # Default initial stats
     online = is_internet_available()
     has_groq = bool(os.getenv("GROQ_API_KEY"))
     has_gemini = bool(os.getenv("GEMINI_API_KEY"))
     has_ollama = bool(os.getenv("JARVIS_LOCAL_LLM_URL"))
-    
+
     current = "GROQ" if has_groq else "GEMINI" if has_gemini else "OLLAMA"
-    
+
     if not status_data or not isinstance(status_data, dict):
         status_data = {
             "network_status": "ONLINE" if online else "OFFLINE",
@@ -213,8 +218,8 @@ def get_hybrid_ai_status() -> dict:
             "stats": {
                 "GROQ": {"response_time": "0ms", "last_success": "Never", "last_failure": "Never"},
                 "GEMINI": {"response_time": "0ms", "last_success": "Never", "last_failure": "Never"},
-                "OLLAMA": {"response_time": "0ms", "last_success": "Never", "last_failure": "Never"}
-            }
+                "OLLAMA": {"response_time": "0ms", "last_success": "Never", "last_failure": "Never"},
+            },
         }
     else:
         # Merge/ensure stats dictionary exists
@@ -222,7 +227,7 @@ def get_hybrid_ai_status() -> dict:
             status_data["stats"] = {
                 "GROQ": {"response_time": "0ms", "last_success": "Never", "last_failure": "Never"},
                 "GEMINI": {"response_time": "0ms", "last_success": "Never", "last_failure": "Never"},
-                "OLLAMA": {"response_time": "0ms", "last_success": "Never", "last_failure": "Never"}
+                "OLLAMA": {"response_time": "0ms", "last_success": "Never", "last_failure": "Never"},
             }
     return status_data
 
@@ -284,10 +289,11 @@ def _local_fallback_action() -> dict:
 
 def get_ollama_model(base_url: str) -> str:
     from urllib.parse import urlparse
+
     parsed = urlparse(base_url)
     origin = f"{parsed.scheme}://{parsed.netloc}"
     tags_url = f"{origin}/api/tags"
-    
+
     try:
         req = urllib.request.Request(tags_url, method="GET")
         with urllib.request.urlopen(req, timeout=2) as response:
@@ -300,7 +306,7 @@ def get_ollama_model(base_url: str) -> str:
                         return model_name
     except Exception as e:
         logger.warning(f"Ollama tags model detection failed: {e}")
-        
+
     return "llama3"
 
 
@@ -308,33 +314,15 @@ def query_gemini(command: str, context: str = "", system_prompt: str = SYSTEM_PR
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         return None
-        
+
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
-    
+
     system = f"{context}\n\n{system_prompt}" if context else system_prompt
-    payload = {
-        "contents": [
-            {
-                "parts": [
-                    {"text": command}
-                ]
-            }
-        ],
-        "systemInstruction": {
-            "parts": [
-                {"text": system}
-            ]
-        }
-    }
-    
+    payload = {"contents": [{"parts": [{"text": command}]}], "systemInstruction": {"parts": [{"text": system}]}}
+
     try:
         req_data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
-            url, 
-            data=req_data, 
-            headers={"Content-Type": "application/json"}, 
-            method="POST"
-        )
+        req = urllib.request.Request(url, data=req_data, headers={"Content-Type": "application/json"}, method="POST")
         with urllib.request.urlopen(req, timeout=5) as response:
             if response.status == 200:
                 body = response.read().decode("utf-8")
@@ -343,11 +331,7 @@ def query_gemini(command: str, context: str = "", system_prompt: str = SYSTEM_PR
                 try:
                     return extract_action_json(content)
                 except Exception:
-                    return {
-                        "action": "talk",
-                        "params": {},
-                        "response": content
-                    }
+                    return {"action": "talk", "params": {}, "response": content}
     except Exception as e:
         logger.warning(f"Gemini API query failed: {e}")
         raise e
@@ -357,7 +341,7 @@ def query_ollama(command: str, context: str = "", system_prompt: str = SYSTEM_PR
     local_url = os.getenv("JARVIS_LOCAL_LLM_URL", "").strip()
     if not local_url:
         return None
-        
+
     base_url = local_url.rstrip("/")
     if not base_url.endswith("/v1/chat/completions") and not base_url.endswith("/chat/completions"):
         if "/v1" in base_url:
@@ -366,27 +350,19 @@ def query_ollama(command: str, context: str = "", system_prompt: str = SYSTEM_PR
             url = f"{base_url}/v1/chat/completions"
     else:
         url = base_url
-        
+
     model = get_ollama_model(base_url)
     system = f"{context}\n\n{system_prompt}" if context else system_prompt
     payload = {
         "model": model,
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": command}
-        ],
+        "messages": [{"role": "system", "content": system}, {"role": "user", "content": command}],
         "temperature": 0.1,
-        "max_tokens": 300
+        "max_tokens": 300,
     }
-    
+
     try:
         req_data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
-            url, 
-            data=req_data, 
-            headers={"Content-Type": "application/json"}, 
-            method="POST"
-        )
+        req = urllib.request.Request(url, data=req_data, headers={"Content-Type": "application/json"}, method="POST")
         with urllib.request.urlopen(req, timeout=5) as response:
             if response.status == 200:
                 body = response.read().decode("utf-8")
@@ -395,11 +371,7 @@ def query_ollama(command: str, context: str = "", system_prompt: str = SYSTEM_PR
                 try:
                     return extract_action_json(content)
                 except Exception:
-                    return {
-                        "action": "talk",
-                        "params": {},
-                        "response": content
-                    }
+                    return {"action": "talk", "params": {}, "response": content}
     except Exception as e:
         logger.warning(f"Ollama local LLM query failed: {e}")
         raise e
@@ -409,7 +381,7 @@ def query_local_rules(command: str) -> dict:
     lowered = command.lower()
     from JARVIS.core.memory.memory_preferences import get_preference
     from JARVIS.core.system.utils.telugu_formatter import detect_language
-    
+
     pref_lang = get_preference("preferred_language")
     cmd_lang = detect_language(command)
     is_telugu = (cmd_lang == "telugu") or (pref_lang == "telugu" and cmd_lang == "telugu")
@@ -438,12 +410,8 @@ def query_local_rules(command: str) -> dict:
             resp = f"Mee command naku vachindi sir: '{command}'. Naa cloud connection offline undadam valla nenu deenni local ga process chestunnanu."
         else:
             resp = f"I have received your command: '{command}', sir. Since my cloud connection is offline, I am processing this request locally."
-        
-    return {
-        "action": "talk",
-        "params": {},
-        "response": resp
-    }
+
+    return {"action": "talk", "params": {}, "response": resp}
 
 
 def query_local_llm(command: str) -> dict | None:
@@ -459,34 +427,35 @@ def analyze_with_groq(command, *, client=None, logger=logger):
     try:
         global GROQ_API_KEY
         GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-        
+
         primary_provider = os.getenv("JARVIS_PRIMARY_AI", "GROQ").upper()
         secondary_provider = os.getenv("JARVIS_SECONDARY_AI", "GEMINI").upper()
         offline_provider = os.getenv("JARVIS_OFFLINE_AI", "OLLAMA").upper()
-        
+
         online = is_internet_available()
-        
+
         # Read/Initialize status
         status = get_hybrid_ai_status()
         status["network_status"] = "ONLINE" if online else "OFFLINE"
-        
+
         has_groq = bool(GROQ_API_KEY)
         has_gemini = bool(os.getenv("GEMINI_API_KEY"))
         has_ollama = bool(os.getenv("JARVIS_LOCAL_LLM_URL"))
-        
+
         status["groq_status"] = "ACTIVE" if has_groq else "UNCONFIGURED"
         status["gemini_status"] = "ACTIVE" if has_gemini else "UNCONFIGURED"
         status["ollama_status"] = "ACTIVE" if has_ollama else "UNCONFIGURED"
-        
+
         if is_groq_cooling_down():
             status["groq_status"] = "COOLDOWN"
-            
+
         try:
             context = build_context_prompt()
         except Exception:
             context = ""
-            
+
         from JARVIS.core.memory.memory_preferences import get_preference
+
         active_system_prompt = SYSTEM_PROMPT
         if get_preference("preferred_language") == "telugu":
             active_system_prompt += """
@@ -499,15 +468,15 @@ def analyze_with_groq(command, *, client=None, logger=logger):
             - Avoid robotic translations and overly formal/literal language.
             - Use preferred conversational phrases like: "Sare sir", "Avunu sir", "Mee kosam", "Ippude", "Konchem wait cheyyandi", "Complete ayyindi", "Ready ga undi".
             """
-            
+
         result = None
         provider_used = None
         start_time = time.perf_counter()
-        
+
         if online:
             if not has_groq and not has_gemini:
                 return _missing_groq_action()
-            
+
             # Construct online order from priorities
             attempts = [primary_provider, secondary_provider, offline_provider]
             seen = set()
@@ -516,7 +485,7 @@ def analyze_with_groq(command, *, client=None, logger=logger):
                 if p not in seen:
                     seen.add(p)
                     online_order.append(p)
-                    
+
             for prov in online_order:
                 if prov == "GROQ":
                     if has_groq and not is_groq_cooling_down():
@@ -532,12 +501,7 @@ def analyze_with_groq(command, *, client=None, logger=logger):
                                 system_prompt=active_system_prompt,
                             )
                             response = provider.analyze(
-                                ProviderRequest(
-                                    command=command,
-                                    context=context,
-                                    allow_cloud=True,
-                                    allow_memory_context=True
-                                )
+                                ProviderRequest(command=command, context=context, allow_cloud=True, allow_memory_context=True)
                             )
                             g_elapsed = (time.perf_counter() - g_start) * 1000
                             if response.action:
@@ -591,7 +555,7 @@ def analyze_with_groq(command, *, client=None, logger=logger):
                             logger.warning(f"Ollama fallback failed: {e}")
                             status["ollama_status"] = "OFFLINE"
                             update_provider_stats(status, "OLLAMA", success=False, elapsed_ms=oll_elapsed)
-            
+
             # If all prioritized providers failed
             if not result:
                 result = query_local_rules(command)
@@ -612,14 +576,14 @@ def analyze_with_groq(command, *, client=None, logger=logger):
                     logger.warning(f"Ollama offline fallback failed: {e}")
                     status["ollama_status"] = "OFFLINE"
                     update_provider_stats(status, "OLLAMA", success=False, elapsed_ms=oll_elapsed)
-            
+
             if not result:
                 result = query_local_rules(command)
                 provider_used = "OLLAMA"
-                
+
         # Calculate overall response metrics
         elapsed_ms = (time.perf_counter() - start_time) * 1000
-        
+
         if result:
             status["current_provider"] = provider_used
             status["current_ai_provider"] = f"AI Provider: {provider_used}"
@@ -631,10 +595,10 @@ def analyze_with_groq(command, *, client=None, logger=logger):
             status["current_ai_provider"] = "AI Provider: OLLAMA"
             status["response_time"] = f"{elapsed_ms:.1f}ms"
             status["last_failure"] = datetime.datetime.now().isoformat()
-            
+
         save_hybrid_ai_status(status)
         return result
-        
+
     except Exception as exc:
         logger.error(f"Top-level routing exception caught: {exc}")
         return query_local_rules(command)
@@ -644,7 +608,7 @@ def analyze_with_groq_direct(command: str, *, client=None) -> dict:
     """Send a command directly to Groq with no diagnostics side-effects (lazy loaded)."""
     global GROQ_API_KEY
     GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-    
+
     active_client = get_groq_client() if client is None else client  # Lazy load
     provider = GroqProvider(
         api_key=GROQ_API_KEY or "injected-client",
@@ -660,7 +624,7 @@ def analyze_with_groq_direct(command: str, *, client=None) -> dict:
             return response.action
     except Exception as e:
         logger.warning(f"Direct Groq analysis failed: {e}")
-        
+
     return _local_fallback_action()
 
 
@@ -710,4 +674,3 @@ __all__ = [
     "is_internet_available",
     "get_cached_latency",
 ]
-

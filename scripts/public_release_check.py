@@ -153,9 +153,6 @@ def iter_public_files(root: Path) -> list[Path]:
             continue
         if path.suffix.lower() in SKIP_SUFFIXES:
             continue
-        # Skip local untracked runtime files if .env or memory.json
-        if rel.name in (".env", "memory.json"):
-            continue
         public_files.append(path)
     return sorted(public_files)
 

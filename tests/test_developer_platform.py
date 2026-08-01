@@ -1,28 +1,29 @@
 """Unit and integration tests for JARVIS Developer Platform & SDK."""
 
 import os
-import sys
-import json
-import time
 import shutil
+import sys
+import time
 import unittest
+from unittest.mock import MagicMock, patch
+
 import requests
-from unittest.mock import patch, MagicMock
 
 # Ensure project root is in path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../developer_sdk")
 
-from developer_sdk.client import JarvisClient
+import cli.main as cli_main
 from api.server import DeveloperGateway
+from developer_sdk.client import JarvisClient
 from installer.setup_wizard import SetupWizard
 from release_pipeline.builder import ReleaseBuilder
-import cli.main as cli_main
 
 
 class TestDeveloperPlatform(unittest.TestCase):
     def setUp(self) -> None:
         from remote_api import RemoteGateway
+
         RemoteGateway._instance = None
         DeveloperGateway._instance = None
         self.test_dir = os.path.abspath("test_platform_sandbox")
@@ -31,6 +32,7 @@ class TestDeveloperPlatform(unittest.TestCase):
 
     def tearDown(self) -> None:
         from remote_api import RemoteGateway
+
         RemoteGateway._instance = None
         DeveloperGateway._instance = None
         if os.path.exists(self.test_dir):
@@ -45,7 +47,7 @@ class TestDeveloperPlatform(unittest.TestCase):
                     shutil.rmtree(self.test_dir, ignore_errors=True)
                 except Exception:
                     pass
-        
+
         # Ensure PID file deletion if present
         pid_active = os.path.abspath(os.path.join("logs", "jarvis_server.pid"))
         if os.path.exists(pid_active):
@@ -57,7 +59,7 @@ class TestDeveloperPlatform(unittest.TestCase):
     def test_developer_sdk_client_endpoints(self) -> None:
         """Verify Developer Python Client API get/post routing and Bearer token attachments."""
         client = JarvisClient(base_url="http://127.0.0.1:9999", token="jwt_auth_token")
-        
+
         self.assertEqual(client.base_url, "http://127.0.0.1:9999")
         self.assertEqual(client._headers()["Authorization"], "Bearer jwt_auth_token")
 
@@ -71,9 +73,7 @@ class TestDeveloperPlatform(unittest.TestCase):
             # Test AI Route
             client.ai.route("test prompt", "least-latency")
             mock_post.assert_called_with(
-                "http://127.0.0.1:9999/api/v1/route",
-                headers=client._headers(),
-                json={"prompt": "test prompt", "strategy": "least-latency"}
+                "http://127.0.0.1:9999/api/v1/route", headers=client._headers(), json={"prompt": "test prompt", "strategy": "least-latency"}
             )
 
             # Test Memory Write
@@ -81,7 +81,7 @@ class TestDeveloperPlatform(unittest.TestCase):
             mock_post.assert_called_with(
                 "http://127.0.0.1:9999/api/v1/memory/write",
                 headers=client._headers(),
-                json={"layer": "long_term", "key": "editor", "value": "vim"}
+                json={"layer": "long_term", "key": "editor", "value": "vim"},
             )
 
     def test_cli_argument_mappings(self) -> None:
@@ -94,7 +94,7 @@ class TestDeveloperPlatform(unittest.TestCase):
 
             cli_main.start_server(self.pid_file)
             self.assertTrue(os.path.exists(self.pid_file))
-            with open(self.pid_file, "r") as f:
+            with open(self.pid_file) as f:
                 self.assertEqual(f.read().strip(), "12345")
 
         # Test Status
@@ -141,9 +141,9 @@ class TestDeveloperPlatform(unittest.TestCase):
             self.assertIn("swagger-ui", res_docs.text)
 
             # 3. Test OAuth verification token trigger
-            res_tok = requests.post(f"http://127.0.0.1:{port}/oauth/token", json={
-                "client_id": "jarvis_client", "client_secret": "jarvis_secret"
-            })
+            res_tok = requests.post(
+                f"http://127.0.0.1:{port}/oauth/token", json={"client_id": "jarvis_client", "client_secret": "jarvis_secret"}
+            )
             self.assertEqual(res_tok.status_code, 200)
             token = res_tok.json()["access_token"]
 
@@ -159,7 +159,7 @@ class TestDeveloperPlatform(unittest.TestCase):
     def test_installer_wizard_preflight_and_backups(self) -> None:
         """Verify Installer pre-flight audits, .env configs, and rolling upgrade rollbacks."""
         wiz = SetupWizard()
-        
+
         # Pre-flight audits checks
         checks_ok = wiz.run_checks()
         self.assertTrue(checks_ok)
@@ -167,7 +167,7 @@ class TestDeveloperPlatform(unittest.TestCase):
         # configure .env setup
         mock_inputs = {"port": "28020", "api_key": "custom_dev_key"}
         env_test_file = os.path.join(self.test_dir, ".env")
-        
+
         # Redirect .env writes to test sandbox path
         with patch("builtins.open") as mock_open:
             wiz.configure_environment(mock_inputs)
@@ -187,14 +187,14 @@ class TestDeveloperPlatform(unittest.TestCase):
         builder = ReleaseBuilder("1.0.5")
         # Override output location to sandbox
         builder.dist_dir = os.path.join(self.test_dir, "dist")
-        
+
         builder.clean()
         self.assertTrue(os.path.exists(builder.dist_dir))
 
         # Compile release notes
         notes_path = builder.generate_release_notes()
         self.assertTrue(os.path.exists(notes_path))
-        with open(notes_path, "r", encoding="utf-8") as f:
+        with open(notes_path, encoding="utf-8") as f:
             self.assertIn("1.0.5", f.read())
 
         # Test package portable ZIP

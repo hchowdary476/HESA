@@ -31,6 +31,7 @@ def handle_runtime_command(
 
     running = process_command(command)
     import logging as _logging
+
     _logging.getLogger("jarvis.voice").info("[VOICE] COMMAND EXECUTED")
     print("[VOICE] COMMAND EXECUTED", flush=True)
     logger.info("Process command returned %s", running)

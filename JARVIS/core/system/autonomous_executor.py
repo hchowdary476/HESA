@@ -36,11 +36,12 @@ Wires together every JARVIS module into one continuous, self-healing pipeline:
 
 from __future__ import annotations
 
-import threading
-import time
 import json
 import os
-from typing import Any, Callable
+import threading
+import time
+from collections.abc import Callable
+from typing import Any
 
 from JARVIS.core.system.utils.jarvis_logging import get_logger
 
@@ -51,39 +52,47 @@ logger = get_logger("autonomous_executor")
 # Lazy singleton helpers — avoids circular imports & keeps startup fast
 # ---------------------------------------------------------------------------
 
+
 def _get_cognitive_core():
     from JARVIS.core.system.cognitive_core import CognitiveCore
+
     return CognitiveCore()
 
 
 def _get_task_planner():
     from JARVIS.core.system.task_planner import TaskPlanner
+
     return TaskPlanner()
 
 
 def _get_agent_manager():
     from JARVIS.core.ai_router.multi_agent_system import AgentManager
+
     return AgentManager()
 
 
 def _get_diagnostics():
     from JARVIS.core.system.diagnostics_center import DiagnosticsCenter
+
     return DiagnosticsCenter()
 
 
 def _get_learning_engine():
     from JARVIS.core.learning.learning_engine import PersonalLearningEngine
+
     return PersonalLearningEngine()
 
 
 def _get_safety():
     from JARVIS.core.security.safety_layer import AISafetyLayer
+
     return AISafetyLayer()
 
 
 def _get_self_improver():
     try:
         from JARVIS.core.system.self_improvement_engine import SelfImprovementEngine
+
         return SelfImprovementEngine()
     except Exception:
         return None
@@ -92,6 +101,7 @@ def _get_self_improver():
 def _get_tool_router():
     try:
         from JARVIS.core.automation.tool_router import ToolRouter
+
         return ToolRouter()
     except Exception:
         return None
@@ -101,6 +111,7 @@ def _speak(text: str) -> None:
     """Deliver a TTS response without blocking the caller."""
     try:
         from JARVIS.core.voice.ses_motoru import VoiceEngine
+
         VoiceEngine().speak(text)
     except Exception as e:
         logger.warning("TTS unavailable: %s", e)
@@ -116,30 +127,95 @@ def _speak_async(text: str) -> None:
 # ---------------------------------------------------------------------------
 
 # Keywords that signal a multi-step goal requiring DAG decomposition
-_MULTI_STEP_SIGNALS = frozenset([
-    "prepare", "setup", "set up", "deploy", "launch", "initialize", "build",
-    "configure", "install", "create environment", "start all", "run all",
-    "complete", "full", "entire", "everything", "automate", "orchestrate",
-    "research", "investigate", "analyse", "analyze", "audit", "scan all",
-    "backup", "migrate", "integrate", "end-to-end", "end to end",
-    "start to finish", "from scratch", "generate report", "compile report",
-    "development environment", "dev environment", "python environment",
-    "production environment", "deploy application", "ship",
-    "run tests", "test and", "build and", "push and", "commit and",
-])
+_MULTI_STEP_SIGNALS = frozenset(
+    [
+        "prepare",
+        "setup",
+        "set up",
+        "deploy",
+        "launch",
+        "initialize",
+        "build",
+        "configure",
+        "install",
+        "create environment",
+        "start all",
+        "run all",
+        "complete",
+        "full",
+        "entire",
+        "everything",
+        "automate",
+        "orchestrate",
+        "research",
+        "investigate",
+        "analyse",
+        "analyze",
+        "audit",
+        "scan all",
+        "backup",
+        "migrate",
+        "integrate",
+        "end-to-end",
+        "end to end",
+        "start to finish",
+        "from scratch",
+        "generate report",
+        "compile report",
+        "development environment",
+        "dev environment",
+        "python environment",
+        "production environment",
+        "deploy application",
+        "ship",
+        "run tests",
+        "test and",
+        "build and",
+        "push and",
+        "commit and",
+    ]
+)
 
-_CONTINUATION_SIGNALS = frozenset([
-    "and then", "after that", "followed by", "next step", "and also",
-    "and open", "and start", "and launch", "and run", "then deploy",
-    "then open", "then close",
-])
+_CONTINUATION_SIGNALS = frozenset(
+    [
+        "and then",
+        "after that",
+        "followed by",
+        "next step",
+        "and also",
+        "and open",
+        "and start",
+        "and launch",
+        "and run",
+        "then deploy",
+        "then open",
+        "then close",
+    ]
+)
 
 # Fast single-action keywords (skip DAG)
-_QUICK_SIGNALS = frozenset([
-    "open", "close", "what", "time", "date", "weather", "volume",
-    "screenshot", "lock", "battery", "ram", "cpu", "clipboard",
-    "note", "remind", "tell me", "say", "play",
-])
+_QUICK_SIGNALS = frozenset(
+    [
+        "open",
+        "close",
+        "what",
+        "time",
+        "date",
+        "weather",
+        "volume",
+        "screenshot",
+        "lock",
+        "battery",
+        "ram",
+        "cpu",
+        "clipboard",
+        "note",
+        "remind",
+        "tell me",
+        "say",
+        "play",
+    ]
+)
 
 
 def classify_goal_complexity(command: str) -> str:
@@ -174,6 +250,7 @@ def classify_goal_complexity(command: str) -> str:
 # ---------------------------------------------------------------------------
 # Execution Result Schema
 # ---------------------------------------------------------------------------
+
 
 class ExecutionResult:
     """Structured result returned by AutonomousExecutor.execute()."""
@@ -220,6 +297,7 @@ class ExecutionResult:
 # Autonomous Executor — Master Integration Class
 # ---------------------------------------------------------------------------
 
+
 class AutonomousExecutor:
     """
     The central autonomous execution engine for JARVIS v3.0.
@@ -243,7 +321,7 @@ class AutonomousExecutor:
     _instance: AutonomousExecutor | None = None
     _lock = threading.Lock()
 
-    def __new__(cls) -> "AutonomousExecutor":
+    def __new__(cls) -> AutonomousExecutor:
         with cls._lock:
             if cls._instance is None:
                 cls._instance = super().__new__(cls)
@@ -350,7 +428,7 @@ class AutonomousExecutor:
         try:
             if complexity == "goal":
                 # Multi-step: announce intent, then run DAG
-                _speak_async(f"Understood, sir. Decomposing your goal into an autonomous execution plan. Stand by.")
+                _speak_async("Understood, sir. Decomposing your goal into an autonomous execution plan. Stand by.")
                 planner = _get_task_planner()
                 plan_id = planner.create_plan(enriched_command)
                 planner.execute_plan(plan_id)
@@ -420,6 +498,7 @@ class AutonomousExecutor:
         t = time.perf_counter()
         try:
             from memory_engine import MemoryEngine
+
             action_name = core_result.get("action", "unknown")
             MemoryEngine().write_memory(
                 "autonomous_execution",
@@ -470,7 +549,10 @@ class AutonomousExecutor:
         self._finalize(result, command, speak_response)
         logger.info(
             "Execution complete in %.1f ms | success=%s | action=%s | complexity=%s",
-            elapsed, result.success, result.action, complexity,
+            elapsed,
+            result.success,
+            result.action,
+            complexity,
         )
         return result
 
@@ -482,6 +564,7 @@ class AutonomousExecutor:
         on_complete: Callable[[ExecutionResult], None] | None = None,
     ) -> None:
         """Non-blocking execution — fires the pipeline in a background thread."""
+
         def _run():
             result = self.execute(command, speak_response=speak_response)
             if on_complete:
@@ -541,7 +624,7 @@ class AutonomousExecutor:
             return []
         lines: list[dict] = []
         try:
-            with open(self._exec_log_path, "r", encoding="utf-8") as fh:
+            with open(self._exec_log_path, encoding="utf-8") as fh:
                 for line in fh:
                     line = line.strip()
                     if line:
@@ -562,9 +645,7 @@ class AutonomousExecutor:
                 return command
             # Only inject last 2 exchanges to keep prompts compact
             recent = self._conversation_context[-2:]
-        snippets = " | ".join(
-            f"[{e['role']}]: {e['content'][:80]}" for e in recent
-        )
+        snippets = " | ".join(f"[{e['role']}]: {e['content'][:80]}" for e in recent)
         return f"[Context: {snippets}] Current request: {command}"
 
     def _update_context(self, command: str, response: str) -> None:
@@ -599,6 +680,7 @@ class AutonomousExecutor:
 # ---------------------------------------------------------------------------
 # Module-level convenience accessor
 # ---------------------------------------------------------------------------
+
 
 def get_executor() -> AutonomousExecutor:
     """Return the global singleton AutonomousExecutor instance."""

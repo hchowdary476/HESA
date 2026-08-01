@@ -2,10 +2,10 @@
 
 from unittest import TestCase
 
+from JARVIS.core.ai_router.llm_fallback import build_provider_result, resolve_ai_mode, select_llm_provider
 from JARVIS.core.automation.command_history import CommandHistory
 from JARVIS.core.automation.command_suggestions import suggest_commands
 from JARVIS.core.automation.error_messages import build_user_error
-from JARVIS.core.ai_router.llm_fallback import build_provider_result, resolve_ai_mode, select_llm_provider
 
 
 class ProductCommandProviderTest(TestCase):

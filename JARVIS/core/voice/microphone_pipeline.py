@@ -10,14 +10,12 @@ Microphone -> Audio Stream -> VAD / Energy Filter -> Audio Chunk -> Faster-Whisp
 
 from __future__ import annotations
 
-import math
-import os
-import queue
-import sys
-import time
 import logging
+import queue
 import threading
-from typing import Any, Callable, Dict, List, Optional
+import time
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 import sounddevice as sd
@@ -45,7 +43,7 @@ class MicrophonePipeline:
 
     def __init__(
         self,
-        device_index: Optional[int] = None,
+        device_index: int | None = None,
         sample_rate: int = 16000,
         chunk_size: int = 512,
         silence_threshold_rms: float = 300.0,
@@ -59,15 +57,15 @@ class MicrophonePipeline:
         self.max_speech_duration = max_speech_duration
         self.silence_duration_seconds = silence_duration_seconds
 
-        self._stream: Optional[sd.InputStream] = None
+        self._stream: sd.InputStream | None = None
         self._is_listening = False
         self._cancel_flag = threading.Event()
         self._audio_queue: queue.Queue[bytes] = queue.Queue()
-        self._worker_thread: Optional[threading.Thread] = None
+        self._worker_thread: threading.Thread | None = None
 
-        self._on_speech_captured: List[Callable[[sr.AudioData], None]] = []
-        self._on_speech_start: List[Callable[[], None]] = []
-        self._on_speech_end: List[Callable[[], None]] = []
+        self._on_speech_captured: list[Callable[[sr.AudioData], None]] = []
+        self._on_speech_start: list[Callable[[], None]] = []
+        self._on_speech_end: list[Callable[[], None]] = []
 
     def add_speech_captured_callback(self, cb: Callable[[sr.AudioData], None]) -> None:
         self._on_speech_captured.append(cb)
@@ -106,6 +104,7 @@ class MicrophonePipeline:
         try:
             # Resolve the best input device (prefers WASAPI on Windows)
             from JARVIS.core.voice.microphone import _resolve_best_input_device, _try_open_input_stream
+
             resolved_device, host_api_name = _resolve_best_input_device(self.device_index)
 
             self._stream = _try_open_input_stream(
@@ -162,7 +161,7 @@ class MicrophonePipeline:
         """Cancel current speech accumulation buffer instantly."""
         self._cancel_flag.set()
 
-    def capture_single_phrase(self, max_timeout: float = 10.0) -> Optional[sr.AudioData]:
+    def capture_single_phrase(self, max_timeout: float = 10.0) -> sr.AudioData | None:
         """
         Synchronous utility: record audio from speech start until silence end.
         """
@@ -173,7 +172,7 @@ class MicrophonePipeline:
         else:
             should_stop_after = False
 
-        audio_chunks: List[bytes] = []
+        audio_chunks: list[bytes] = []
         is_speaking = False
         speech_start_time = 0.0
         silence_start_time = 0.0
@@ -226,7 +225,7 @@ class MicrophonePipeline:
 
     def _vad_listener_loop(self) -> None:
         """Continuous background VAD loop processing incoming PCM audio chunks."""
-        audio_chunks: List[bytes] = []
+        audio_chunks: list[bytes] = []
         is_speaking = False
         speech_start_time = 0.0
         silence_start_time = 0.0
@@ -278,7 +277,7 @@ class MicrophonePipeline:
                 else:
                     silence_start_time = 0.0
 
-    def _emit_speech_captured(self, chunks: List[bytes]) -> None:
+    def _emit_speech_captured(self, chunks: list[bytes]) -> None:
         if not chunks:
             return
         full_raw = b"".join(chunks)

@@ -10,24 +10,21 @@ Verifies:
 6. Voice Engine reaches READY state.
 """
 
-import os
 import time
 import unittest
-from pathlib import Path
 
 from JARVIS.core.voice.voice_pipeline_manager import (
-    VoicePipelineManager,
-    get_voice_pipeline_manager,
+    STT_LOG,
+    SUPERVISOR_LOG,
+    TTS_LOG,
     VOICE_ENGINE_LOG,
     WAKE_LOG,
-    STT_LOG,
-    TTS_LOG,
-    SUPERVISOR_LOG
+    VoicePipelineManager,
+    get_voice_pipeline_manager,
 )
 
 
 class TestVoiceEngineStartupDiagnostics(unittest.TestCase):
-
     def setUp(self):
         VoicePipelineManager._instance = None
         self.vpm = get_voice_pipeline_manager()
@@ -68,7 +65,7 @@ class TestVoiceEngineStartupDiagnostics(unittest.TestCase):
         # Test timeout check with 0.001s threshold
         self.vpm._run_initialization(timeout_seconds=0.0001)
 
-        with open(VOICE_ENGINE_LOG, "r", encoding="utf-8") as f:
+        with open(VOICE_ENGINE_LOG, encoding="utf-8") as f:
             content = f.read()
         self.assertIn("VOICE ENGINE TIMEOUT", content)
 

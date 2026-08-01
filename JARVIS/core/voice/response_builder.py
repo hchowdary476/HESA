@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Any, Dict, Optional
+from typing import Any
 
 logger = logging.getLogger("hesa.response_builder")
 
@@ -19,7 +19,7 @@ class ResponseBuilder:
     Singleton ResponseBuilder for formatting context-aware natural assistant responses.
     """
 
-    _instance: Optional[ResponseBuilder] = None
+    _instance: ResponseBuilder | None = None
     _lock = threading.Lock()
 
     def __new__(cls) -> ResponseBuilder:
@@ -28,12 +28,7 @@ class ResponseBuilder:
                 cls._instance = super().__new__(cls)
             return cls._instance
 
-    def build_response(
-        self,
-        text: str,
-        intent_category: str = "LOCAL_COMMAND",
-        context: Optional[Dict[str, Any]] = None
-    ) -> str:
+    def build_response(self, text: str, intent_category: str = "LOCAL_COMMAND", context: dict[str, Any] | None = None) -> str:
         """
         Format response considering user preferences and language.
         """
@@ -44,6 +39,7 @@ class ResponseBuilder:
         pref_lang = "english"
         try:
             from JARVIS.core.memory.memory_preferences import get_preference
+
             pref_lang = get_preference("preferred_language") or "english"
         except Exception:
             pass

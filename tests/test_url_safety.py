@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import patch
 
-from JARVIS.core.automation.domains.runtime_actions import handle_runtime_action
 from JARVIS.core.ai_router.url_safety import normalize_web_url
+from JARVIS.core.automation.domains.runtime_actions import handle_runtime_action
 
 
 class DummyLogger:

@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import logging
 import threading
 import time
 from typing import Any
+
 from JARVIS.core.system.utils.jarvis_logging import get_logger
 
 logger = get_logger("thread_health_monitor")
@@ -59,9 +59,7 @@ class ThreadHealthMonitor:
             if t.ident is None:
                 continue
             name_counts[t.name] = name_counts.get(t.name, 0) + 1
-            info = self.started_times.get(
-                t.ident, {"name": t.name, "start_time": now, "daemon": t.daemon}
-            )
+            info = self.started_times.get(t.ident, {"name": t.name, "start_time": now, "daemon": t.daemon})
             lifetime = now - info["start_time"]
             thread_details.append(
                 {

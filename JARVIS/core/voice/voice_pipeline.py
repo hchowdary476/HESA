@@ -13,10 +13,10 @@ from __future__ import annotations
 
 import os
 import threading
-import time
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
-from JARVIS.core.system.utils.jarvis_logging import get_logger, get_file_logger
+from JARVIS.core.system.utils.jarvis_logging import get_file_logger, get_logger
 from JARVIS.core.voice.voice_state import VoiceState, VoiceStateMachine
 
 logger = get_logger("voice_pipeline")
@@ -27,16 +27,35 @@ _voice_logger = get_file_logger("jarvis.voice")
 # Conversational Follow-up Classifier
 # ---------------------------------------------------------------------------
 
-_CLARIFICATION_PHRASES = frozenset([
-    "what do you mean", "can you clarify", "i don't understand",
-    "explain that", "be more specific", "what exactly", "which one",
-    "are you sure", "confirm that", "what did you say",
-])
+_CLARIFICATION_PHRASES = frozenset(
+    [
+        "what do you mean",
+        "can you clarify",
+        "i don't understand",
+        "explain that",
+        "be more specific",
+        "what exactly",
+        "which one",
+        "are you sure",
+        "confirm that",
+        "what did you say",
+    ]
+)
 
-_CANCELLATION_PHRASES = frozenset([
-    "cancel", "stop", "abort", "never mind", "forget it",
-    "halt", "pause", "hold on", "wait", "ignore that",
-])
+_CANCELLATION_PHRASES = frozenset(
+    [
+        "cancel",
+        "stop",
+        "abort",
+        "never mind",
+        "forget it",
+        "halt",
+        "pause",
+        "hold on",
+        "wait",
+        "ignore that",
+    ]
+)
 
 
 def _is_clarification(text: str) -> bool:
@@ -53,13 +72,14 @@ def _is_cancellation(text: str) -> bool:
 # Voice Pipeline
 # ---------------------------------------------------------------------------
 
+
 class VoicePipeline:
     """
     Central bridge between hardware voice I/O, Faster-Whisper, Pronunciation Engine,
     Edge TTS, and HESA AI Router.
     """
 
-    _instance: Optional[VoicePipeline] = None
+    _instance: VoicePipeline | None = None
     _lock = threading.Lock()
 
     def __new__(cls) -> VoicePipeline:
@@ -75,7 +95,7 @@ class VoicePipeline:
         self._initialized = True
 
         self.state_machine = VoiceStateMachine()
-        self._active_execution: Optional[threading.Thread] = None
+        self._active_execution: threading.Thread | None = None
         self._exec_lock = threading.Lock()
 
         # Configuration options
@@ -120,6 +140,7 @@ class VoicePipeline:
 
         try:
             from JARVIS.core.voice.ses_motoru import stop_playback
+
             stop_playback()
         except Exception as exc:
             logger.warning("Failed to stop playback during barge-in: %s", exc)
@@ -139,7 +160,7 @@ class VoicePipeline:
         _voice_logger.info("[VOICE_STATE] %s (detail=%s)", ui_state, detail)
         self._emit_state(ui_state)
 
-    def process_audio_data(self, audio_data: Any, language: Optional[str] = None) -> None:
+    def process_audio_data(self, audio_data: Any, language: str | None = None) -> None:
         """
         Transcribe recorded microphone AudioData via Faster-Whisper and dispatch to AI Router.
         """
@@ -147,8 +168,9 @@ class VoicePipeline:
 
         def _transcribe_and_dispatch():
             try:
-                from JARVIS.core.voice.speech_backend import transcribe_audio
                 import speech_recognition as sr
+
+                from JARVIS.core.voice.speech_backend import transcribe_audio
 
                 rec = sr.Recognizer()
                 text = transcribe_audio(rec, audio_data, language=language or "en-US")
@@ -211,6 +233,7 @@ class VoicePipeline:
 
     def _dispatch_command(self, command: str) -> None:
         """Execute command through AutonomousExecutor and output response via Edge TTS."""
+
         def _run():
             self.set_state(VoiceState.THINKING, detail="ai_router")
 
@@ -230,6 +253,7 @@ class VoicePipeline:
 
                 # Speak response through VoiceEngine (uses PronunciationEngine + Edge TTS)
                 from JARVIS.core.voice.ses_motoru import VoiceEngine
+
                 VoiceEngine().speak(response)
 
             except Exception as e:
@@ -265,6 +289,7 @@ class VoicePipeline:
         self._interrupt_if_running()
         try:
             from JARVIS.core.voice.ses_motoru import stop_playback
+
             stop_playback()
         except Exception:
             pass
@@ -274,9 +299,7 @@ class VoicePipeline:
     def _handle_clarification(self, text: str) -> None:
         """User asked for clarification on the last response."""
         clarification_prompt = (
-            f"The user wants clarification about your previous response: "
-            f"'{self._last_response[:200]}'. "
-            f"User question: '{text}'"
+            f"The user wants clarification about your previous response: '{self._last_response[:200]}'. User question: '{text}'"
         )
         self._dispatch_command(clarification_prompt)
 
@@ -284,12 +307,15 @@ class VoicePipeline:
 
     def _speak_notification(self, text: str) -> None:
         """Speak a short system notification (non-blocking)."""
+
         def _s():
             try:
                 from JARVIS.core.voice.ses_motoru import VoiceEngine
+
                 VoiceEngine().speak(text)
             except Exception as e:
                 logger.warning("TTS notification failed: %s", e)
+
         threading.Thread(target=_s, daemon=True).start()
 
     def _emit_state(self, state: str) -> None:
@@ -318,6 +344,7 @@ class VoicePipeline:
     @staticmethod
     def _get_executor():
         from JARVIS.core.system.autonomous_executor import get_executor
+
         return get_executor()
 
     # ── Status ────────────────────────────────────────────────────────────────
@@ -330,8 +357,7 @@ class VoicePipeline:
             "wake_word_enabled": self.wake_word_enabled,
             "last_response_length": len(self._last_response),
             "pending_clarification": bool(self._pending_clarification),
-            "active_execution": self._active_execution is not None
-            and self._active_execution.is_alive(),
+            "active_execution": self._active_execution is not None and self._active_execution.is_alive(),
         }
 
 

@@ -33,7 +33,6 @@ import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger("venv_resolver")
 
@@ -56,36 +55,36 @@ REQUIRED_PACKAGES: list[str] = [
 
 # Map import-name -> pip install name (when they differ)
 _PIP_NAME: dict[str, str] = {
-    "PySide6":      "PySide6>=6.7.0",
-    "psutil":       "psutil>=5.9.0",
+    "PySide6": "PySide6>=6.7.0",
+    "psutil": "psutil>=5.9.0",
     "cryptography": "cryptography>=41.0.0",
-    "groq":         "groq>=0.9.0",
-    "requests":     "requests>=2.31.0",
-    "dotenv":       "python-dotenv>=1.0.0",
+    "groq": "groq>=0.9.0",
+    "requests": "requests>=2.31.0",
+    "dotenv": "python-dotenv>=1.0.0",
 }
 
 
 @dataclass
 class ResolvedEnv:
     """Result of a successful environment resolution."""
-    python_exe: str                    # absolute path to python.exe (or 'python' as fallback)
-    venv_root: Optional[Path]          # root directory of the venv (None if bare interpreter)
-    source: str                        # human-readable label for where this env came from
-    created: bool = False              # True when we auto-created a new .venv
+
+    python_exe: str  # absolute path to python.exe (or 'python' as fallback)
+    venv_root: Path | None  # root directory of the venv (None if bare interpreter)
+    source: str  # human-readable label for where this env came from
+    created: bool = False  # True when we auto-created a new .venv
     missing_packages: list[str] = field(default_factory=list)  # packages not importable
 
 
 # ---------------------------------------------------------------------------
 # Module-level singleton — populated once on first call to get_resolved_env()
 # ---------------------------------------------------------------------------
-_resolved_env: Optional[ResolvedEnv] = None
+_resolved_env: ResolvedEnv | None = None
 
 
 class VenvResolver:
     """Stateless resolver; instantiate fresh or use module-level singleton."""
 
-    def __init__(self, project_root: Optional[Path] = None,
-                 requirements_file: Optional[Path] = None):
+    def __init__(self, project_root: Path | None = None, requirements_file: Path | None = None):
         self.root = project_root or _PROJECT_ROOT
         self.req_file = requirements_file or (self.root / "requirements.txt")
         self._log_file = self.root / "logs" / "venv_resolver.log"
@@ -116,9 +115,7 @@ class VenvResolver:
         # -- 3. VIRTUAL_ENV environment variable -----------------------------
         venv_from_env = os.environ.get("VIRTUAL_ENV", "").strip()
         if venv_from_env:
-            candidate = self._check_venv_dir(
-                Path(venv_from_env), source="VIRTUAL_ENV env-var"
-            )
+            candidate = self._check_venv_dir(Path(venv_from_env), source="VIRTUAL_ENV env-var")
             if candidate:
                 return candidate
 
@@ -134,12 +131,12 @@ class VenvResolver:
     #  Private helpers                                                     #
     # ------------------------------------------------------------------ #
 
-    def _check_named_venv(self, name: str) -> Optional[ResolvedEnv]:
+    def _check_named_venv(self, name: str) -> ResolvedEnv | None:
         """Check <root>/<name> as a candidate venv directory."""
         venv_dir = self.root / name
         return self._check_venv_dir(venv_dir, source=f"project root '{name}'")
 
-    def _check_venv_dir(self, venv_dir: Path, source: str) -> Optional[ResolvedEnv]:
+    def _check_venv_dir(self, venv_dir: Path, source: str) -> ResolvedEnv | None:
         """Validate a venv directory.  Returns ResolvedEnv or None."""
         if not venv_dir.exists():
             return None
@@ -162,8 +159,7 @@ class VenvResolver:
         missing = self._missing_packages(str(python_exe))
         self._log(
             "INFO",
-            f"Found valid env at '{venv_dir}' (source: {source})"
-            + (f" -- missing: {missing}" if missing else " -- all packages OK"),
+            f"Found valid env at '{venv_dir}' (source: {source})" + (f" -- missing: {missing}" if missing else " -- all packages OK"),
         )
         return ResolvedEnv(
             python_exe=str(python_exe),
@@ -172,7 +168,7 @@ class VenvResolver:
             missing_packages=missing,
         )
 
-    def _check_running_interpreter(self) -> Optional[ResolvedEnv]:
+    def _check_running_interpreter(self) -> ResolvedEnv | None:
         """
         Accept sys.executable if ALL required packages are importable in-process.
         We only trust the running interpreter (no subprocess) because the user
@@ -219,7 +215,9 @@ class VenvResolver:
         try:
             result = subprocess.run(
                 [base_python, "-m", "venv", str(venv_dir)],
-                capture_output=True, text=True, timeout=120,
+                capture_output=True,
+                text=True,
+                timeout=120,
             )
             if result.returncode != 0:
                 self._log("ERROR", f"venv creation failed: {result.stderr.strip()}")
@@ -234,9 +232,10 @@ class VenvResolver:
             self._log("INFO", f"Installing requirements from {self.req_file} ...")
             try:
                 result = subprocess.run(
-                    [str(python_exe_path), "-m", "pip", "install",
-                     "-r", str(self.req_file), "--quiet"],
-                    capture_output=True, text=True, timeout=600,
+                    [str(python_exe_path), "-m", "pip", "install", "-r", str(self.req_file), "--quiet"],
+                    capture_output=True,
+                    text=True,
+                    timeout=600,
                 )
                 if result.returncode != 0:
                     self._log("WARN", f"pip install had errors: {result.stderr[:500]}")
@@ -260,7 +259,7 @@ class VenvResolver:
     #  Windows-specific: py launcher scan                                  #
     # ------------------------------------------------------------------ #
 
-    def _find_best_base_python(self) -> Optional[str]:
+    def _find_best_base_python(self) -> str | None:
         """
         On Windows: use 'py -X.Y' to find the newest Python 3.10+ installation.
         Falls back to sys.executable (only if it is NOT inside a venv).
@@ -268,12 +267,14 @@ class VenvResolver:
         """
         # Try py launcher (Windows)
         if os.name == "nt":
-            for minor in range(13, 9, -1):   # 3.13 -> 3.10
+            for minor in range(13, 9, -1):  # 3.13 -> 3.10
                 tag = f"-3.{minor}"
                 try:
                     proc = subprocess.run(
                         ["py", tag, "-c", "import sys; print(sys.executable)"],
-                        capture_output=True, text=True, timeout=10,
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
                     )
                     if proc.returncode == 0:
                         exe = proc.stdout.strip()
@@ -281,7 +282,7 @@ class VenvResolver:
                             self._log("INFO", f"py launcher found Python 3.{minor}: {exe}")
                             return exe
                 except FileNotFoundError:
-                    break   # py launcher not installed
+                    break  # py launcher not installed
                 except Exception:
                     continue
 
@@ -321,15 +322,14 @@ class VenvResolver:
             return missing
 
         # Out-of-process check
-        checks = " ".join(
-            f"print('{pkg}') if not __import__('importlib').util.find_spec('{pkg}') else None;"
-            for pkg in REQUIRED_PACKAGES
-        )
+        checks = " ".join(f"print('{pkg}') if not __import__('importlib').util.find_spec('{pkg}') else None;" for pkg in REQUIRED_PACKAGES)
         script = checks
         try:
             proc = subprocess.run(
                 [python_exe, "-c", script],
-                capture_output=True, text=True, timeout=30,
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
             if proc.returncode == 0:
                 return [line.strip() for line in proc.stdout.splitlines() if line.strip()]
@@ -343,18 +343,20 @@ class VenvResolver:
         try:
             result = subprocess.run(
                 [str(python_exe), "-m", "pip", "--version"],
-                capture_output=True, text=True, timeout=15,
+                capture_output=True,
+                text=True,
+                timeout=15,
             )
             return result.returncode == 0
         except Exception:
             return False
 
     @staticmethod
-    def _find_python_exe(venv_dir: Path) -> Optional[Path]:
+    def _find_python_exe(venv_dir: Path) -> Path | None:
         """Return the python executable inside venv_dir, or None."""
         for rel in (
-            Path("Scripts") / "python.exe",   # Windows
-            Path("bin") / "python3",           # macOS / Linux
+            Path("Scripts") / "python.exe",  # Windows
+            Path("bin") / "python3",  # macOS / Linux
             Path("bin") / "python",
         ):
             candidate = venv_dir / rel
@@ -372,8 +374,8 @@ class VenvResolver:
         print(line, flush=True)
         log_fn = {
             "DEBUG": logger.debug,
-            "INFO":  logger.info,
-            "WARN":  logger.warning,
+            "INFO": logger.info,
+            "WARN": logger.warning,
             "ERROR": logger.error,
         }.get(level, logger.info)
         log_fn(message)
@@ -388,6 +390,7 @@ class VenvResolver:
 # ---------------------------------------------------------------------------
 # Module-level convenience API
 # ---------------------------------------------------------------------------
+
 
 def get_resolved_env(force: bool = False) -> ResolvedEnv:
     """

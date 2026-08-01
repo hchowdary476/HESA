@@ -7,25 +7,19 @@ and dependencies, manages check-pointing/telemetry, and persists records.
 
 from __future__ import annotations
 
-import os
 import json
-import time
+import os
 import threading
+import time
 from typing import Any
 
-from JARVIS.core.system.utils.jarvis_logging import get_logger
 from JARVIS.core.system.dependency_manager import DependencyManager
+from JARVIS.core.system.utils.jarvis_logging import get_logger
 
 logger = get_logger("mission_control")
 
 # Priority maps (lower number = higher priority)
-PRIORITY_MAP = {
-    "critical": 1,
-    "high": 2,
-    "medium": 3,
-    "low": 4,
-    "background": 5
-}
+PRIORITY_MAP = {"critical": 1, "high": 2, "medium": 3, "low": 4, "background": 5}
 
 
 class MissionControl:
@@ -46,7 +40,7 @@ class MissionControl:
         self.tasks: dict[str, dict[str, Any]] = {}
         self.persistence_path = os.path.abspath(os.path.join("logs", "mission_control_state.json"))
         self.memory_path = os.path.abspath(os.path.join("logs", "mission_control_memory.json"))
-        
+
         os.makedirs(os.path.dirname(self.persistence_path), exist_ok=True)
         self._load_state()
 
@@ -62,7 +56,7 @@ class MissionControl:
                 "priority": priority.lower(),
                 "progress": 0,
                 "dependencies": dependencies or [],
-                "status": "PENDING", # PENDING (QUEUED), ACTIVE (RUNNING), WAITING (AWAITING_APPROVAL), BLOCKED, COMPLETED, FAILED, CANCELLED
+                "status": "PENDING",  # PENDING (QUEUED), ACTIVE (RUNNING), WAITING (AWAITING_APPROVAL), BLOCKED, COMPLETED, FAILED, CANCELLED
                 "estimated_completion": "Pending schedule",
                 "logs": [f"[{time.strftime('%H:%M:%S')}] Task created."],
                 "created_at": time.time(),
@@ -76,8 +70,8 @@ class MissionControl:
                     "model_used": "Claude 3.5 Sonnet",
                     "tools_used": [],
                     "cpu": 0.0,
-                    "ram": 0.0
-                }
+                    "ram": 0.0,
+                },
             }
             self._save_state()
             logger.info("Mission Control registered task: %s (priority: %s)", task_id, priority)
@@ -116,10 +110,10 @@ class MissionControl:
         with self.lock:
             active = [t for t in self.tasks.values() if t["status"] == "ACTIVE"]
             pending = [t for t in self.tasks.values() if t["status"] == "PENDING"]
-        
+
         if not active and not pending:
             return "There are no background operations active or queued at this moment, sir."
-            
+
         summary = "Active background tasks:\n"
         for t in active:
             summary += f"- {t['name']} (ID: {t['id']}, Progress: {t['progress']}%, Agent: {t['agent']})\n"
@@ -172,7 +166,7 @@ class MissionControl:
         """Order tasks based on priorities and topologically sorted dependencies."""
         with self.lock:
             all_tasks = list(self.tasks.values())
-        
+
         # Sort topologically first to respect dependencies
         order = DependencyManager.get_execution_order(all_tasks)
         order_index = {tid: idx for idx, tid in enumerate(order)}
@@ -197,7 +191,7 @@ class MissionControl:
     def _load_state(self) -> None:
         if os.path.exists(self.persistence_path):
             try:
-                with open(self.persistence_path, "r", encoding="utf-8") as f:
+                with open(self.persistence_path, encoding="utf-8") as f:
                     self.tasks = json.load(f)
             except Exception as e:
                 logger.error("Failed to load Mission Control state: %s", e)

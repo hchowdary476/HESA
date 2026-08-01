@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import atexit
 import logging
 import logging.handlers
 import os
 import queue
-import atexit
 from pathlib import Path
 
 LOG_DIR = Path(__file__).resolve().parent / "logs"
@@ -17,6 +17,7 @@ LOG_FILE = LOG_DIR / "jarvis.log"
 # enterprise CA, and certificate validation issues without disabling SSL verification.
 try:
     import truststore
+
     truststore.inject_into_ssl()
     logging.getLogger("jarvis.system").info("[SSL] Native Windows Certificate Store injected via truststore.")
 except Exception as _ssl_err:
@@ -26,14 +27,14 @@ except Exception as _ssl_err:
 # Dedicated per-subsystem log files under the project logs/ folder.
 # All paths are relative to the CWD of the running process (Open.Jarvis-main/).
 _SUBSYSTEM_LOGS: dict[str, str] = {
-    "jarvis.wake":    "logs/wake.log",
-    "jarvis.intent":  "logs/intent.log",
-    "jarvis.router":  "logs/router.log",
+    "jarvis.wake": "logs/wake.log",
+    "jarvis.intent": "logs/intent.log",
+    "jarvis.router": "logs/router.log",
     "jarvis.actions": "logs/actions.log",
-    "jarvis.memory":  "logs/memory.log",
-    "jarvis.voice":   "logs/voice_engine.log",
-    "jarvis.tts":     "logs/tts.log",
-    "jarvis.stt":     "logs/stt.log",
+    "jarvis.memory": "logs/memory.log",
+    "jarvis.voice": "logs/voice_engine.log",
+    "jarvis.tts": "logs/tts.log",
+    "jarvis.stt": "logs/stt.log",
     "ai_orchestrator": "logs/router.log",
 }
 
@@ -60,18 +61,15 @@ def setup_queue_logging() -> None:
         return
 
     from logging.handlers import RotatingFileHandler
-    file_handler = RotatingFileHandler(
-        LOG_FILE, maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8", delay=True
-    )
+
+    file_handler = RotatingFileHandler(LOG_FILE, maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8", delay=True)
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
     file_handler.setFormatter(formatter)
 
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
 
-    _listener = logging.handlers.QueueListener(
-        _log_queue, file_handler, console_handler, respect_handler_level=True
-    )
+    _listener = logging.handlers.QueueListener(_log_queue, file_handler, console_handler, respect_handler_level=True)
     _listener.start()
 
     atexit.register(_listener.stop)
@@ -162,4 +160,3 @@ def _prewire_subsystem_loggers() -> None:
 
 
 _prewire_subsystem_loggers()
-

@@ -1,9 +1,11 @@
 """Base class for building custom JARVIS AI Agents."""
 
 from __future__ import annotations
+
 import queue
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+
 
 class BaseAgent:
     """Base class that custom developer agents must inherit from to attach to the Cognitive Core."""
@@ -26,6 +28,7 @@ class BaseAgent:
     def run_loop(self) -> None:
         """Standard task consumer loop running in a daemon thread."""
         import threading
+
         def _loop():
             while True:
                 if not self.task_queue.empty():
@@ -41,4 +44,5 @@ class BaseAgent:
                     self.status = "IDLE"
                     self.task_queue.task_done()
                 time.sleep(0.1)
+
         threading.Thread(target=_loop, daemon=True).start()

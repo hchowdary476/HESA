@@ -65,9 +65,9 @@ _REPORT_PATH = os.path.abspath(os.path.join("logs", "self_improvement_report.jso
 # Execution Record Schema
 # ---------------------------------------------------------------------------
 
+
 class ExecutionRecord:
-    __slots__ = ("command", "complexity", "success", "elapsed_ms", "stage_timings",
-                 "agent_used", "tool_used", "timestamp")
+    __slots__ = ("command", "complexity", "success", "elapsed_ms", "stage_timings", "agent_used", "tool_used", "timestamp")
 
     def __init__(
         self,
@@ -105,6 +105,7 @@ class ExecutionRecord:
 # Self-Improvement Engine
 # ---------------------------------------------------------------------------
 
+
 class SelfImprovementEngine:
     """
     Autonomous performance optimisation engine.
@@ -117,7 +118,7 @@ class SelfImprovementEngine:
     _instance: SelfImprovementEngine | None = None
     _lock = threading.Lock()
 
-    def __new__(cls) -> "SelfImprovementEngine":
+    def __new__(cls) -> SelfImprovementEngine:
         with cls._lock:
             if cls._instance is None:
                 cls._instance = super().__new__(cls)
@@ -134,15 +135,9 @@ class SelfImprovementEngine:
         self._window: deque[ExecutionRecord] = deque(maxlen=_WINDOW_SIZE)
 
         # Aggregated stats per agent and tool
-        self._agent_stats: dict[str, dict[str, Any]] = defaultdict(
-            lambda: {"success": 0, "failure": 0, "total_ms": 0.0, "calls": 0}
-        )
-        self._tool_stats: dict[str, dict[str, Any]] = defaultdict(
-            lambda: {"success": 0, "failure": 0, "calls": 0}
-        )
-        self._complexity_stats: dict[str, dict[str, Any]] = defaultdict(
-            lambda: {"success": 0, "failure": 0, "total_ms": 0.0, "calls": 0}
-        )
+        self._agent_stats: dict[str, dict[str, Any]] = defaultdict(lambda: {"success": 0, "failure": 0, "total_ms": 0.0, "calls": 0})
+        self._tool_stats: dict[str, dict[str, Any]] = defaultdict(lambda: {"success": 0, "failure": 0, "calls": 0})
+        self._complexity_stats: dict[str, dict[str, Any]] = defaultdict(lambda: {"success": 0, "failure": 0, "total_ms": 0.0, "calls": 0})
 
         # Provider latency weights (lower = higher priority)
         self._provider_weights: dict[str, float] = {
@@ -265,11 +260,7 @@ class SelfImprovementEngine:
                     if stage != "total_elapsed":
                         stage_avgs[stage] += ms
                         stage_counts[stage] += 1
-            stage_means = {
-                s: round(stage_avgs[s] / stage_counts[s], 2)
-                for s in stage_avgs
-                if stage_counts[s] > 0
-            }
+            stage_means = {s: round(stage_avgs[s] / stage_counts[s], 2) for s in stage_avgs if stage_counts[s] > 0}
             slowest_stage = max(stage_means.items(), key=lambda kv: kv[1], default=(None, 0))
 
             return {
@@ -304,25 +295,29 @@ class SelfImprovementEngine:
                 recent_rate = recent_success / min(len(window), 20)
 
                 if recent_rate < _LOW_SUCCESS_RATE:
-                    recommendations.append({
-                        "type": "warning",
-                        "title": "Low Recent Success Rate",
-                        "detail": f"Success rate dropped to {recent_rate * 100:.1f}% in the last 20 executions.",
-                        "action": "Switch to a more reliable AI provider (Claude or Gemini recommended).",
-                        "severity": "high",
-                    })
+                    recommendations.append(
+                        {
+                            "type": "warning",
+                            "title": "Low Recent Success Rate",
+                            "detail": f"Success rate dropped to {recent_rate * 100:.1f}% in the last 20 executions.",
+                            "action": "Switch to a more reliable AI provider (Claude or Gemini recommended).",
+                            "severity": "high",
+                        }
+                    )
 
             # ── 2. Latency analysis ────────────────────────────────────────
             high_latency_records = [r for r in window if r.elapsed_ms > _HIGH_LATENCY_THRESHOLD_MS]
             if len(high_latency_records) > _MIN_SAMPLE_SIZE:
                 avg_high = sum(r.elapsed_ms for r in high_latency_records) / len(high_latency_records)
-                recommendations.append({
-                    "type": "performance",
-                    "title": "High Execution Latency Detected",
-                    "detail": f"{len(high_latency_records)} executions exceeded {_HIGH_LATENCY_THRESHOLD_MS:.0f}ms (avg: {avg_high:.0f}ms).",
-                    "action": "Switch to Ollama (local) for low-latency tasks. Reserve cloud AI for complex reasoning.",
-                    "severity": "medium",
-                })
+                recommendations.append(
+                    {
+                        "type": "performance",
+                        "title": "High Execution Latency Detected",
+                        "detail": f"{len(high_latency_records)} executions exceeded {_HIGH_LATENCY_THRESHOLD_MS:.0f}ms (avg: {avg_high:.0f}ms).",
+                        "action": "Switch to Ollama (local) for low-latency tasks. Reserve cloud AI for complex reasoning.",
+                        "severity": "medium",
+                    }
+                )
                 # Adjust weights: boost local providers
                 with self._data_lock:
                     self._provider_weights["ollama"] = max(0.5, self._provider_weights["ollama"] - 0.1)
@@ -334,21 +329,25 @@ class SelfImprovementEngine:
                     rate = stats["success"] / stats["calls"]
                     avg_ms = stats["total_ms"] / stats["calls"]
                     if rate < _LOW_SUCCESS_RATE:
-                        recommendations.append({
-                            "type": "agent_health",
-                            "title": f"Agent '{agent_key}' Low Success Rate",
-                            "detail": f"Success rate: {rate * 100:.1f}% over {stats['calls']} calls.",
-                            "action": f"Route tasks away from '{agent_key}' until the failure root cause is resolved.",
-                            "severity": "medium",
-                        })
+                        recommendations.append(
+                            {
+                                "type": "agent_health",
+                                "title": f"Agent '{agent_key}' Low Success Rate",
+                                "detail": f"Success rate: {rate * 100:.1f}% over {stats['calls']} calls.",
+                                "action": f"Route tasks away from '{agent_key}' until the failure root cause is resolved.",
+                                "severity": "medium",
+                            }
+                        )
                     if avg_ms > _HIGH_LATENCY_THRESHOLD_MS:
-                        recommendations.append({
-                            "type": "agent_performance",
-                            "title": f"Agent '{agent_key}' Slow Response",
-                            "detail": f"Average latency: {avg_ms:.0f}ms over {stats['calls']} calls.",
-                            "action": "Consider parallel agent dispatch or switching to a lighter model.",
-                            "severity": "low",
-                        })
+                        recommendations.append(
+                            {
+                                "type": "agent_performance",
+                                "title": f"Agent '{agent_key}' Slow Response",
+                                "detail": f"Average latency: {avg_ms:.0f}ms over {stats['calls']} calls.",
+                                "action": "Consider parallel agent dispatch or switching to a lighter model.",
+                                "severity": "low",
+                            }
+                        )
 
             # ── 4. Complexity routing efficiency ───────────────────────────
             for complexity, stats in complexity_stats.items():
@@ -356,25 +355,29 @@ class SelfImprovementEngine:
                     rate = stats["success"] / stats["calls"]
                     avg_ms = stats["total_ms"] / stats["calls"]
                     if complexity == "goal" and avg_ms > 10000:
-                        recommendations.append({
-                            "type": "workflow",
-                            "title": "Goal-Based Workflows Running Slow",
-                            "detail": f"Average goal execution: {avg_ms:.0f}ms.",
-                            "action": "Consider breaking complex goals into sequential compound commands for faster execution.",
-                            "severity": "low",
-                        })
+                        recommendations.append(
+                            {
+                                "type": "workflow",
+                                "title": "Goal-Based Workflows Running Slow",
+                                "detail": f"Average goal execution: {avg_ms:.0f}ms.",
+                                "action": "Consider breaking complex goals into sequential compound commands for faster execution.",
+                                "severity": "low",
+                            }
+                        )
 
             # ── 5. Positive reinforcement ──────────────────────────────────
             if len(window) >= 10:
                 recent_10 = window[-10:]
                 if all(r.success for r in recent_10):
-                    recommendations.append({
-                        "type": "health",
-                        "title": "Excellent System Health",
-                        "detail": "Last 10 executions all succeeded. All systems optimal.",
-                        "action": "No action required. System is performing at peak efficiency.",
-                        "severity": "info",
-                    })
+                    recommendations.append(
+                        {
+                            "type": "health",
+                            "title": "Excellent System Health",
+                            "detail": "Last 10 executions all succeeded. All systems optimal.",
+                            "action": "No action required. System is performing at peak efficiency.",
+                            "severity": "info",
+                        }
+                    )
 
             # ── Commit recommendations ─────────────────────────────────────
             with self._data_lock:
@@ -390,6 +393,7 @@ class SelfImprovementEngine:
         """Push updated provider weights back to AIOrchestrator's failover order."""
         try:
             from JARVIS.core.ai_router.ai_orchestrator import AIOrchestrator
+
             orchestrator = AIOrchestrator()
             # The orchestrator uses active_ai for priority — we log a recommendation
             # for the operator to act on via the dashboard
@@ -414,7 +418,7 @@ class SelfImprovementEngine:
         if not os.path.exists(_REPORT_PATH):
             return
         try:
-            with open(_REPORT_PATH, "r", encoding="utf-8") as fh:
+            with open(_REPORT_PATH, encoding="utf-8") as fh:
                 data = json.load(fh)
             self._total_executions = data.get("total_executions", 0)
             self._provider_weights.update(data.get("provider_weights", {}))
@@ -427,6 +431,7 @@ class SelfImprovementEngine:
 # ---------------------------------------------------------------------------
 # Module-level convenience
 # ---------------------------------------------------------------------------
+
 
 def get_self_improvement_engine() -> SelfImprovementEngine:
     """Return the global singleton SelfImprovementEngine."""

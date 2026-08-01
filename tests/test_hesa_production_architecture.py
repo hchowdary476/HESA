@@ -14,22 +14,27 @@ Verifies:
 10. All 7 dedicated stage log files (wake, stt, intent, actions, router, memory, tts).
 """
 
-import os
 import time
 import unittest
-import numpy as np
-from pathlib import Path
 
-from JARVIS.core.voice.openwakeword_engine import OpenWakeWordEngine, get_openwakeword_engine
+import numpy as np
+
 from JARVIS.core.automation.local_intent_router import classify_intent, route_local_intent
-from JARVIS.core.voice.response_builder import get_response_builder
 from JARVIS.core.system.utils.stage_loggers import (
-    STAGE_LOG_FILES, wake_log, stt_log, intent_log, actions_log, router_log, memory_log, tts_log
+    STAGE_LOG_FILES,
+    actions_log,
+    intent_log,
+    memory_log,
+    router_log,
+    stt_log,
+    tts_log,
+    wake_log,
 )
+from JARVIS.core.voice.openwakeword_engine import OpenWakeWordEngine, get_openwakeword_engine
+from JARVIS.core.voice.response_builder import get_response_builder
 
 
 class TestHesaProductionArchitecture(unittest.TestCase):
-
     def setUp(self):
         OpenWakeWordEngine._instance = None
         self.oww_engine = get_openwakeword_engine()

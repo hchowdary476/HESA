@@ -18,21 +18,20 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from JARVIS.core.system.startup_manager import StartupManager
+from JARVIS.core.system import venv_resolver as _vr_module
 from JARVIS.core.system.environment_validator import EnvironmentValidator
 from JARVIS.core.system.service_monitor import ServiceHealthMonitor
-from JARVIS.core.system import venv_resolver as _vr_module
+from JARVIS.core.system.startup_manager import StartupManager
 from JARVIS.core.system.venv_resolver import (
-    VenvResolver,
-    ResolvedEnv,
-    get_resolved_env,
     REQUIRED_PACKAGES,
+    ResolvedEnv,
+    VenvResolver,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_fake_venv(base_dir: Path, name: str = ".venv") -> Path:
     """Create a minimal fake venv structure so the resolver accepts it."""
@@ -42,13 +41,14 @@ def _make_fake_venv(base_dir: Path, name: str = ".venv") -> Path:
     (venv / "pyvenv.cfg").write_text("home = C:\\Python311\n")
     # Write a tiny stub python.exe so _find_python_exe returns it
     python_exe = scripts / "python.exe"
-    python_exe.write_bytes(b"\x4d\x5a")   # minimal PE magic bytes
+    python_exe.write_bytes(b"\x4d\x5a")  # minimal PE magic bytes
     return venv
 
 
 # ---------------------------------------------------------------------------
 # VenvResolver unit tests
 # ---------------------------------------------------------------------------
+
 
 class VenvResolverDetectionOrderTests(unittest.TestCase):
     """Test the 5-step detection order in VenvResolver.resolve()."""
@@ -66,8 +66,10 @@ class VenvResolverDetectionOrderTests(unittest.TestCase):
             resolver = VenvResolver(project_root=root)
 
             # pip_works would normally be called; stub it out so no subprocess needed
-            with patch.object(VenvResolver, "_pip_works", return_value=True), \
-                 patch.object(VenvResolver, "_missing_packages", return_value=[]):
+            with (
+                patch.object(VenvResolver, "_pip_works", return_value=True),
+                patch.object(VenvResolver, "_missing_packages", return_value=[]),
+            ):
                 env = resolver.resolve()
 
         self.assertEqual(env.source, "project root '.venv'")
@@ -81,8 +83,10 @@ class VenvResolverDetectionOrderTests(unittest.TestCase):
             _make_fake_venv(root, "venv")
             resolver = VenvResolver(project_root=root)
 
-            with patch.object(VenvResolver, "_pip_works", return_value=True), \
-                 patch.object(VenvResolver, "_missing_packages", return_value=[]):
+            with (
+                patch.object(VenvResolver, "_pip_works", return_value=True),
+                patch.object(VenvResolver, "_missing_packages", return_value=[]),
+            ):
                 env = resolver.resolve()
 
         self.assertEqual(env.source, "project root 'venv'")
@@ -96,9 +100,11 @@ class VenvResolverDetectionOrderTests(unittest.TestCase):
             venv = _make_fake_venv(root, "myenv")
             resolver = VenvResolver(project_root=Path(tmp) / "nonexistent_root")
 
-            with patch.dict(os.environ, {"VIRTUAL_ENV": str(venv)}), \
-                 patch.object(VenvResolver, "_pip_works", return_value=True), \
-                 patch.object(VenvResolver, "_missing_packages", return_value=[]):
+            with (
+                patch.dict(os.environ, {"VIRTUAL_ENV": str(venv)}),
+                patch.object(VenvResolver, "_pip_works", return_value=True),
+                patch.object(VenvResolver, "_missing_packages", return_value=[]),
+            ):
                 env = resolver.resolve()
 
         self.assertEqual(env.source, "VIRTUAL_ENV env-var")
@@ -108,17 +114,22 @@ class VenvResolverDetectionOrderTests(unittest.TestCase):
 
     def test_detects_running_interpreter_when_all_packages_importable(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)   # no venv dirs here
+            root = Path(tmp)  # no venv dirs here
             resolver = VenvResolver(project_root=root)
 
             # Pretend all packages import fine in-process
-            with patch.dict(os.environ, {}, clear=False), \
-                 patch.object(VenvResolver, "_check_running_interpreter",
-                               return_value=ResolvedEnv(
-                                   python_exe=sys.executable,
-                                   venv_root=None,
-                                   source="running interpreter (sys.executable)",
-                               )):
+            with (
+                patch.dict(os.environ, {}, clear=False),
+                patch.object(
+                    VenvResolver,
+                    "_check_running_interpreter",
+                    return_value=ResolvedEnv(
+                        python_exe=sys.executable,
+                        venv_root=None,
+                        source="running interpreter (sys.executable)",
+                    ),
+                ),
+            ):
                 env = resolver.resolve()
 
         self.assertIn("running interpreter", env.source)
@@ -133,16 +144,19 @@ class VenvResolverDetectionOrderTests(unittest.TestCase):
             req.write_text("# test\n")
             resolver = VenvResolver(project_root=root, requirements_file=req)
 
-            with patch.object(VenvResolver, "_check_running_interpreter", return_value=None), \
-                 patch.object(VenvResolver, "_find_best_base_python", return_value=sys.executable), \
-                 patch("subprocess.run") as mock_run:
+            with (
+                patch.object(VenvResolver, "_check_running_interpreter", return_value=None),
+                patch.object(VenvResolver, "_find_best_base_python", return_value=sys.executable),
+                patch("subprocess.run") as mock_run,
+            ):
                 # First call: venv creation succeeds
                 # Second call: pip install succeeds
                 mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
                 # _find_python_exe must find something after creation — fake it
-                with patch.object(VenvResolver, "_find_python_exe",
-                                   return_value=Path(sys.executable)), \
-                     patch.object(VenvResolver, "_missing_packages", return_value=[]):
+                with (
+                    patch.object(VenvResolver, "_find_python_exe", return_value=Path(sys.executable)),
+                    patch.object(VenvResolver, "_missing_packages", return_value=[]),
+                ):
                     env = resolver.resolve()
 
         self.assertTrue(env.created)
@@ -157,8 +171,10 @@ class VenvResolverDetectionOrderTests(unittest.TestCase):
             resolver = VenvResolver(project_root=root)
 
             missing_two = ["groq", "PySide6"]
-            with patch.object(VenvResolver, "_pip_works", return_value=True), \
-                 patch.object(VenvResolver, "_missing_packages", return_value=missing_two):
+            with (
+                patch.object(VenvResolver, "_pip_works", return_value=True),
+                patch.object(VenvResolver, "_missing_packages", return_value=missing_two),
+            ):
                 env = resolver.resolve()
 
         self.assertEqual(env.missing_packages, missing_two)
@@ -174,13 +190,16 @@ class VenvResolverDetectionOrderTests(unittest.TestCase):
             # No pyvenv.cfg
             resolver = VenvResolver(project_root=root)
 
-            with patch.object(VenvResolver, "_check_running_interpreter", return_value=None), \
-                 patch.object(VenvResolver, "_find_best_base_python", return_value=sys.executable), \
-                 patch("subprocess.run") as mock_run:
+            with (
+                patch.object(VenvResolver, "_check_running_interpreter", return_value=None),
+                patch.object(VenvResolver, "_find_best_base_python", return_value=sys.executable),
+                patch("subprocess.run") as mock_run,
+            ):
                 mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
-                with patch.object(VenvResolver, "_find_python_exe",
-                                   return_value=Path(sys.executable)), \
-                     patch.object(VenvResolver, "_missing_packages", return_value=[]):
+                with (
+                    patch.object(VenvResolver, "_find_python_exe", return_value=Path(sys.executable)),
+                    patch.object(VenvResolver, "_missing_packages", return_value=[]),
+                ):
                     env = resolver.resolve()
 
         # Should have fallen through to auto-repair
@@ -190,6 +209,7 @@ class VenvResolverDetectionOrderTests(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # Singleton / shared-source tests
 # ---------------------------------------------------------------------------
+
 
 class SharedSingletonTests(unittest.TestCase):
     """EnvironmentValidator and StartupManager must read from the same singleton."""
@@ -213,19 +233,22 @@ class SharedSingletonTests(unittest.TestCase):
             validator_env = validator.resolved_env
 
             from JARVIS.core.system.venv_resolver import get_resolved_env as _gre
-            sm_env = _gre()   # same call startup_manager uses
 
-        self.assertIs(validator_env, sm_env,
-                      "EnvironmentValidator and StartupManager must share the same "
-                      "ResolvedEnv object from the module-level singleton.")
+            sm_env = _gre()  # same call startup_manager uses
+
+        self.assertIs(
+            validator_env,
+            sm_env,
+            "EnvironmentValidator and StartupManager must share the same ResolvedEnv object from the module-level singleton.",
+        )
 
 
 # ---------------------------------------------------------------------------
 # EnvironmentValidator unit tests
 # ---------------------------------------------------------------------------
 
-class EnvironmentValidatorTests(unittest.TestCase):
 
+class EnvironmentValidatorTests(unittest.TestCase):
     def setUp(self):
         _vr_module._resolved_env = None
 
@@ -256,8 +279,7 @@ class EnvironmentValidatorTests(unittest.TestCase):
             validator = self._make_validator_with_env(env)
             validator._validate_venv()
 
-        self.assertFalse(any("auto" in e.lower() for e in validator.errors),
-                         "auto-repair must not produce an error")
+        self.assertFalse(any("auto" in e.lower() for e in validator.errors), "auto-repair must not produce an error")
         self.assertTrue(any("auto-created" in w for w in validator.warnings))
 
     def test_per_package_error_names_the_package(self):
@@ -291,7 +313,6 @@ class EnvironmentValidatorTests(unittest.TestCase):
         # One error per package in REQUIRED_PACKAGES
         self.assertEqual(len(validator.errors), len(REQUIRED_PACKAGES))
 
-
     def test_get_report_includes_venv_source_and_python_exe(self):
         env = ResolvedEnv(
             python_exe="/fake/python",
@@ -310,8 +331,8 @@ class EnvironmentValidatorTests(unittest.TestCase):
 # StartupManager tests (unchanged logic, carried forward)
 # ---------------------------------------------------------------------------
 
-class StartupManagerTests(unittest.TestCase):
 
+class StartupManagerTests(unittest.TestCase):
     def test_startup_manager_initializes_services_in_dependency_order(self):
         manager = StartupManager()
         manager._init_service_instance = MagicMock()
@@ -340,8 +361,8 @@ class StartupManagerTests(unittest.TestCase):
 # ServiceHealthMonitor tests (unchanged)
 # ---------------------------------------------------------------------------
 
-class ServiceMonitorTests(unittest.TestCase):
 
+class ServiceMonitorTests(unittest.TestCase):
     def test_service_monitor_registers_services(self):
         monitor = ServiceHealthMonitor()
         mock_service = MagicMock()

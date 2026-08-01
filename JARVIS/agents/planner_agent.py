@@ -7,11 +7,13 @@ The agent enforces a JSON response format.  If the LLM returns malformed
 JSON the planner falls back to a single-subtask plan so the pipeline can
 continue rather than aborting.
 """
+
 from __future__ import annotations
 
 import json
 import re
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from JARVIS.agents.agent_base import AgentBase, AgentError, AgentResult, AgentTask
 from JARVIS.core.system.utils.jarvis_logging import get_logger
@@ -51,11 +53,13 @@ def _extract_subtasks(text: str) -> list[dict[str, Any]]:
     # Normalise each entry
     normalised = []
     for i, st in enumerate(subtasks, start=1):
-        normalised.append({
-            "id": int(st.get("id", i)),
-            "title": str(st.get("title", f"Subtask {i}"))[:80],
-            "description": str(st.get("description", "")),
-        })
+        normalised.append(
+            {
+                "id": int(st.get("id", i)),
+                "title": str(st.get("title", f"Subtask {i}"))[:80],
+                "description": str(st.get("description", "")),
+            }
+        )
     return normalised
 
 
@@ -81,9 +85,7 @@ class PlannerAgent(AgentBase):
             err = str(exc)
             self._log_to_queue(task, err, "error", 0.0, model_used="unknown")
             logger.error("[PlannerAgent] LLM call failed: %s", err)
-            return AgentResult(
-                agent=self.name, status="error", output=err, error=err
-            )
+            return AgentResult(agent=self.name, status="error", output=err, error=err)
 
         # Try to parse the JSON plan
         try:
@@ -109,4 +111,3 @@ class PlannerAgent(AgentBase):
             elapsed_ms=elapsed,
             tokens_estimate=tokens,
         )
-

@@ -16,25 +16,39 @@ import os
 import re
 from typing import Any
 
-from JARVIS.core.system.utils.jarvis_logging import get_logger
+from JARVIS.core.software_engineering.agents.ai_ml_agent import AIMLAgent
 from JARVIS.core.software_engineering.agents.architect_agent import ArchitectAgent, ArchitectureSpec
 from JARVIS.core.software_engineering.agents.backend_agent import BackendAgent
-from JARVIS.core.software_engineering.agents.frontend_agent import FrontendAgent
-from JARVIS.core.software_engineering.agents.testing_agent import TestingAgent
-from JARVIS.core.software_engineering.agents.mobile_agent import MobileAgent
-from JARVIS.core.software_engineering.agents.ai_ml_agent import AIMLAgent
 from JARVIS.core.software_engineering.agents.debugger_agent import DebuggerAgent
-from JARVIS.core.software_engineering.agents.documentation_agent import DocumentationAgent
 from JARVIS.core.software_engineering.agents.devops_agent import DevOpsAgent
+from JARVIS.core.software_engineering.agents.documentation_agent import DocumentationAgent
+from JARVIS.core.software_engineering.agents.frontend_agent import FrontendAgent
+from JARVIS.core.software_engineering.agents.mobile_agent import MobileAgent
+from JARVIS.core.software_engineering.agents.testing_agent import TestingAgent
+from JARVIS.core.system.utils.jarvis_logging import get_logger
 
 logger = get_logger("se_orchestrator")
 
 SE_KEYWORDS = [
-    "build a web app", "create a website", "build an api", "create fastapi",
-    "create flask", "build a flutter app", "create mobile app", "build an ml model",
-    "train a model", "create ai pipeline", "debug this error", "analyze stack trace",
-    "generate tests", "write unit tests", "write readme", "generate api docs",
-    "dockerize project", "create dockerfile", "setup ci/cd"
+    "build a web app",
+    "create a website",
+    "build an api",
+    "create fastapi",
+    "create flask",
+    "build a flutter app",
+    "create mobile app",
+    "build an ml model",
+    "train a model",
+    "create ai pipeline",
+    "debug this error",
+    "analyze stack trace",
+    "generate tests",
+    "write unit tests",
+    "write readme",
+    "generate api docs",
+    "dockerize project",
+    "create dockerfile",
+    "setup ci/cd",
 ]
 
 
@@ -73,7 +87,10 @@ class SoftwareEngineeringOrchestrator:
         if any(kw in cmd for kw in SE_KEYWORDS):
             return True
         # Regex semantic classifier for app creation
-        if re.search(r"\b(build|create|generate|write|develop|setup)\b.*\b(app|website|api|model|test|docker|ci/cd|docs|readme|flutter|django|fastapi)\b", cmd):
+        if re.search(
+            r"\b(build|create|generate|write|develop|setup)\b.*\b(app|website|api|model|test|docker|ci/cd|docs|readme|flutter|django|fastapi)\b",
+            cmd,
+        ):
             return True
         return False
 
@@ -100,13 +117,13 @@ class SoftwareEngineeringOrchestrator:
                 "mobile": spec.mobile_stack,
                 "ml": spec.ml_stack,
                 "database": spec.database,
-                "auth": spec.auth_method
+                "auth": spec.auth_method,
             },
             "agents_run": ["architect_agent"],
             "files_generated": [
                 os.path.join(workspace_path, "architecture_spec.json"),
-                os.path.join(workspace_path, "folder_structure.txt")
-            ]
+                os.path.join(workspace_path, "folder_structure.txt"),
+            ],
         }
 
         # 2. BACKEND AGENT (FastAPI, Flask, etc.)
@@ -163,9 +180,7 @@ class SoftwareEngineeringOrchestrator:
         manifest["files_generated"].extend(docs_result.get("files", []))
 
         # Filter file paths to be relative to the workspace for clean UI output
-        relative_files = [
-            os.path.relpath(f, workspace_path) for f in manifest["files_generated"] if os.path.exists(f)
-        ]
+        relative_files = [os.path.relpath(f, workspace_path) for f in manifest["files_generated"] if os.path.exists(f)]
 
         agent_success_list = ", ".join(manifest["agents_run"])
 
@@ -173,8 +188,8 @@ class SoftwareEngineeringOrchestrator:
 
 ### 🛠️ Architecture & Tech Stack Selection
 - **Project Type:** {spec.project_type.upper()}
-- **Backend:** {spec.backend_stack or 'None'}
-- **Frontend:** {spec.frontend_stack or 'None'}
+- **Backend:** {spec.backend_stack or "None"}
+- **Frontend:** {spec.frontend_stack or "None"}
 - **Database:** {spec.database}
 - **Authentication:** {spec.auth_method}
 
@@ -183,7 +198,7 @@ All requested development tasks were delegated to the multi-agent cohort:
 - `{agent_success_list}`
 
 ### 📂 Workspace File Scaffold Complete ({len(relative_files)} files created)
-The project is available at: [workspace/{project_name}](file:///{workspace_path.replace(chr(92), '/')})
+The project is available at: [workspace/{project_name}](file:///{workspace_path.replace(chr(92), "/")})
 Key files generated:
 - `README.md` & `docs/API_DOCS.md`
 - `docker-compose.yml` & `devops/deploy.sh`
@@ -194,17 +209,13 @@ All files have been verified by the Debugger Agent with zero fatal syntax except
 
         return {
             "action": "se_scaffold",
-            "params": {
-                "project_name": project_name,
-                "workspace_path": workspace_path,
-                "files_count": len(relative_files)
-            },
+            "params": {"project_name": project_name, "workspace_path": workspace_path, "files_count": len(relative_files)},
             "response": response_summary,
             "explanation": {
                 "intent": f"Build software engineering project '{project_name}'",
                 "reasoning": f"Coordinated SE multi-agent execution pipeline across {len(manifest['agents_run'])} agents.",
                 "execution_plan": [f"Architect project '{project_name}'", "Generate source files", "Verify & Document"],
                 "result": "Success",
-                "confidence": 0.99
-            }
+                "confidence": 0.99,
+            },
         }

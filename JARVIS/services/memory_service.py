@@ -1,10 +1,8 @@
 """Memory Engine Service — Persistent heartbeat daemon with retry on transient load errors."""
 
-import os
+import logging
 import sys
 import time
-import json
-import logging
 
 logger = logging.getLogger("jarvis.memory_service")
 
@@ -22,6 +20,7 @@ def _start():
         try:
             # Import core memory modules — may fail transiently on first launch
             from JARVIS.core.memory import memory_preferences  # noqa: F401
+
             logger.info("[MEMORY] Memory backend initialised on attempt %d", _attempt)
             print(f"[MEMORY] Memory backend initialised (attempt {_attempt})", flush=True)
             break
@@ -29,11 +28,13 @@ def _start():
             if _attempt < _max_retries:
                 logger.warning(
                     "[MEMORY] Transient load error (attempt %d/%d): %s — retrying in %.1fs",
-                    _attempt, _max_retries, exc, _backoff,
+                    _attempt,
+                    _max_retries,
+                    exc,
+                    _backoff,
                 )
                 print(
-                    f"[MEMORY] Transient load error (attempt {_attempt}/{_max_retries}): {exc} "
-                    f"— retrying in {_backoff:.1f}s",
+                    f"[MEMORY] Transient load error (attempt {_attempt}/{_max_retries}): {exc} — retrying in {_backoff:.1f}s",
                     flush=True,
                 )
                 time.sleep(_backoff)

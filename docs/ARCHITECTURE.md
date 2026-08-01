@@ -1,89 +1,70 @@
-# HESA (JARVIS) System Architecture Specification
+# 🏛️ HESA Architecture & Design Specification
 
-This document details the multi-process architecture, process supervisor, voice pipeline, AI routing strategy, and state management of HESA (JARVIS).
+HESA (JARVIS) is designed as a multi-process, decoupled, event-driven desktop AI operating system.
 
 ---
 
-## 🏛️ Architectural Overview
-
-HESA (JARVIS) operates as an enterprise multi-process assistant system managed by a core Python Supervisor process.
+## 📐 High-Level Topology
 
 ```mermaid
-graph TB
-    subgraph Frontend Subsystem
-        GUI[PySide6 / QML Main Window]
-        Bridge[JarvisBridge QObject Signal Router]
-        Tray[SystemTrayManager]
-        GUI --- Bridge
-        GUI --- Tray
+graph TD
+    subgraph Core Process Management
+        A[jarvis.py] --> B[Supervisor Process]
     end
 
-    subgraph Process Supervisor Core
-        Supervisor[Process Supervisor Daemon]
-        Health[Health & Telemetry Monitor]
-        Supervisor --- Health
+    subgraph Managed Service Daemons
+        B --> C[QML GUI Dashboard]
+        B --> D[Voice Pipeline Daemon]
+        B --> E[Memory Engine Daemon]
+        B --> F[Automation Engine]
+        B --> G[Security Shield]
     end
 
-    subgraph Daemons & Subsystems
-        Voice[Voice Pipeline Daemon]
-        AI[AI Orchestrator Failover Router]
-        Memory[Multi-Tier Memory Engine]
-        Auto[Automation & Shell Executor]
-        Vision[OpenCV Vision Pipeline]
-        Sec[Cyber Security Shield]
+    subgraph Intelligent Routing
+        D -->|STT Text| H[Hybrid AI Router]
+        C -->|User Query| H
+        H --> I{AI Orchestrator}
+        I -->|Priority 1| J[Cloud LLMs: Gemini / Groq]
+        I -->|Priority 2| K[Local LLM: Ollama Phi-3]
+        I -->|Priority 3| L[Offline Rule Engine]
     end
 
-    Supervisor --> Frontend Subsystem
-    Supervisor --> Daemons & Subsystems
-
-    Voice <--> AI
-    AI <--> Memory
-    AI <--> Auto
-    Frontend Subsystem <--> Health
+    subgraph Speech Output
+        H -->|Response Text| M[Edge-TTS / PyTTSx3]
+        M --> N[Audio Output Devices]
+    end
 ```
 
 ---
 
-## 🛰️ Process Isolation & Single Instance Guard
+## 🧩 Subsystem Specifications
 
-1. **Named Mutex Lock**: The entry point `jarvis.py` requests `Local\JARVIS_GUI_SINGLETON_MUTEX_v2`. If another instance is running, it exits silently.
-2. **Socket Lock Guard**: Port `19106` is bound during GUI execution. Duplicate launch attempts detect the bound port and terminate immediately.
-3. **Supervisor Subprocess Management**: The supervisor launches background services using `pythonw.exe -m JARVIS.services.supervisor`, ensuring detached background execution without hanging shell windows.
+### 1. Main Controller (`jarvis.py`)
+- **Single-Instance Enforcement**: Windows Win32 Named Mutex (`Local\JARVIS_GUI_SINGLETON_MUTEX_v2`).
+- **Environment Validation**: Verifies Python version, dependency integrity, and `.env` presence.
+- **Process Orchestration**: Spawns and attaches to the Supervisor daemon.
 
----
+### 2. Supervisor Service (`JARVIS/services/supervisor.py`)
+- Monitors active child processes by PID.
+- Detects memory leak growth rates (>50 MB/min) and triggers auto-restarts.
+- Automatically handles safe-mode failover if a critical service crashes 3 times sequentially.
 
-## 🎙️ Voice & Audio Pipeline Architecture
+### 3. Voice Pipeline (`JARVIS/core/voice/`)
+- **Wake Word**: OpenWakeWord engine with custom ONNX model (`hey_jarvis`), running at ~10ms frame intervals.
+- **VAD**: Silero VAD for active speech detection.
+- **STT**: Faster-Whisper offline transcription engine.
+- **TTS**: Edge-TTS (online natural voice) falling back to pyttsx3 (offline SAPI5).
 
-```
-Microphone PCM Stream (16kHz, 16-bit mono)
-         │
-         ▼
-[OpenWakeWord ONNX Engine] ──(Detect "Hey JARVIS")──► [Barge-In Interrupt]
-         │
-         ▼
-[Silero VAD Pipeline] ──(Detect Speech End)──► [Faster-Whisper STT]
-                                                       │
-                                                       ▼
-                                            [Text Prompt to AI Router]
-                                                       │
-                                                       ▼
-[Audio Output Speakers] ◄──[Edge / pyttsx3 TTS] ◄──[AI Response Text]
-```
+### 4. Hybrid AI Router (`JARVIS/core/ai_router/`)
+- Evaluates incoming prompt complexity.
+- Routes queries through an adaptive cascade: Cloud API $\rightarrow$ Local Ollama $\rightarrow$ Deterministic local rules.
 
----
+### 5. Memory Engine (`memory_engine.py`)
+- **Tier 1 (Working)**: Fast JSON key-value working memory.
+- **Tier 2 (Long-term)**: SQLite 3 database for persistent notes and settings.
+- **Tier 3 (Semantic)**: Vector & Knowledge Graph semantic search index.
 
-## 🧠 Hybrid AI Failover Routing Strategy
-
-The `AIOrchestrator` determines response strategy based on query type, latency, and key availability:
-
-1. **Local Ollama Daemon**: Used if active and model `phi3:latest` is loaded.
-2. **Cloud APIs**: Switches to **Google Gemini** or **Groq** if cloud access is required or local daemon is busy.
-3. **Offline Rules Engine**: Fallback intent classifier for system execution commands when offline.
-
----
-
-## 🔐 Security & Sandbox Boundaries
-
-- **Key Encryptor**: Fernet encryption protects sensitive memory tokens.
-- **Permission Inspector**: Intercepts shell execution commands and verifies execution bounds.
-- **Plugin Sandbox**: Plugins execute in isolated subprocess contexts without direct main thread access.
+### 6. Security Shield (`JARVIS/core/security/`)
+- Fernet AES-128 key encryption for saved credentials.
+- Path traversal and dangerous command safety check layer.
+- Sandboxed plugin runtime environment.

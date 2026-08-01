@@ -390,9 +390,10 @@ class ActionDispatcherTest(unittest.TestCase):
     def test_whatsapp_uwp_launch_success(self):
         spoken = []
         logger = DummyLogger()
-        
+
         with patch("JARVIS.core.automation.domains.runtime_actions.webbrowser.open") as open_mock:
             from JARVIS.core.automation.domains.runtime_actions import launch_app
+
             result = launch_app("whatsapp", speak=spoken.append, logger=logger)
             self.assertTrue(result)
             open_mock.assert_called_once_with("whatsapp:")
@@ -456,7 +457,10 @@ class ActionDispatcherTest(unittest.TestCase):
 
         with (
             patch("JARVIS.core.automation.domains.memory_actions.get_top_habits", side_effect=[[("open chrome", 3)], []]),
-            patch("JARVIS.core.automation.domains.memory_actions.build_memory_health_report", return_value={"score": 82, "recommendation": "Healthy."}),
+            patch(
+                "JARVIS.core.automation.domains.memory_actions.build_memory_health_report",
+                return_value={"score": 82, "recommendation": "Healthy."},
+            ),
             patch("JARVIS.core.automation.domains.memory_actions.summarize_recent_activity", return_value="Recent activity summary."),
             patch("JARVIS.core.automation.domains.memory_actions.prune_memory", return_value={"notes": [1, 2], "habits": {"open": 1}}),
             patch("JARVIS.core.automation.domains.memory_actions.add_note") as add_note_mock,

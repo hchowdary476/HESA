@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import os
-import time
 import threading
+import time
 
 # Lazy loading variables and helpers
 OPENCV_AVAILABLE = None
@@ -17,16 +17,19 @@ _python = None
 _vision = None
 _pyautogui = None
 
+
 def _load_opencv():
     global OPENCV_AVAILABLE, _cv2
     if OPENCV_AVAILABLE is None:
         try:
             import cv2  # type: ignore
+
             _cv2 = cv2
             OPENCV_AVAILABLE = True
         except ImportError:
             OPENCV_AVAILABLE = False
     return OPENCV_AVAILABLE
+
 
 def _load_mediapipe():
     global MEDIAPIPE_AVAILABLE, _mp, _python, _vision
@@ -35,6 +38,7 @@ def _load_mediapipe():
             import mediapipe as mp  # type: ignore
             from mediapipe.tasks import python
             from mediapipe.tasks.python import vision
+
             _mp = mp
             _python = python
             _vision = vision
@@ -43,11 +47,13 @@ def _load_mediapipe():
             MEDIAPIPE_AVAILABLE = False
     return MEDIAPIPE_AVAILABLE
 
+
 def _load_pyautogui():
     global PYAUTOGUI_AVAILABLE, _pyautogui
     if PYAUTOGUI_AVAILABLE is None:
         try:
             import pyautogui  # type: ignore
+
             pyautogui.FAILSAFE = False
             _pyautogui = pyautogui
             PYAUTOGUI_AVAILABLE = True
@@ -112,11 +118,12 @@ class GestureController:
             num_hands=1,
             min_hand_detection_confidence=0.7,
             min_hand_presence_confidence=0.7,
-            min_tracking_confidence=0.7
+            min_tracking_confidence=0.7,
         )
         detector = _vision.HandLandmarker.create_from_options(options)
 
         from JARVIS.core.system.utils.camera_tracker import TrackedVideoCapture, has_higher_priority_owner
+
         cap = TrackedVideoCapture(0, owner="Gesture Engine")
 
         # Track cursor coordinates
@@ -145,7 +152,7 @@ class GestureController:
             # Convert to RGB for MediaPipe Tasks
             rgb_frame = _cv2.cvtColor(frame, _cv2.COLOR_BGR2RGB)
             mp_image = _mp.Image(image_format=_mp.ImageFormat.SRGB, data=rgb_frame)
-            
+
             # Detect
             detection_result = detector.detect(mp_image)
 
@@ -153,10 +160,7 @@ class GestureController:
             confidence = 0.0
 
             if detection_result.hand_landmarks:
-                for hand_landmarks, hand_info in zip(
-                    detection_result.hand_landmarks,
-                    detection_result.handedness
-                ):
+                for hand_landmarks, hand_info in zip(detection_result.hand_landmarks, detection_result.handedness):
                     confidence = hand_info[0].score * 100
                     landmarks = hand_landmarks
                     hand_label = hand_info[0].category_name
@@ -186,7 +190,7 @@ class GestureController:
                         get_dist(wrist, index_tip) > get_dist(wrist, index_pip),
                         get_dist(wrist, middle_tip) > get_dist(wrist, middle_pip),
                         get_dist(wrist, ring_tip) > get_dist(wrist, ring_pip),
-                        get_dist(wrist, pinky_tip) > get_dist(wrist, pinky_pip)
+                        get_dist(wrist, pinky_tip) > get_dist(wrist, pinky_pip),
                     ]
                     extended_count = sum(1 for f in fingers if f)
 
@@ -199,7 +203,7 @@ class GestureController:
 
                     # Determine and map actions
                     now = time.time()
-                    
+
                     if extended_count == 0:
                         gesture_label = "PAUSED (FIST)"
                     elif is_pinching:
@@ -215,6 +219,7 @@ class GestureController:
                                 self.app_instance.after(0, lambda: self.app_instance._on_activation_event("palm_gesture"))
                             # Call Python UI hook to launch OS dashboard
                             from JARVIS.gui.ui_jarvis_os import launch_os_window
+
                             launch_os_window()
                             self.cooldown_until = now + 2.0
                     elif extended_count == 1 and fingers[1]:
@@ -224,10 +229,10 @@ class GestureController:
                         if not initialized:
                             prev_x, prev_y = curr_x, curr_y
                             initialized = True
-                        
+
                         dx = curr_x - prev_x
                         dy = curr_y - prev_y
-                        
+
                         # Apply deadzone and sensitivity
                         if abs(dx) > 1 or abs(dy) > 1:
                             _pyautogui.moveRel(int(dx * self.sensitivity), int(dy * self.sensitivity))
@@ -245,12 +250,12 @@ class GestureController:
                     elif extended_count == 4 and not fingers[4]:
                         gesture_label = "MENU (4 FINGERS)"
                         if now > self.cooldown_until:
-                            _pyautogui.press('win')
+                            _pyautogui.press("win")
                             self.cooldown_until = now + 1.0
                     elif fingers[0] and extended_count == 1:
                         gesture_label = "CONFIRM (THUMB ONLY)"
                         if now > self.cooldown_until:
-                            _pyautogui.press('enter')
+                            _pyautogui.press("enter")
                             self.cooldown_until = now + 0.8
                     else:
                         gesture_label = f"UNKNOWN ({extended_count} FINGERS)"
@@ -266,7 +271,7 @@ class GestureController:
 
             # CV2 Keypress polling
             key = _cv2.waitKey(1) & 0xFF
-            if key == ord('q') or key == 27:  # q or ESC to stop
+            if key == ord("q") or key == 27:  # q or ESC to stop
                 break
 
         # Cleanup opencv windows and camera
@@ -278,12 +283,27 @@ class GestureController:
         """Draw holographic lines connecting joints."""
         # MediaPipe Connections
         connections = [
-            (0, 1), (1, 2), (2, 3), (3, 4),      # Thumb
-            (0, 5), (5, 6), (6, 7), (7, 8),      # Index
-            (9, 10), (10, 11), (11, 12),         # Middle
-            (13, 14), (14, 15), (15, 16),        # Ring
-            (0, 17), (17, 18), (18, 19), (19, 20),# Pinky
-            (5, 9), (9, 13), (13, 17)            # Palm base
+            (0, 1),
+            (1, 2),
+            (2, 3),
+            (3, 4),  # Thumb
+            (0, 5),
+            (5, 6),
+            (6, 7),
+            (7, 8),  # Index
+            (9, 10),
+            (10, 11),
+            (11, 12),  # Middle
+            (13, 14),
+            (14, 15),
+            (15, 16),  # Ring
+            (0, 17),
+            (17, 18),
+            (18, 19),
+            (19, 20),  # Pinky
+            (5, 9),
+            (9, 13),
+            (13, 17),  # Palm base
         ]
 
         # Draw lines
@@ -306,18 +326,9 @@ class GestureController:
         _cv2.rectangle(frame, (10, 10), (w - 10, h - 10), (255, 191, 0), 1)
 
         # Draw text panels
-        _cv2.putText(
-            frame, f"GESTURE: {label}", (15, 30),
-            _cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 255), 1, _cv2.LINE_AA
-        )
-        _cv2.putText(
-            frame, f"CONFIDENCE: {confidence:.1f}%", (15, 50),
-            _cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 127), 1, _cv2.LINE_AA
-        )
-        _cv2.putText(
-            frame, "JARVIS SYSTEM GESTURE HUD", (15, h - 15),
-            _cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 191, 255), 1, _cv2.LINE_AA
-        )
+        _cv2.putText(frame, f"GESTURE: {label}", (15, 30), _cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 255), 1, _cv2.LINE_AA)
+        _cv2.putText(frame, f"CONFIDENCE: {confidence:.1f}%", (15, 50), _cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 127), 1, _cv2.LINE_AA)
+        _cv2.putText(frame, "JARVIS SYSTEM GESTURE HUD", (15, h - 15), _cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 191, 255), 1, _cv2.LINE_AA)
 
 
 # Singleton instance

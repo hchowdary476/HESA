@@ -4,18 +4,17 @@ Manages JARVIS speech output with lazy loading for fast startup.
 """
 
 import asyncio
-import io
+import ctypes
 import os
 import tempfile
-import ctypes
-import time
 import threading
+import time
+
+from JARVIS.core.system.utils.jarvis_logging import get_file_logger
 
 # Lazy import edge_tts to avoid 1.7s startup penalty
 # import edge_tts  # REMOVED - now lazy loaded
-
 from JARVIS.runtime.ui_bridge import send_log, send_state
-from JARVIS.core.system.utils.jarvis_logging import get_file_logger
 
 VOICE = "en-GB-RyanNeural"  # Closest to Iron Man JARVIS voice
 RATE = "-8%"
@@ -26,16 +25,16 @@ _tts_logger = get_file_logger("jarvis.tts")
 
 def _play_mp3_mci(filepath: str):
     """Play an MP3 file using the Windows MCI interface, with cross-platform fallback."""
-    if os.name == 'nt':
+    if os.name == "nt":
         try:
             buf = ctypes.create_unicode_buffer(260)
             ctypes.windll.kernel32.GetShortPathNameW(filepath, buf, 260)
             short_path = buf.value
-            
+
             # Stop and close any previous instance
             ctypes.windll.winmm.mciSendStringW("stop jarvis_tts", None, 0, 0)
             ctypes.windll.winmm.mciSendStringW("close jarvis_tts", None, 0, 0)
-            
+
             # Open, play, and close
             ctypes.windll.winmm.mciSendStringW(f"open {short_path} alias jarvis_tts", None, 0, 0)
             ctypes.windll.winmm.mciSendStringW("play jarvis_tts wait", None, 0, 0)
@@ -47,6 +46,7 @@ def _play_mp3_mci(filepath: str):
         # Non-Windows fallback (e.g. using pygame if imported)
         try:
             import pygame
+
             pygame.mixer.init()
             pygame.mixer.music.load(filepath)
             pygame.mixer.music.play()
@@ -69,6 +69,7 @@ class VoiceEngine:
 
     def _init_engine(self):
         import queue
+
         self.queue = queue.Queue()
         self.worker_thread = None
         self.is_running = False
@@ -76,12 +77,12 @@ class VoiceEngine:
         self.pid = os.getpid()
         self.current_speaker = "en-GB-RyanNeural"
         self.listener_state = "STANDBY"
-        
+
         # Kill duplicate instances is handled via PortManager lock; commenting out to prevent circular SIGTERM loops
         # import sys
         # if any("voice_service" in arg or "voice_engine" in arg for arg in sys.argv):
         #     self.terminate_duplicate_voice_services()
-        
+
         # Start worker thread
         self.start_worker()
         self.write_diagnostics()
@@ -89,15 +90,20 @@ class VoiceEngine:
     def terminate_duplicate_voice_services(self):
         try:
             import psutil
+
             current_pid = os.getpid()
-            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            for proc in psutil.process_iter(["pid", "name", "cmdline"]):
                 try:
                     if proc.pid == current_pid:
                         continue
-                    cmdline = proc.info.get('cmdline')
+                    cmdline = proc.info.get("cmdline")
                     if cmdline:
                         cmd_str = " ".join(cmdline).lower()
-                        if "jarvis.services.voice_service" in cmd_str or "jarvis.services.voice_engine" in cmd_str or "listener_service.py" in cmd_str:
+                        if (
+                            "jarvis.services.voice_service" in cmd_str
+                            or "jarvis.services.voice_engine" in cmd_str
+                            or "listener_service.py" in cmd_str
+                        ):
                             proc.terminate()
                             try:
                                 proc.wait(timeout=0.5)
@@ -123,14 +129,13 @@ class VoiceEngine:
         with self.queue.mutex:
             self.queue.queue.clear()
         self.speaking = False
-        if os.name == 'nt':
+        if os.name == "nt":
             try:
                 ctypes.windll.winmm.mciSendStringW("stop jarvis_tts", None, 0, 0)
                 ctypes.windll.winmm.mciSendStringW("close jarvis_tts", None, 0, 0)
             except Exception:
                 pass
         self.write_diagnostics()
-
 
     def set_listener_state(self, state: str):
         if self.listener_state == state:
@@ -151,10 +156,11 @@ class VoiceEngine:
 
             try:
                 from JARVIS.core.system.utils.activity_tracker import set_activity
+
                 set_activity("tts_playback", True)
                 try:
-                    from JARVIS.core.system.utils.telugu_formatter import format_telugu_response, contains_telugu_script, detect_language
                     from JARVIS.core.memory.memory_short_term import get_short_term
+                    from JARVIS.core.system.utils.telugu_formatter import contains_telugu_script, detect_language, format_telugu_response
 
                     last_user_cmd = ""
                     try:
@@ -166,7 +172,7 @@ class VoiceEngine:
                         pass
 
                     text = format_telugu_response(text, last_user_cmd)
-                    
+
                     if contains_telugu_script(text) or detect_language(text) == "telugu":
                         self.current_speaker = "te-IN-MohanNeural"
                     else:
@@ -177,9 +183,10 @@ class VoiceEngine:
                     print(f"HESA: {text}")
                     print("[VOICE] TTS RESPONSE GENERATED")
                     import logging
+
                     logging.getLogger("jarvis.voice").info("Voice response generated")
                     logging.getLogger("jarvis.voice").info("TTS RESPONSE GENERATED")
-                    
+
                     self.write_diagnostics()
                     print("[VOICE] TTS STARTED", flush=True)
                     print("[TTS] TTS STARTED", flush=True)
@@ -210,14 +217,17 @@ class VoiceEngine:
         Can never silently fail — Windows SAPI is the guaranteed hard fallback.
         """
         import time as _ttime
+
         from JARVIS.core.voice.pronunciation_engine import get_pronunciation_engine
+
         p_engine = get_pronunciation_engine()
 
         # Priority 1: Edge TTS
         try:
             import edge_tts
+
             _t0 = _ttime.perf_counter()
-            
+
             debug_info = p_engine.process_for_tts_debug(text, provider="edge")
             payload = debug_info["final_text_sent_to_tts"]
             is_ssml = debug_info.get("ssml_generated", False) or payload.strip().startswith("<speak")
@@ -239,8 +249,10 @@ class VoiceEngine:
                 if is_ssml:
                     fallback_text = p_engine.process_for_tts(text, provider="edge_fallback")
                     if not fallback_text or "<" in fallback_text:
-                        fallback_text = re.sub(r'<[^>]+>', '', payload).strip()
-                    _tts_logger.warning("[TTS FALLBACK] Edge TTS SSML failed (%s). Retrying with plain spoken form: %r", stream_err, fallback_text)
+                        fallback_text = re.sub(r"<[^>]+>", "", payload).strip()
+                    _tts_logger.warning(
+                        "[TTS FALLBACK] Edge TTS SSML failed (%s). Retrying with plain spoken form: %r", stream_err, fallback_text
+                    )
                     print(f"[TTS FALLBACK] Retrying Edge TTS with plain spoken form: {fallback_text}", flush=True)
 
                     communicate = edge_tts.Communicate(fallback_text, voice=voice, rate=RATE, pitch=PITCH)
@@ -269,20 +281,24 @@ class VoiceEngine:
                     pass
         except Exception as e:
             import logging
+
             _tts_logger.warning("[TTS] FAILED backend=EDGE error=%s: %s", type(e).__name__, e)
             logging.getLogger("jarvis.voice").warning("Edge TTS failed, falling back to pyttsx3: %s", e)
 
         # Priority 2: pyttsx3
         try:
             import pyttsx3
+
             _t0 = _ttime.perf_counter()
             _tts_logger.info("[TTS] TRYING pyttsx3")
             print("[TTS] USING PYTTSX3", flush=True)
             tts_text_plain = p_engine.process_for_tts(text, provider="pyttsx3")
+
             def run_pyttsx3():
                 engine = pyttsx3.init()
                 engine.say(tts_text_plain)
                 engine.runAndWait()
+
             await asyncio.to_thread(run_pyttsx3)
             _lat = (_ttime.perf_counter() - _t0) * 1000
             _tts_logger.info("[TTS] COMPLETED backend=PYTTSX3 latency=%.0fms", _lat)
@@ -290,12 +306,14 @@ class VoiceEngine:
             return
         except Exception as e:
             import logging
+
             _tts_logger.warning("[TTS] FAILED backend=PYTTSX3 error=%s: %s", type(e).__name__, e)
             logging.getLogger("jarvis.voice").warning("pyttsx3 failed, falling back to gTTS: %s", e)
 
         # Priority 3: gTTS
         try:
             from gtts import gTTS
+
             _t0 = _ttime.perf_counter()
             _tts_logger.info("[TTS] TRYING gTTS")
             print("[TTS] USING GTTS", flush=True)
@@ -317,6 +335,7 @@ class VoiceEngine:
                     pass
         except Exception as e:
             import logging
+
             _tts_logger.warning("[TTS] FAILED backend=GTTS error=%s: %s", type(e).__name__, e)
             logging.getLogger("jarvis.voice").error("gTTS failed: %s", e)
 
@@ -326,9 +345,10 @@ class VoiceEngine:
         print("[TTS] USING WINDOWS SAPI FALLBACK", flush=True)
         try:
             import subprocess
+
             tts_text_sapi = p_engine.process_for_tts(text, provider="sapi")
             # Escape single quotes in text for PowerShell
-            safe_text = tts_text_sapi.replace("'", "''").replace('"', '')
+            safe_text = tts_text_sapi.replace("'", "''").replace('"', "")
             ps_cmd = (
                 f"Add-Type -AssemblyName System.Speech; "
                 f"$s = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
@@ -352,8 +372,9 @@ class VoiceEngine:
         event.wait()
 
     def write_diagnostics(self):
-        import sys
         import json
+        import sys
+
         # Only write diagnostics if we are the voice service or main jarvis process
         if not any("voice_service" in arg or "voice_engine" in arg or "jarvis" in arg for arg in sys.argv):
             return
@@ -362,23 +383,28 @@ class VoiceEngine:
         diag_path = os.path.join(diag_dir, "voice_diagnostics.json")
         try:
             with open(diag_path, "w") as f:
-                json.dump({
-                    "status": "HEALTHY" if self.is_running else "OFFLINE",
-                    "pid": self.pid,
-                    "speaker": self.current_speaker,
-                    "queue_length": self.queue.qsize(),
-                    "speaking_state": "SPEAKING" if self.speaking else "STANDBY",
-                    "listener_state": self.listener_state
-                }, f)
+                json.dump(
+                    {
+                        "status": "HEALTHY" if self.is_running else "OFFLINE",
+                        "pid": self.pid,
+                        "speaker": self.current_speaker,
+                        "queue_length": self.queue.qsize(),
+                        "speaking_state": "SPEAKING" if self.speaking else "STANDBY",
+                        "listener_state": self.listener_state,
+                    },
+                    f,
+                )
         except Exception:
             pass
 
-
     # ── Backward Compatibility Helpers ──
+
+
 async def _speak_async(text: str, voice: str | None = None):
     """Asynchronous module-level speak function matching legacy test footprints."""
     if voice is None:
         from JARVIS.core.system.utils.telugu_formatter import contains_telugu_script, detect_language
+
         if contains_telugu_script(text) or detect_language(text) == "telugu":
             voice = "te-IN-MohanNeural"
         else:
@@ -398,4 +424,3 @@ def stop_playback():
 
 if __name__ == "__main__":
     speak("All systems online. Hesa is ready, sir.")
-

@@ -6,10 +6,10 @@ import os
 
 import speech_recognition as sr
 
-from JARVIS.core.voice.speech_backend import recognition_mode, transcribe_audio
-from JARVIS.core.system.observability import record_runtime_event
-from JARVIS.runtime.ui_bridge import send_state
 from JARVIS.core.security.jarvis_admin import format_actionable_message
+from JARVIS.core.system.observability import record_runtime_event
+from JARVIS.core.voice.speech_backend import recognition_mode, transcribe_audio
+from JARVIS.runtime.ui_bridge import send_state
 
 _cmd_recognizer = sr.Recognizer()
 _cmd_recognizer.energy_threshold = int(os.getenv("JARVIS_ENERGY_THRESHOLD", "300"))
@@ -23,15 +23,19 @@ def listen_for_command(*, logger, send_log, speak) -> str:
     logger.info("[VOICE_STAGE_9] Command listener entered")
 
     import time
+
     from JARVIS.core.voice.ses_motoru import VoiceEngine
+
     while VoiceEngine().speaking:
         time.sleep(0.2)
 
     from JARVIS.core.system.utils.activity_tracker import set_activity
+
     set_activity("voice_recognition", True)
     try:
         try:
             from JARVIS.core.voice.microphone import SoundDeviceMicrophone
+
             with SoundDeviceMicrophone() as source:
                 logger.info("Microphone detected")
                 logger.info("Listening started")
@@ -52,6 +56,7 @@ def listen_for_command(*, logger, send_log, speak) -> str:
 
         try:
             from JARVIS.core.memory.memory_preferences import get_preference
+
             pref_lang = get_preference("preferred_language")
             lang_code = "te-IN" if pref_lang == "telugu" else "en-US"
             command = transcribe_audio(_cmd_recognizer, audio, language=lang_code)

@@ -9,10 +9,11 @@ The Coding Agent:
   - Falls back to the full response text if no fence is found.
   - Stores both the raw LLM response and the extracted code in AgentResult.
 """
+
 from __future__ import annotations
 
 import re
-from typing import Any, Callable
+from collections.abc import Callable
 
 from JARVIS.agents.agent_base import AgentBase, AgentError, AgentResult, AgentTask
 from JARVIS.core.system.utils.jarvis_logging import get_logger
@@ -70,16 +71,15 @@ class CodingAgent(AgentBase):
         self._emit_progress(f"Writing code for: {subtask_title}…")
         logger.info(
             "[CodingAgent] run_id=%s step=%d subtask=%r",
-            task.run_id, task.step, task.description[:80],
+            task.run_id,
+            task.step,
+            task.description[:80],
         )
 
         # Build a focused prompt from the subtask + any error context
         user_prompt = task.description
         if task.context:
-            user_prompt = (
-                f"Subtask:\n{task.description}\n\n"
-                f"Additional context / previous error to fix:\n{task.context}"
-            )
+            user_prompt = f"Subtask:\n{task.description}\n\nAdditional context / previous error to fix:\n{task.context}"
 
         model_used = "unknown"
         try:
@@ -88,9 +88,7 @@ class CodingAgent(AgentBase):
             err = str(exc)
             self._log_to_queue(task, err, "error", 0.0, model_used="unknown")
             logger.error("[CodingAgent] LLM call failed: %s", err)
-            return AgentResult(
-                agent=self.name, status="error", output=err, error=err
-            )
+            return AgentResult(agent=self.name, status="error", output=err, error=err)
 
         code = _extract_code(response)
         self._emit_progress(f"Code generated ({len(code)} chars). Handing off to Testing Agent…")
@@ -101,8 +99,7 @@ class CodingAgent(AgentBase):
             agent=self.name,
             status="success",
             output=response,
-            parsed=code,          # extracted code string
+            parsed=code,  # extracted code string
             elapsed_ms=elapsed,
             tokens_estimate=tokens,
         )
-

@@ -4,26 +4,24 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from JARVIS.core.automation import groq_router
 from JARVIS.config.manager import ConfigManager
 from JARVIS.config.paths import ConfigPaths
+from JARVIS.core.automation import groq_router
 from JARVIS.core.memory import build_context_prompt
 from JARVIS.core.memory.controls import MemoryControlService
 from JARVIS.core.memory.memory_habits import get_top_habits
 from JARVIS.core.memory.memory_notes import add_note, get_notes
 from JARVIS.core.memory.memory_preferences import get_preference
 from JARVIS.core.memory.privacy_mode import memory_reads_enabled, memory_writes_enabled
+
+
 class MemoryPanelModel:
     def __init__(self, service):
         self.service = service
 
     def view_model(self):
         view = self.service.view_memory()
-        return {
-            "counts": {
-                "notes": len(view["notes"])
-            }
-        }
+        return {"counts": {"notes": len(view["notes"])}}
 
     def delete_note(self, index):
         return self.service.delete_note(index)

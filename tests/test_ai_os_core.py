@@ -1,20 +1,18 @@
 """Unit and integration tests for JARVIS AI Operating System (AI OS 3.0)."""
 
 import os
-import json
-import time
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-from JARVIS.core.system.cognitive_core import CognitiveCore
-from JARVIS.core.security.safety_layer import AISafetyLayer
-from JARVIS.core.memory.knowledge_graph import KnowledgeGraph
-from JARVIS.core.learning.learning_engine import PersonalLearningEngine
-from JARVIS.core.system.predictive_intelligence import PredictiveIntelligence
 from JARVIS.core.ai_router.multi_agent_system import AgentManager
+from JARVIS.core.learning.learning_engine import PersonalLearningEngine
+from JARVIS.core.memory.knowledge_graph import KnowledgeGraph
+from JARVIS.core.ml.ml_center import MLCenter
+from JARVIS.core.security.safety_layer import AISafetyLayer
+from JARVIS.core.system.cognitive_core import CognitiveCore
+from JARVIS.core.system.predictive_intelligence import PredictiveIntelligence
 from JARVIS.core.system.task_planner import TaskPlanner
 from JARVIS.core.system.workflow_builder import WorkflowBuilder
-from JARVIS.core.ml.ml_center import MLCenter
 
 
 class TestAIOSCore(unittest.TestCase):
@@ -42,7 +40,7 @@ class TestAIOSCore(unittest.TestCase):
             self.kg.graph_path,
             self.learning.learning_data_path,
             self.predictor.prediction_path,
-            self.ml.experiments_path
+            self.ml.experiments_path,
         ]:
             if os.path.exists(p):
                 try:
@@ -53,7 +51,7 @@ class TestAIOSCore(unittest.TestCase):
     def test_cognitive_core_routing(self) -> None:
         """Test Cognitive Core request coordinator routing."""
         core = CognitiveCore()
-        
+
         # Mock orchestrator failover query
         with patch.object(core.orchestrator, "query_with_failover", return_value="Test response from AI OS."):
             res = core.process_request("hello jarvis")
@@ -65,7 +63,7 @@ class TestAIOSCore(unittest.TestCase):
     def test_safety_rate_limiting_and_confirmation(self) -> None:
         """Test rate limit checks, sensitive action triggers, and file rollback creation."""
         self.safety.request_timestamps.clear()
-        
+
         # Test rate limiting enqueues (threshold is 15)
         for _ in range(15):
             self.assertFalse(self.safety.is_rate_limited())
@@ -86,22 +84,22 @@ class TestAIOSCore(unittest.TestCase):
         test_file = "logs/test_dummy_file.txt"
         with open(test_file, "w") as f:
             f.write("Original content")
-        
+
         r_id = self.safety.create_rollback_point(test_file, "Pre-test backup")
         self.assertIsNotNone(r_id)
-        
+
         # Modify file
         with open(test_file, "w") as f:
             f.write("Modified content")
-            
+
         # Rollback
         success = self.safety.rollback(r_id)
         self.assertTrue(success)
-        
-        with open(test_file, "r") as f:
+
+        with open(test_file) as f:
             content = f.read()
         self.assertEqual(content, "Original content")
-        
+
         if os.path.exists(test_file):
             os.remove(test_file)
 
@@ -135,9 +133,9 @@ class TestAIOSCore(unittest.TestCase):
                 ram=30.0,
                 disk=40.0,
                 battery=80.0 - (5.0 * i),  # steep drop
-                net_kbps=10.0
+                net_kbps=10.0,
             )
-        
+
         preds = self.predictor.get_predictions()
         self.assertIn("alerts", preds)
         self.assertTrue(len(preds["alerts"]) > 0)
@@ -150,9 +148,10 @@ class TestAIOSCore(unittest.TestCase):
 
         agent = self.agent_mgr.get_agent(agent_key)
         self.assertIsNotNone(agent)
-        
+
         # Enqueue task
         task_report = None
+
         def _callback(r):
             nonlocal task_report
             task_report = r
@@ -168,7 +167,7 @@ class TestAIOSCore(unittest.TestCase):
         """Test task decomposition planner and workflow execution."""
         plan_id = self.planner.create_plan("Prepare my development environment")
         self.assertIsNotNone(plan_id)
-        
+
         plan = self.planner.get_plan_status(plan_id)
         self.assertEqual(len(plan["subtasks"]), 4)
         self.assertEqual(plan["status"], "QUEUED")

@@ -2,13 +2,14 @@
 
 import os
 import re
+
 from JARVIS.core.memory.memory_preferences import get_preference, set_preference
 
 TELUGU_WORDS = {
     "entha", "cheyyi", "teruvu", "pettukunnanu", "unnanu", "pettuko",
     "samayam", "eppudu", "ippudu", "sare", "avunu", "kosam", "ippude",
     "konchem", "cheyyaku", "cheyaku", "undhi", "undi", "chestunnanu",
-    "nanna", "amma", "em chestunnav", "bagunnava", "ledu", "lanti",
+    "nanna", "amma", "em", "chestunnav", "chestunnavu", "bagunnava", "ledu", "lanti",
     "kooda", "cheyyandi", "chesi", "choodu", "chudu", "pettuko", "unnayi",
     "unnam", "cheppu", "ante", "enti", "yenti", "chey"
 }
@@ -46,9 +47,11 @@ TELUGU_SCRIPT_MAP = {
     "play": "ప్లే",
 }
 
+
 def contains_telugu_script(text: str) -> bool:
     """Return True if text contains Telugu Unicode characters."""
-    return any(ord(char) >= 0x0c00 and ord(char) <= 0x0c7f for char in text)
+    return any(ord(char) >= 0x0C00 and ord(char) <= 0x0C7F for char in text)
+
 
 def detect_language(command: str) -> str:
     """Detect if the command is Telugu or English."""
@@ -62,6 +65,7 @@ def detect_language(command: str) -> str:
             return "telugu"
     return "english"
 
+
 def translate_to_telugu_script(text: str) -> str:
     """Convert transliterated Telugu to Telugu script based on mapping."""
     words = text.split()
@@ -71,13 +75,14 @@ def translate_to_telugu_script(text: str) -> str:
         clean_word = re.sub(r"[^\w]", "", word).lower()
         punctuation_before = re.match(r"^[^\w]*", word).group(0)
         punctuation_after = re.search(r"[^\w]*$", word).group(0)
-        
+
         if clean_word in TELUGU_SCRIPT_MAP:
             converted = TELUGU_SCRIPT_MAP[clean_word]
             converted_words.append(f"{punctuation_before}{converted}{punctuation_after}")
         else:
             converted_words.append(word)
     return " ".join(converted_words)
+
 
 def format_telugu_response(text: str, user_command: str = "") -> str:
     """Format an English response into conversational Telugu if the preferred language is Telugu."""
@@ -92,6 +97,9 @@ def format_telugu_response(text: str, user_command: str = "") -> str:
 
     # If the user speaks pure English, bypass translation and respond in English.
     if user_command and detect_language(user_command) == "english":
+        lang_mode = get_preference("language_mode") or "auto"
+        if lang_mode == "auto":
+            set_preference("preferred_language", "english")
         return text
 
     # Apply formatting mappings for common template strings
@@ -100,7 +108,10 @@ def format_telugu_response(text: str, user_command: str = "") -> str:
     formatted = cleaned
 
     # 1. Startup / Greetings
-    if any(phrase in lowered for phrase in ["good day", "good morning", "all systems online", "systems are ready", "hesa is ready", "systems are operational"]):
+    if any(
+        phrase in lowered
+        for phrase in ["good day", "good morning", "all systems online", "systems are ready", "hesa is ready", "systems are operational"]
+    ):
         formatted = "Namaskaram sir. HESA siddhanga undi. Mee commands kosam ready ga unnanu sir."
     # 2. Confirmations / Tasks
     elif any(phrase in lowered for phrase in ["task completed", "command completed", "successfully completed"]):
@@ -157,14 +168,15 @@ def format_telugu_response(text: str, user_command: str = "") -> str:
     # If the user typed in Telugu script, convert transliterated output to Telugu script
     if user_command and contains_telugu_script(user_command):
         formatted = translate_to_telugu_script(formatted)
-        
+
     return formatted
+
 
 def translate_telugu_script_to_transliteration(command: str) -> str:
     """Convert common Telugu script phrases to transliterated text for routing."""
     if not contains_telugu_script(command):
         return command
-        
+
     trans_map = {
         "సమయం ఎంత": "time entha",
         "టైం ఎంత": "time entha",
@@ -184,13 +196,14 @@ def translate_telugu_script_to_transliteration(command: str) -> str:
         "ఏం చేస్తున్నావు": "em chestunnav",
         "బాగున్నావా": "bagunnava",
         "థాంక్స్": "thanks",
-        "ధన్యవాదాలు": "thanks"
+        "ధన్యవాదాలు": "thanks",
     }
-    
+
     cmd = command
     for script, trans in trans_map.items():
         cmd = cmd.replace(script, trans)
     return cmd
+
 
 def normalize_telugu_command(command: str) -> str:
     """Normalize and convert Telugu/mixed commands to equivalent English commands."""
@@ -198,33 +211,34 @@ def normalize_telugu_command(command: str) -> str:
     cmd = cmd.lower().strip()
     cmd = re.sub(r"\b(jarvis|hesa)\b", "", cmd).strip()
     cmd = re.sub(r"[?!.]", "", cmd).strip()
-    
+
     if cmd in ["em chestunnav", "em chestunnavu"]:
         return "what are you doing"
     if cmd in ["bagunnava", "bagunnara"]:
         return "how are you"
     if cmd in ["thanks", "thank you", "dhanyavadalu"]:
         return "thanks"
-        
+
     if "time entha" in cmd or "samayam entha" in cmd or "time cheppu" in cmd:
         return "what time"
     if "battery entha" in cmd or "battery entha undi" in cmd or "naa battery entha undi" in cmd:
         return "battery status"
-        
+
     action_words = r"(open cheyyi|teruvu|start cheyyi|run cheyyi|launch cheyyi|open chey|terava|start chey|run chey|launch chey)"
     match = re.search(r"(.+?)\s+" + action_words, cmd)
     if match:
         target = match.group(1).strip()
         return f"open {target}"
-        
+
     match_play = re.search(r"(.+?)\s+(play cheyyi|play chey|vinipinchu)", cmd)
     if match_play:
         target = match_play.group(1).strip()
         if target in ["song", "music", "patalu", "pata"]:
             return "play music"
         return f"play {target} on spotify"
-        
+
     return cmd
+
 
 def get_similarity_score(str1: str, str2: str) -> float:
     """Compute lightweight Jaccard similarity score between two command strings."""
@@ -236,17 +250,18 @@ def get_similarity_score(str1: str, str2: str) -> float:
         return 0.0
     intersection = w1.intersection(w2)
     union = w1.union(w2)
-    
+
     jaccard = len(intersection) / len(union)
-    
+
     s1_clean = " ".join(re.findall(r"\w+", str1.lower()))
     s2_clean = " ".join(re.findall(r"\w+", str2.lower()))
     if s1_clean and s2_clean:
         if s1_clean in s2_clean or s2_clean in s1_clean:
             len_ratio = min(len(s1_clean), len(s2_clean)) / max(len(s1_clean), len(s2_clean))
             return max(jaccard, 0.5 + 0.5 * len_ratio)
-            
+
     return jaccard
+
 
 def match_telugu_intent(command: str) -> dict | None:
     """
@@ -254,65 +269,50 @@ def match_telugu_intent(command: str) -> dict | None:
     confidence scoring, and context memory checks.
     """
     import json
+
     from JARVIS.core.memory.memory_preferences import get_preference, set_preference
-    
+
     # 1. Check/Load Learned Mappings from learning_memory.json
     learned_path = os.path.join("knowledge", "telugu", "learning_memory.json")
     learned_cmds = {}
     if os.path.exists(learned_path):
         try:
-            with open(learned_path, "r", encoding="utf-8") as f:
+            with open(learned_path, encoding="utf-8") as f:
                 learned_cmds = json.load(f)
         except Exception:
             pass
-            
+
     # Merge learned_commands from preferences
     pref_learned = get_preference("learned_commands") or {}
     learned_cmds.update(pref_learned)
-    
+
     # Check exact match on learned commands first
     norm_cmd = command.lower().strip()
     if norm_cmd in learned_cmds:
-        return {
-            "intent": "learned_command",
-            "target": learned_cmds[norm_cmd],
-            "confidence": 1.0
-        }
-        
+        return {"intent": "learned_command", "target": learned_cmds[norm_cmd], "confidence": 1.0}
+
     # Check fuzzy match on learned commands
     best_match = None
     best_score = 0.0
     best_target = None
-    
+
     for l_cmd, target in learned_cmds.items():
         score = get_similarity_score(norm_cmd, l_cmd)
         if score > best_score:
             best_score = score
             best_match = l_cmd
             best_target = target
-            
+
     if best_score >= 0.8:
-        return {
-            "intent": "learned_command",
-            "target": best_target,
-            "confidence": best_score
-        }
+        return {"intent": "learned_command", "target": best_target, "confidence": best_score}
 
     # 2. Check Context Memory (Enhancement)
     last_context = get_preference("last_telugu_context")
     if norm_cmd in {"enti", "yenti", "yento", "ento", "enti sir", "cheppu"}:
         if last_context == "battery":
-            return {
-                "intent": "system_query",
-                "target": "battery status",
-                "confidence": 0.95
-            }
+            return {"intent": "system_query", "target": "battery status", "confidence": 0.95}
         elif last_context == "time":
-            return {
-                "intent": "system_query",
-                "target": "what time",
-                "confidence": 0.95
-            }
+            return {"intent": "system_query", "target": "what time", "confidence": 0.95}
 
     # 3. Load all Telugu KB files
     kb_files = {
@@ -320,22 +320,22 @@ def match_telugu_intent(command: str) -> dict | None:
         "greetings.json": "greeting",
         "daily_conversations.json": "conversational",
         "technology.json": "technology",
-        "education.json": "education"
+        "education.json": "education",
     }
-    
+
     best_kb_match = None
     best_kb_score = 0.0
     best_kb_ans = None
     best_kb_type = None
-    
+
     for filename, kb_type in kb_files.items():
         path = os.path.join("knowledge", "telugu", filename)
         if not os.path.exists(path):
             continue
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 db = json.load(f)
-                
+
             for query, response in db.items():
                 score = get_similarity_score(norm_cmd, query)
                 if score > best_kb_score:
@@ -345,25 +345,17 @@ def match_telugu_intent(command: str) -> dict | None:
                     best_kb_type = kb_type
         except Exception:
             pass
-            
+
     if best_kb_score >= 0.60:
         # Save active context
         if "battery" in best_kb_match:
             set_preference("last_telugu_context", "battery")
         elif "time" in best_kb_match or "samayam" in best_kb_match:
             set_preference("last_telugu_context", "time")
-            
+
         if best_kb_type == "system_command":
-            return {
-                "intent": "system_query",
-                "target": best_kb_ans,
-                "confidence": best_kb_score
-            }
+            return {"intent": "system_query", "target": best_kb_ans, "confidence": best_kb_score}
         else:
-            return {
-                "intent": "talk",
-                "target": best_kb_ans,
-                "confidence": best_kb_score
-            }
-            
+            return {"intent": "talk", "target": best_kb_ans, "confidence": best_kb_score}
+
     return None

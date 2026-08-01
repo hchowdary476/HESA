@@ -48,8 +48,8 @@ class EnvironmentValidator:
     def validate_all(self) -> bool:
         """Run all validation checks.  Returns True iff no blocking errors."""
         self._validate_python_version()
-        self._validate_venv()           # uses venv_resolver singleton
-        self._validate_dependencies()   # per-package, individual errors
+        self._validate_venv()  # uses venv_resolver singleton
+        self._validate_dependencies()  # per-package, individual errors
         self._validate_config_files()
         self._validate_ai_providers()
         self._validate_voice_config()
@@ -60,13 +60,13 @@ class EnvironmentValidator:
     def get_report(self) -> dict:
         """Return a structured validation report dict."""
         return {
-            "valid":          len(self.errors) == 0,
-            "errors":         list(self.errors),
-            "warnings":       list(self.warnings),
-            "venv_source":    self.resolved_env.source,
-            "venv_root":      str(self.resolved_env.venv_root or "N/A"),
-            "python_exe":     self.resolved_env.python_exe,
-            "venv_created":   self.resolved_env.created,
+            "valid": len(self.errors) == 0,
+            "errors": list(self.errors),
+            "warnings": list(self.warnings),
+            "venv_source": self.resolved_env.source,
+            "venv_root": str(self.resolved_env.venv_root or "N/A"),
+            "python_exe": self.resolved_env.python_exe,
+            "venv_created": self.resolved_env.created,
         }
 
     # ------------------------------------------------------------------ #
@@ -102,23 +102,15 @@ class EnvironmentValidator:
         if env.venv_root is not None:
             venv_dir = Path(env.venv_root)
             if not venv_dir.exists():
-                self.errors.append(
-                    f"Virtual environment directory not found: {venv_dir}\n"
-                    f"  (resolved from: {env.source})"
-                )
+                self.errors.append(f"Virtual environment directory not found: {venv_dir}\n  (resolved from: {env.source})")
                 return
             if not (venv_dir / "pyvenv.cfg").exists():
-                self.errors.append(
-                    f"Virtual environment appears corrupted (pyvenv.cfg missing): {venv_dir}"
-                )
+                self.errors.append(f"Virtual environment appears corrupted (pyvenv.cfg missing): {venv_dir}")
                 return
 
         # Per-package missing package errors
         for pkg in env.missing_packages:
-            self.errors.append(
-                f"Required package not importable in resolved env: '{pkg}'\n"
-                f"  Fix: {env.python_exe} -m pip install {pkg}"
-            )
+            self.errors.append(f"Required package not importable in resolved env: '{pkg}'\n  Fix: {env.python_exe} -m pip install {pkg}")
 
     def _validate_dependencies(self) -> None:
         """
@@ -138,8 +130,7 @@ class EnvironmentValidator:
         trust that list and skip the in-process probe entirely.
         """
         resolved_exe = os.path.normcase(os.path.normpath(self.resolved_env.python_exe))
-        running_exe  = os.path.normcase(os.path.normpath(sys.executable))
-
+        running_exe = os.path.normcase(os.path.normpath(sys.executable))
 
         if resolved_exe != running_exe:
             # Running outside the resolved venv (e.g. system python via launcher).
@@ -161,10 +152,7 @@ class EnvironmentValidator:
                 )
             except Exception as exc:
                 # Non-ImportError (e.g. C extension load failure) — still report
-                self.errors.append(
-                    f"Package '{package}' import raised {type(exc).__name__}: {exc}"
-                )
-
+                self.errors.append(f"Package '{package}' import raised {type(exc).__name__}: {exc}")
 
     def _validate_config_files(self) -> None:
         """Check that .env configuration file exists."""
@@ -173,18 +161,14 @@ class EnvironmentValidator:
         env_file = project_root / ".env"
         if not env_file.exists():
             self.warnings.append(
-                f".env file is missing at project root ({project_root}). "
-                "Copy .env.example to .env and fill in your API keys."
+                f".env file is missing at project root ({project_root}). Copy .env.example to .env and fill in your API keys."
             )
 
     def _validate_ai_providers(self) -> None:
         """Check AI provider configuration keys."""
         load_dotenv()
         if not os.getenv("GROQ_API_KEY"):
-            self.warnings.append(
-                "Groq API key (GROQ_API_KEY) not configured. "
-                "AI features requiring Groq will be unavailable."
-            )
+            self.warnings.append("Groq API key (GROQ_API_KEY) not configured. AI features requiring Groq will be unavailable.")
 
     def _validate_voice_config(self) -> None:
         """Check voice engine dependencies (non-blocking)."""
@@ -199,9 +183,7 @@ class EnvironmentValidator:
             project_root = Path(__file__).resolve().parent.parent.parent.parent
             memory_file = project_root / "memory.json"
             if not memory_file.exists():
-                self.warnings.append(
-                    "memory.json not found — it will be auto-created on first run."
-                )
+                self.warnings.append("memory.json not found — it will be auto-created on first run.")
         except Exception as exc:
             self.errors.append(f"Database path resolution failed: {exc}")
 
@@ -213,6 +195,4 @@ class EnvironmentValidator:
             for plugin_dir in plugins_dir.glob("*/"):
                 manifest = plugin_dir / "manifest.json"
                 if not manifest.exists():
-                    self.warnings.append(
-                        f"Plugin '{plugin_dir.name}' is missing manifest.json"
-                    )
+                    self.warnings.append(f"Plugin '{plugin_dir.name}' is missing manifest.json")

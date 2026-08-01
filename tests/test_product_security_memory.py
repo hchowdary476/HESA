@@ -5,11 +5,14 @@ from unittest import TestCase
 from JARVIS.core.memory.privacy_mode import build_privacy_session, mask_sensitive_text, mask_sensitive_value
 from JARVIS.core.memory.user_profiles import build_user_profile, merge_user_profile
 from JARVIS.plugins.permission_profiles import action_allowed, build_permission_matrix, get_active_permission_profile
+
+
 def update_preference(memory, key, value):
     mem = dict(memory)
     mem["preferences"] = dict(mem.get("preferences", {}))
     mem["preferences"][key] = value
     return mem
+
 
 def delete_note(memory, index):
     mem = dict(memory)
@@ -17,6 +20,7 @@ def delete_note(memory, index):
     if 0 <= index < len(mem["notes"]):
         mem["notes"].pop(index)
     return mem
+
 
 def build_memory_panel(memory, privacy_enabled=False):
     pref = dict(memory.get("preferences", {}))
@@ -27,16 +31,14 @@ def build_memory_panel(memory, privacy_enabled=False):
         "preferences": pref,
         "notes": [n["text"] if isinstance(n, dict) else n for n in memory.get("notes", [])],
         "recent_notes": memory.get("notes", []),
-        "counts": {
-            "habits": len(memory.get("habits", {}))
-        },
-        "privacy": {
-            "memory_writes": "disabled" if privacy_enabled else "enabled"
-        }
+        "counts": {"habits": len(memory.get("habits", {}))},
+        "privacy": {"memory_writes": "disabled" if privacy_enabled else "enabled"},
     }
 
+
 def build_security_overview(env, actions=None):
-    from JARVIS.plugins.permission_profiles import get_active_permission_profile, build_permission_matrix
+    from JARVIS.plugins.permission_profiles import build_permission_matrix, get_active_permission_profile
+
     profile = get_active_permission_profile(env)
     privacy_enabled = env.get("JARVIS_PRIVACY_MODE") == "true"
     secrets = {}
@@ -48,7 +50,7 @@ def build_security_overview(env, actions=None):
         "privacy": {"enabled": privacy_enabled},
         "secrets": secrets,
         "permission_matrix": matrix,
-        "confirmation_required": ["shutdown"] if profile["id"] == "safe" else []
+        "confirmation_required": ["shutdown"] if profile["id"] == "safe" else [],
     }
 
 

@@ -46,7 +46,9 @@ class ProviderRouter:
             return local_response
 
         if not self._cloud_allowed():
-            return ProviderResponse(provider="local", status="unsupported", error=local_response.error or "Local provider could not route this command.")
+            return ProviderResponse(
+                provider="local", status="unsupported", error=local_response.error or "Local provider could not route this command."
+            )
 
         request = ProviderRequest(
             command=command,

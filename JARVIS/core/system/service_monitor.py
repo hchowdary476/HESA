@@ -1,12 +1,12 @@
-import os
-import time
-import threading
 import logging
+import os
+import threading
+import time
 
 logger = logging.getLogger("service_monitor")
 
 # Log file path — resolved from __file__ so it works regardless of CWD
-_ROOT_DIR        = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 _JARVIS_LOG_FILE = os.path.join(_ROOT_DIR, "logs", "jarvis_events.log")
 
 
@@ -41,12 +41,12 @@ class ServiceHealthMonitor:
     """
 
     def __init__(self):
-        self.services      = {}   # {name: {instance, status, last_seen, crash_count}}
-        self.retry_count   = {}   # {name: int}
-        self.max_retries   = 3    # After 3 failures → PERMANENTLY_FAILED
-        self.check_interval = 5   # Seconds between health sweeps
-        self.running       = False
-        self._lock         = threading.Lock()
+        self.services = {}  # {name: {instance, status, last_seen, crash_count}}
+        self.retry_count = {}  # {name: int}
+        self.max_retries = 3  # After 3 failures → PERMANENTLY_FAILED
+        self.check_interval = 5  # Seconds between health sweeps
+        self.running = False
+        self._lock = threading.Lock()
 
         # Optional callback: notify_callback(service_name: str, status: str) -> None
         self.notify_callback = None
@@ -61,9 +61,9 @@ class ServiceHealthMonitor:
         """Register a service for health monitoring."""
         with self._lock:
             self.services[service_name] = {
-                "instance":    service_instance,
-                "status":      "UNKNOWN",
-                "last_seen":   time.time(),
+                "instance": service_instance,
+                "status": "UNKNOWN",
+                "last_seen": time.time(),
                 "crash_count": 0,
             }
             self.retry_count[service_name] = 0
@@ -91,7 +91,7 @@ class ServiceHealthMonitor:
 
     def _check_service_health(self, service_name: str, service_info: dict) -> None:
         try:
-            service  = service_info["instance"]
+            service = service_info["instance"]
             is_alive: bool
 
             if hasattr(service, "is_alive"):
@@ -104,14 +104,13 @@ class ServiceHealthMonitor:
 
             if is_alive:
                 prev = service_info["status"]
-                service_info["status"]      = "HEALTHY"
+                service_info["status"] = "HEALTHY"
                 service_info["crash_count"] = 0
-                service_info["last_seen"]   = time.time()
+                service_info["last_seen"] = time.time()
                 self.retry_count[service_name] = 0
 
                 if prev in ("RESTARTING", "RECOVERING"):
-                    _write_event_log("RECOVERY",
-                                     f"{service_name} is back online after {service_info['crash_count']} crash(es)")
+                    _write_event_log("RECOVERY", f"{service_name} is back online after {service_info['crash_count']} crash(es)")
                     self._notify(service_name, "RECOVERED")
             else:
                 self._handle_service_crash(service_name, service_info)
@@ -151,8 +150,7 @@ class ServiceHealthMonitor:
             prev = service_info["status"]
             service_info["status"] = "PERMANENTLY_FAILED"
             if prev != "PERMANENTLY_FAILED":
-                msg = (f"{service_name} permanently failed after {self.max_retries} retries — "
-                       "JARVIS continues running")
+                msg = f"{service_name} permanently failed after {self.max_retries} retries — JARVIS continues running"
                 logger.error(f"[ServiceMonitor] {msg}")
                 _write_event_log("FAILED", msg)
                 self._notify(service_name, "FAILED")

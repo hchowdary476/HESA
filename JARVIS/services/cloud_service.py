@@ -1,8 +1,9 @@
+import json
 import os
 import sys
-import time
-import json
 import threading
+import time
+
 from JARVIS.core.ai_router.cloud.server import start_cloud_server
 from JARVIS.core.system.utils.port_manager import PortManager
 
@@ -24,16 +25,16 @@ def main():
     except Exception as e:
         print(f"[CLOUD SERVICE] Port allocation failed: {e}")
         sys.exit(1)
-        
+
     # 3. Start Server in a daemon thread
     server_thread = threading.Thread(target=start_cloud_server, args=(port,), daemon=True, name="cloud_server_thread")
     server_thread.start()
-    
+
     # 4. Maintain supervisor heartbeat
     hb_dir = os.path.join("logs", "heartbeats")
     os.makedirs(hb_dir, exist_ok=True)
     hb_path = os.path.join(hb_dir, "cloud_service.json")
-    
+
     print(f"[CLOUD SERVICE] Service fully initialized on port {port}. Starting heartbeat loop.")
     sys.stdout.flush()
 

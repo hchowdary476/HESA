@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import time
 import re
+import time
+
 from JARVIS.core.memory.memory_store import load_memory, save_memory
 from JARVIS.core.memory.privacy_mode import memory_reads_enabled, memory_writes_enabled
 from JARVIS.core.system.utils.jarvis_logging import get_file_logger
@@ -25,7 +26,7 @@ def set_preference(key: str, value, *, config_manager=None):
         memory["preferences"]["custom"][key] = value
     save_memory(memory)
     latency_ms = (time.perf_counter() - t0) * 1000
-    msg = f"[MEMORY_WRITE] key=\"{key}\" value=\"{value}\" latency={latency_ms:.2f}ms"
+    msg = f'[MEMORY_WRITE] key="{key}" value="{value}" latency={latency_ms:.2f}ms'
     print(msg, flush=True)
     memory_logger.info(msg)
 
@@ -42,7 +43,7 @@ def get_preference(key: str, *, config_manager=None):
     else:
         res = memory.get("preferences", {}).get("custom", {}).get(key)
     latency_ms = (time.perf_counter() - t0) * 1000
-    msg = f"[MEMORY_LOOKUP] key=\"{key}\" result=\"{res}\" latency={latency_ms:.2f}ms"
+    msg = f'[MEMORY_LOOKUP] key="{key}" result="{res}" latency={latency_ms:.2f}ms'
     print(msg, flush=True)
     memory_logger.info(msg)
     return res
@@ -53,7 +54,11 @@ def detect_and_save_preference(command: str):
     cmd_lower = command.lower().strip()
 
     # ── 1. Query stored facts (Instant response < 50ms) ──────────────────────
-    if "what is my favorite language" in cmd_lower or "what's my favorite language" in cmd_lower or "favorite programming language" in cmd_lower:
+    if (
+        "what is my favorite language" in cmd_lower
+        or "what's my favorite language" in cmd_lower
+        or "favorite programming language" in cmd_lower
+    ):
         lang = get_preference("favorite_language")
         if lang:
             return f"Your favorite language is {lang.capitalize()}."

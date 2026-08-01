@@ -27,7 +27,14 @@ class PathSafetyTests(unittest.TestCase):
 
     def test_private_runtime_paths_are_rejected_by_default(self):
         with TemporaryDirectory() as tmp:
-            for path in (".env", "memory.json", "config/settings.json", "logs/jarvis.log", "provider_cache/state.json", "plugin_state/state.json"):
+            for path in (
+                ".env",
+                "memory.json",
+                "config/settings.json",
+                "logs/jarvis.log",
+                "provider_cache/state.json",
+                "plugin_state/state.json",
+            ):
                 with self.subTest(path=path):
                     self.assertFalse(validate_path_within_root(tmp, path).allowed)
 

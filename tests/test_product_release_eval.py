@@ -4,10 +4,6 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
-from JARVIS.evaluation.eval_artifacts import build_eval_artifact, compare_eval_artifacts, write_eval_artifacts
-from JARVIS.evaluation.eval_measurements import run_measured_eval_suite
-from JARVIS.evaluation.eval_runner import run_eval_suite
-from JARVIS.evaluation.evaluation_suite import build_eval_suite, summarize_eval_results
 from JARVIS.core.ai_router.model_installer import (
     build_model_install_plan,
     build_signed_model_catalog,
@@ -15,16 +11,19 @@ from JARVIS.core.ai_router.model_installer import (
     verify_model_checksum,
 )
 from JARVIS.core.ai_router.model_installer import main as model_installer_main
+from JARVIS.core.security.release_security import build_key_rotation_plan, build_release_manifest, validate_release_environment
+from JARVIS.evaluation.eval_artifacts import build_eval_artifact, compare_eval_artifacts, write_eval_artifacts
+from JARVIS.evaluation.eval_measurements import run_measured_eval_suite
+from JARVIS.evaluation.eval_runner import run_eval_suite
+from JARVIS.evaluation.evaluation_suite import build_eval_suite, summarize_eval_results
 from JARVIS.release.release_build import build_release_artifacts, build_windows_release_plan, compute_file_sha256
 from JARVIS.release.release_build import main as release_build_main
-from JARVIS.core.security.release_security import build_key_rotation_plan, build_release_manifest, validate_release_environment
+
+
 def build_release_panel(env, trusted_signers=None):
     key = env.get("JARVIS_RELEASE_SIGNING_KEY")
     status = "ready" if key else "missing"
-    return {
-        "ready": bool(key),
-        "checks": [{"status": status}]
-    }
+    return {"ready": bool(key), "checks": [{"status": status}]}
 
 
 class ProductReleaseEvalTest(TestCase):

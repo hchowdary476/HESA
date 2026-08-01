@@ -9,7 +9,8 @@ Verifies:
 """
 
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
+
 import numpy as np
 import speech_recognition as sr
 
@@ -18,7 +19,6 @@ from JARVIS.core.voice.speech_backend import transcribe_audio
 
 
 class TestFasterWhisperSTT(unittest.TestCase):
-
     def setUp(self):
         FasterWhisperEngine._instance = None
         self.engine = FasterWhisperEngine(model_name="base", device="cpu", compute_type="int8")
@@ -46,12 +46,7 @@ class TestFasterWhisperSTT(unittest.TestCase):
 
     @patch("JARVIS.core.voice.faster_whisper_engine.FasterWhisperEngine.transcribe")
     def test_speech_backend_uses_faster_whisper(self, mock_transcribe):
-        mock_transcribe.return_value = {
-            "text": "Hello SAI how are you",
-            "language": "en",
-            "probability": 0.99,
-            "latency_ms": 120.0
-        }
+        mock_transcribe.return_value = {"text": "Hello SAI how are you", "language": "en", "probability": 0.99, "latency_ms": 120.0}
         rec = sr.Recognizer()
         audio = sr.AudioData(b"\x00\x00" * 16000, 16000, 2)
 

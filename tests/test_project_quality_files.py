@@ -26,7 +26,10 @@ class ProjectQualityFilesTests(unittest.TestCase):
         self.assertIn("python kontrol.py --no-pause", workflow)
         self.assertIn("Release signing smoke test", workflow)
         self.assertIn("python eval_runner.py --measured --write-artifacts --release-version ci --output-dir exports", workflow)
-        self.assertIn('pyinstaller --noconfirm --onefile --windowed --name JARVIS --add-data "JARVIS/gui/world_map/world_map.html;JARVIS/gui/world_map" --add-data "JARVIS/gui/jarvis_os/jarvis_os.html;JARVIS/gui/jarvis_os" jarvis.py', workflow)
+        self.assertIn(
+            'pyinstaller --noconfirm --onefile --windowed --name JARVIS --add-data "JARVIS/gui/world_map/world_map.html;JARVIS/gui/world_map" --add-data "JARVIS/gui/jarvis_os/jarvis_os.html;JARVIS/gui/jarvis_os" jarvis.py',
+            workflow,
+        )
         self.assertIn("python release_build.py --version ci --artifact dist/JARVIS.exe --output-dir release", workflow)
         self.assertIn("python model_installer.py --write-catalog release/model-catalog-ci.json", workflow)
         self.assertIn("release/model-catalog-ci.json", workflow)
@@ -184,7 +187,7 @@ class ProjectQualityFilesTests(unittest.TestCase):
                 },
                 "radius": {
                     "card": 8,
-                }
+                },
             }
 
         tokens = build_design_tokens()
@@ -273,7 +276,7 @@ class ProjectQualityFilesTests(unittest.TestCase):
                 "labels": {
                     "top": (width // 2, 2, "ARC REACTOR"),
                     "bottom": (width // 2, height - 2, "STATUS NORMAL"),
-                }
+                },
             }
 
         layout = build_hologram_layout(520, 330, angle=15)
@@ -300,7 +303,7 @@ class ProjectQualityFilesTests(unittest.TestCase):
                 "labels": {
                     "top": (width // 2, 2, "ARC REACTOR"),
                     "bottom": (width // 2, height - 2, "STATUS NORMAL"),
-                }
+                },
             }
 
         width = 520
@@ -351,9 +354,7 @@ class ProjectQualityFilesTests(unittest.TestCase):
             self.assertNotIn(removed_button, content)
 
     def test_sidebar_pages_define_phase_three_navigation(self):
-        PAGE_TITLES = [
-            "dashboard", "system", "modules", "cybersecurity", "diagnostics", "settings", "help"
-        ]
+        PAGE_TITLES = ["dashboard", "system", "modules", "cybersecurity", "diagnostics", "settings", "help"]
         self.assertIn("dashboard", PAGE_TITLES)
 
     def test_ui_screenshot_regression_defines_visual_quality_gate(self):

@@ -29,7 +29,9 @@ PERMISSION_REGISTRY: dict[str, PluginPermission] = {
     "filesystem.write": PluginPermission("filesystem.write", "critical", "Write files inside an approved scoped path."),
     "spotify.control": PluginPermission("spotify.control", "medium", "Request Spotify controls when the integration is configured."),
     "groq.request": PluginPermission("groq.request", "medium", "Request Groq-backed provider calls through a safe adapter."),
-    "desktop.automation": PluginPermission("desktop.automation", "critical", "Request desktop automation such as keyboard or mouse actions."),
+    "desktop.automation": PluginPermission(
+        "desktop.automation", "critical", "Request desktop automation such as keyboard or mouse actions."
+    ),
     "process.spawn": PluginPermission("process.spawn", "critical", "Spawn child processes from plugin code."),
 }
 

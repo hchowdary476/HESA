@@ -1,8 +1,9 @@
+import logging
 import os
 import sys
 import time
-import logging
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeoutError
 
 # venv_resolver is the single source of truth for the active Python interpreter.
 # StartupManager reads from the same module-level singleton that
@@ -12,7 +13,7 @@ from JARVIS.core.system.venv_resolver import get_resolved_env
 logger = logging.getLogger("startup_manager")
 
 # Paths resolved from __file__ so they work regardless of CWD
-_ROOT_DIR       = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 _JARVIS_LOG_FILE = os.path.join(_ROOT_DIR, "logs", "jarvis_events.log")
 
 
@@ -29,24 +30,24 @@ def _write_event_log(tag: str, message: str) -> None:
 
 # Per-service startup timeout (seconds).  Tune individually here.
 _SERVICE_TIMEOUTS = {
-    "ai_router":         40,   # orchestration layer — most dependencies
-    "memory_engine":     30,
-    "knowledge_graph":   30,
-    "voice_engine":      25,   # hardware-dependent; may take longer
-    "workflow_engine":   20,
-    "diagnostics":       20,
+    "ai_router": 40,  # orchestration layer — most dependencies
+    "memory_engine": 30,
+    "knowledge_graph": 30,
+    "voice_engine": 25,  # hardware-dependent; may take longer
+    "workflow_engine": 20,
+    "diagnostics": 20,
     "automation_engine": 20,
-    "plugin_manager":    20,
+    "plugin_manager": 20,
 }
 _DEFAULT_TIMEOUT = 30
 
 
 class StartupManager:
     def __init__(self):
-        self.startup_log   = []
-        self.start_time    = time.time()
-        self.service_status = {}   # {name: "READY"|"FAILED"|"TIMEOUT"|"RETRY"}
-        self.services       = {}   # {name: instance}
+        self.startup_log = []
+        self.start_time = time.time()
+        self.service_status = {}  # {name: "READY"|"FAILED"|"TIMEOUT"|"RETRY"}
+        self.services = {}  # {name: instance}
 
         # ── Canonical startup sequence ─────────────────────────────────────────
         # Each entry: (service_name, is_critical)
@@ -57,19 +58,19 @@ class StartupManager:
         #                     Workflow → Diagnostics → optional services → GUI
         # ──────────────────────────────────────────────────────────────────────
         self.startup_sequence = [
-            ("ai_router",         True),   # 1. AI Router  — orchestration first
-            ("memory_engine",     True),   # 2. Memory Engine
-            ("knowledge_graph",   True),   # 3. Knowledge Graph (memory layer)
-            ("voice_engine",      False),  # 4. Voice Engine  — hardware-dep; optional
-            ("workflow_engine",   True),   # 5. Workflow Engine
-            ("diagnostics",       True),   # 6. Diagnostics
+            ("ai_router", True),  # 1. AI Router  — orchestration first
+            ("memory_engine", True),  # 2. Memory Engine
+            ("knowledge_graph", True),  # 3. Knowledge Graph (memory layer)
+            ("voice_engine", False),  # 4. Voice Engine  — hardware-dep; optional
+            ("workflow_engine", True),  # 5. Workflow Engine
+            ("diagnostics", True),  # 6. Diagnostics
             ("automation_engine", False),  # 7. Automation (optional)
-            ("plugin_manager",    False),  # 8. Plugin Manager (optional)
+            ("plugin_manager", False),  # 8. Plugin Manager (optional)
         ]
 
         # Derived convenience lists (kept for backwards compat)
         self.critical_services = [s for s, c in self.startup_sequence if c]
-        self.optional_services  = [s for s, c in self.startup_sequence if not c]
+        self.optional_services = [s for s, c in self.startup_sequence if not c]
 
     # ── Public API ─────────────────────────────────────────────────────────────
 
@@ -97,10 +98,7 @@ class StartupManager:
 
     def is_ready_for_gui_launch(self) -> bool:
         """GUI may launch only after all critical services are READY."""
-        return all(
-            self.service_status.get(svc) == "READY"
-            for svc in self.critical_services
-        )
+        return all(self.service_status.get(svc) == "READY" for svc in self.critical_services)
 
     def get_startup_duration(self) -> float:
         return time.time() - self.start_time
@@ -108,11 +106,8 @@ class StartupManager:
     def generate_diagnostics(self) -> dict:
         return {
             "startup_duration": self.get_startup_duration(),
-            "service_status":   self.service_status,
-            "failed_services":  [
-                s for s, st in self.service_status.items()
-                if st in ("FAILED", "TIMEOUT")
-            ],
+            "service_status": self.service_status,
+            "failed_services": [s for s, st in self.service_status.items() if st in ("FAILED", "TIMEOUT")],
             "startup_log": self.startup_log,
         }
 
@@ -121,10 +116,11 @@ class StartupManager:
     def _initialize_service(self, service_name: str) -> bool:
         """Init a single service with timeout; retry once on first failure."""
         from JARVIS.core.system.utils.gui_lifecycle_logger import log_lifecycle
+
         timeout = _SERVICE_TIMEOUTS.get(service_name, _DEFAULT_TIMEOUT)
         self._log(f"Initializing {service_name} (timeout={timeout}s)...")
 
-        for attempt in range(1, 3):          # up to 2 attempts
+        for attempt in range(1, 3):  # up to 2 attempts
             log_lifecycle("SERVICE_INIT_ATTEMPT", f"Service: {service_name}, Attempt: {attempt}, Timeout: {timeout}s")
             result = self._run_with_timeout(service_name, timeout)
 
@@ -133,7 +129,9 @@ class StartupManager:
                 msg = f"{service_name} ready (attempt {attempt}, {self.get_startup_duration():.2f}s elapsed)"
                 self._log(f"✓ {msg}")
                 _write_event_log("STARTUP", msg)
-                log_lifecycle("SERVICE_INIT_SUCCESS", f"Service: {service_name}, Attempt: {attempt}, Duration: {self.get_startup_duration():.2f}s")
+                log_lifecycle(
+                    "SERVICE_INIT_SUCCESS", f"Service: {service_name}, Attempt: {attempt}, Duration: {self.get_startup_duration():.2f}s"
+                )
                 return True
 
             if result == "TIMEOUT":
@@ -194,27 +192,35 @@ class StartupManager:
 
         if service_name == "ai_router":
             from JARVIS.core.ai_router.ai_orchestrator import AIOrchestrator
+
             return AIOrchestrator()
         elif service_name == "memory_engine":
             from memory_engine import MemoryEngine
+
             return MemoryEngine()
         elif service_name == "knowledge_graph":
             from knowledge_graph import ProductionKnowledgeGraph
+
             return ProductionKnowledgeGraph()
         elif service_name == "voice_engine":
             from JARVIS.core.voice.ses_motoru import VoiceEngine
+
             return VoiceEngine()
         elif service_name == "workflow_engine":
             import workflow_engine
+
             return workflow_engine
         elif service_name == "diagnostics":
             from JARVIS.core.system.diagnostics_center import DiagnosticsCenter
+
             return DiagnosticsCenter()
         elif service_name == "automation_engine":
             from tool_manager import ToolManager
+
             return ToolManager()
         elif service_name == "plugin_manager":
             from plugin_manager import PluginManager
+
             pm = PluginManager()
             pm.discover_plugins()
             return pm

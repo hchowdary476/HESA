@@ -1,19 +1,23 @@
-import os
-import sys
-import time
-import json
-import subprocess
 import atexit
-import signal
-import threading
 import hashlib
+import json
+import os
+import signal
+import subprocess
+import sys
+import threading
+import time
+
 from dotenv import load_dotenv
+
 from JARVIS.core.system.utils.env_helper import find_env_file
+
 
 # Resolve pythonw.exe from the venv so subprocesses NEVER open a console window.
 def _get_pythonw_exe():
     try:
         from JARVIS.core.system.venv_resolver import get_resolved_env
+
         resolved = get_resolved_env()
         py_exe = resolved.python_exe
         if py_exe and py_exe.endswith(".exe"):
@@ -26,10 +30,12 @@ def _get_pythonw_exe():
     candidate = os.path.join(root, ".venv", "Scripts", "pythonw.exe")
     return candidate if os.path.exists(candidate) else sys.executable
 
+
 _PYTHONW_EXE = _get_pythonw_exe()
 
 _ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 _JARVIS_LOG_FILE = os.path.join(_ROOT_DIR, "logs", "jarvis_events.log")
+
 
 def _write_event_log(tag: str, message: str) -> None:
     """Append one structured line to the shared on-disk events log."""
@@ -44,20 +50,8 @@ def _write_event_log(tag: str, message: str) -> None:
 
 # Global metrics & state for backup cooldown and change detection
 BACKUP_METRICS = {
-    "config": {
-        "last_backup_time": 0.0,
-        "backup_count": 0,
-        "skipped_backups": 0,
-        "last_sha256": "",
-        "last_mtime": 0.0
-    },
-    "memory": {
-        "last_backup_time": 0.0,
-        "backup_count": 0,
-        "skipped_backups": 0,
-        "last_sha256": "",
-        "last_mtime": 0.0
-    }
+    "config": {"last_backup_time": 0.0, "backup_count": 0, "skipped_backups": 0, "last_sha256": "", "last_mtime": 0.0},
+    "memory": {"last_backup_time": 0.0, "backup_count": 0, "skipped_backups": 0, "last_sha256": "", "last_mtime": 0.0},
 }
 
 
@@ -75,6 +69,7 @@ def _backoff_delay(restart_count: int) -> float:
 def _write_supervisor_log(tag: str, message: str) -> None:
     """Append a structured entry to logs/supervisor.log."""
     import psutil as _psu
+
     try:
         own_mem = _psu.Process(os.getpid()).memory_info().rss / (1024 * 1024)
     except Exception:
@@ -179,8 +174,9 @@ SERVICES = {
         "backoff_delay": 2.0,
         "last_seen": 0.0,
         "status": "healthy",
-    }
+    },
 }
+
 
 def cleanup_subprocesses():
     print("[SUPERVISOR] Cleaning up all service processes...")
@@ -206,24 +202,30 @@ def cleanup_subprocesses():
                 pass
     print("[SUPERVISOR] Cleanup complete.")
 
+
 atexit.register(cleanup_subprocesses)
+
 
 def signal_handler(signum, frame):
     sys.exit(0)
+
 
 signal.signal(signal.SIGTERM, signal_handler)
 signal.signal(signal.SIGINT, signal_handler)
 
 running = True
 
+
 # Paths for config and memory databases
 def get_settings_file():
     try:
         from JARVIS.config.paths import resolve_config_paths
+
         return str(resolve_config_paths().settings_file)
     except Exception:
         local_appdata = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA") or os.path.expanduser("~/AppData/Local")
         return os.path.join(local_appdata, "Open.Jarvis", "settings.json")
+
 
 SETTINGS_FILE = get_settings_file()
 MEMORY_FILE = os.path.abspath("memory.json")
@@ -243,6 +245,7 @@ DEFAULT_MEMORY = {
     "total_commands": 0,
 }
 
+
 def calculate_sha256(file_path: str) -> str:
     """Calculate SHA256 hash of a file."""
     if not os.path.exists(file_path):
@@ -256,32 +259,34 @@ def calculate_sha256(file_path: str) -> str:
     except Exception:
         return ""
 
+
 def write_backup_status_file():
     status_path = os.path.join("logs", "backup_status.json")
     os.makedirs("logs", exist_ok=True)
-    
+
     status_data = {}
     for key, metrics in BACKUP_METRICS.items():
         last_time_str = "Never"
         if metrics["last_backup_time"] > 0:
             last_time_str = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(metrics["last_backup_time"]))
-            
+
         now = time.time()
         time_since_last = now - metrics["last_backup_time"]
         cooldown_status = "active" if (metrics["last_backup_time"] > 0 and time_since_last < 600.0) else "idle"
-        
+
         status_data[key] = {
             "last_backup_time": last_time_str,
             "backup_count": metrics["backup_count"],
             "skipped_backups": metrics["skipped_backups"],
-            "backup_cooldown_status": cooldown_status
+            "backup_cooldown_status": cooldown_status,
         }
-        
+
     try:
         with open(status_path, "w", encoding="utf-8") as f:
             json.dump(status_data, f, indent=2)
     except Exception:
         pass
+
 
 # Auto-Backup System
 def create_backup(file_path, backup_dir_name, emergency=False):
@@ -289,47 +294,47 @@ def create_backup(file_path, backup_dir_name, emergency=False):
         return
     # Verify file is valid JSON before backing up
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             json.load(f)
     except Exception:
-        return # Skip backing up corrupted files
+        return  # Skip backing up corrupted files
 
     now = time.time()
-    
+
     # Identify key type (config or memory)
     key = "config" if "config" in backup_dir_name or "settings" in file_path.lower() else "memory"
     metrics = BACKUP_METRICS[key]
-    
+
     # 1. Change detection: Check modification time and SHA256
     try:
         mtime = os.path.getmtime(file_path)
     except Exception:
         mtime = 0.0
-        
+
     current_hash = calculate_sha256(file_path)
-    
+
     # Skip if contents and timestamp are unchanged
     if metrics["last_sha256"] == current_hash and metrics["last_mtime"] == mtime:
         metrics["skipped_backups"] += 1
         write_backup_status_file()
         return
-        
+
     # 2. Cooldown check: 10 minutes (600 seconds)
     cooldown = 600.0
     time_since_last = now - metrics["last_backup_time"]
-    
+
     if not emergency and metrics["last_backup_time"] > 0 and time_since_last < cooldown:
         metrics["skipped_backups"] += 1
         write_backup_status_file()
         return
-        
+
     backup_dir = os.path.join("logs", "backups", backup_dir_name)
     os.makedirs(backup_dir, exist_ok=True)
-    
+
     # Rotate backups: bak_4 -> bak_5, ..., current -> bak_1
     for i in range(4, 0, -1):
         old_path = os.path.join(backup_dir, f"{backup_dir_name}_bak_{i}.json")
-        new_path = os.path.join(backup_dir, f"{backup_dir_name}_bak_{i+1}.json")
+        new_path = os.path.join(backup_dir, f"{backup_dir_name}_bak_{i + 1}.json")
         if os.path.exists(old_path):
             try:
                 if os.path.exists(new_path):
@@ -337,13 +342,14 @@ def create_backup(file_path, backup_dir_name, emergency=False):
                 os.rename(old_path, new_path)
             except Exception:
                 pass
-                
+
     dst = os.path.join(backup_dir, f"{backup_dir_name}_bak_1.json")
     try:
         import shutil
+
         shutil.copy2(file_path, dst)
         print(f"[SUPERVISOR] Backup created: {dst}")
-        
+
         # Update metrics
         metrics["last_backup_time"] = now
         metrics["backup_count"] += 1
@@ -353,6 +359,7 @@ def create_backup(file_path, backup_dir_name, emergency=False):
     except Exception as e:
         print(f"[SUPERVISOR] Backup failed for {file_path}: {e}")
 
+
 # Self-Healing Integrity Check & Repair
 def repair_file_if_corrupted(file_path, backup_dir_name, default_content=None):
     corrupted = False
@@ -360,11 +367,11 @@ def repair_file_if_corrupted(file_path, backup_dir_name, default_content=None):
         corrupted = True
     else:
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 json.load(f)
         except Exception:
             corrupted = True
-            
+
     if corrupted:
         print(f"[SELF-HEALING] File corrupted or missing: {file_path}")
         # Try to restore from backups
@@ -374,9 +381,10 @@ def repair_file_if_corrupted(file_path, backup_dir_name, default_content=None):
             bak_path = os.path.join(backup_dir, f"{backup_dir_name}_bak_{i}.json")
             if os.path.exists(bak_path):
                 try:
-                    with open(bak_path, "r", encoding="utf-8") as f:
+                    with open(bak_path, encoding="utf-8") as f:
                         json.load(f)
                     import shutil
+
                     os.makedirs(os.path.dirname(file_path), exist_ok=True)
                     shutil.copy2(bak_path, file_path)
                     print(f"[SELF-HEALING] Restored {file_path} from backup checkpoint {i}")
@@ -395,10 +403,12 @@ def repair_file_if_corrupted(file_path, backup_dir_name, default_content=None):
         return True
     return False
 
+
 safe_mode = False
 
 coordinator_process = None
 coordinator_lock = threading.Lock()
+
 
 def is_process_alive(proc):
     if proc is None:
@@ -407,15 +417,18 @@ def is_process_alive(proc):
         return proc.poll() is None
     try:
         import psutil
+
         return proc.is_running() and proc.status() != psutil.STATUS_ZOMBIE
     except Exception:
         return False
+
 
 def get_service_env(name: str):
     """Load configuration from ConfigManager and return environment mapping."""
     env = os.environ.copy()
     try:
         from JARVIS.config.manager import ConfigManager
+
         config_mgr = ConfigManager()
         config_mgr.load()
         env.update(config_mgr.as_env_mapping())
@@ -427,6 +440,7 @@ def get_service_env(name: str):
     env["JARVIS_MANAGED"] = "1"
     env["PYTHONUNBUFFERED"] = "1"
     return env
+
 
 def launch_service(name):
     cfg = SERVICES[name]
@@ -443,10 +457,10 @@ def launch_service(name):
                     pass
         except Exception:
             pass
-    
+
     env = get_service_env(name)
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-    
+
     # Dashboard UI needs error logging for debugging crashes
     if name == "dashboard_ui":
         err_file = os.path.join("logs", "dashboard_ui_stderr.log")
@@ -456,7 +470,7 @@ def launch_service(name):
         stderr_handle = open(err_file, "w")
     else:
         stderr_handle = subprocess.DEVNULL
-    
+
     # Redirect subprocess stdout & stderr to service-specific log files under logs/services/
     log_dir = os.path.join(root_dir, "logs", "services")
     os.makedirs(log_dir, exist_ok=True)
@@ -490,13 +504,16 @@ def launch_service(name):
     os.makedirs(hb_dir, exist_ok=True)
     _now = time.time()
     with open(os.path.join(hb_dir, f"{name}.json"), "w") as f:
-        json.dump({
-            "pid": proc.pid,
-            "timestamp": _now,
-            "grace_until": _now + 60.0,
-            "status": "starting",
-        }, f)
-    
+        json.dump(
+            {
+                "pid": proc.pid,
+                "timestamp": _now,
+                "grace_until": _now + 60.0,
+                "status": "starting",
+            },
+            f,
+        )
+
     print(f"[SUPERVISOR] Launched service {name} (PID: {proc.pid})")
 
     # Logging startup and registration
@@ -513,15 +530,22 @@ def launch_service(name):
     # Register with Diagnostics Center
     try:
         from JARVIS.core.system.diagnostics_center import DiagnosticsCenter
+
         DiagnosticsCenter().update_subsystem(name, "Running")
     except Exception:
         pass
+
 
 def write_status_file():
     status_path = os.path.join("logs", "system_status.json")
     os.makedirs(os.path.dirname(status_path), exist_ok=True)
     data = {
-        "safe_mode": {"status": "active" if safe_mode else "inactive", "desc": "Emergency Safe Mode Posture", "pid": None, "restart_count": 0}
+        "safe_mode": {
+            "status": "active" if safe_mode else "inactive",
+            "desc": "Emergency Safe Mode Posture",
+            "pid": None,
+            "restart_count": 0,
+        }
     }
     for name, cfg in SERVICES.items():
         status_val = cfg["status"]
@@ -550,7 +574,7 @@ def write_status_file():
             "pid": cfg["process"].pid if cfg["process"] else None,
             "desc": cfg["desc"],
             "health_score": health_score,
-            "heartbeat": cfg["last_seen"]
+            "heartbeat": cfg["last_seen"],
         }
     try:
         temp_path = status_path + ".tmp"
@@ -560,9 +584,10 @@ def write_status_file():
     except Exception:
         pass
 
+
 def run_refresh_engine():
     boot_logs = []
-    
+
     def log_boot(msg, kind="info"):
         full_msg = msg if msg == "Welcome back." else f"[JARVIS] {msg}"
         print(full_msg)
@@ -576,10 +601,10 @@ def run_refresh_engine():
 
     repaired_settings = repair_file_if_corrupted(SETTINGS_FILE, "config", {})
     repaired_memory = repair_file_if_corrupted(MEMORY_FILE, "memory", DEFAULT_MEMORY)
-    
+
     create_backup(SETTINGS_FILE, "config", emergency=True)
     create_backup(MEMORY_FILE, "memory", emergency=True)
-    
+
     # 1. Clear heartbeats (preserve dashboard_ui.json)
     hb_dir = os.path.join("logs", "heartbeats")
     try:
@@ -590,6 +615,7 @@ def run_refresh_engine():
                         filepath = os.path.join(hb_dir, file)
                         if os.path.isdir(filepath):
                             import shutil
+
                             shutil.rmtree(filepath)
                         else:
                             os.remove(filepath)
@@ -600,7 +626,6 @@ def run_refresh_engine():
     except Exception:
         pass
 
-    
     # 2. Terminate orphan processes
     # ── SAFETY: build a set of PIDs that must NEVER be terminated ────────────
     # The GUI (jarvis.py) writes its PID to logs/heartbeats/dashboard_ui.json
@@ -610,8 +635,9 @@ def run_refresh_engine():
     _safe_pids: set = set()
     try:
         import psutil as _psu
-        _safe_pids.add(os.getpid())     # self
-        _safe_pids.add(os.getppid())    # direct parent (pythonw / shell)
+
+        _safe_pids.add(os.getpid())  # self
+        _safe_pids.add(os.getppid())  # direct parent (pythonw / shell)
 
         # Walk full ancestor chain so no grandparent is killed either
         try:
@@ -625,7 +651,7 @@ def run_refresh_engine():
         _hb_path = os.path.join("logs", "heartbeats", "dashboard_ui.json")
         if os.path.exists(_hb_path):
             try:
-                with open(_hb_path, "r") as _hf:
+                with open(_hb_path) as _hf:
                     _hb_data = json.load(_hf)
                 _gui_pid = _hb_data.get("pid")
                 if _gui_pid and isinstance(_gui_pid, int):
@@ -648,13 +674,14 @@ def run_refresh_engine():
     # (jarvis.py and any process containing "jarvis.py" in cmdline is excluded).
     try:
         import psutil
+
         current_pid = os.getpid()
-        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+        for proc in psutil.process_iter(["pid", "name", "cmdline"]):
             try:
                 if proc.pid in _safe_pids:
                     continue
 
-                cmdline = proc.info.get('cmdline') or []
+                cmdline = proc.info.get("cmdline") or []
                 if not cmdline:
                     continue
                 cmd_str = " ".join(cmdline).lower()
@@ -681,7 +708,6 @@ def run_refresh_engine():
     except Exception:
         pass
 
-
     # Aligned startup diagnostic loading sequence logs
     log_boot("System refresh completed.", "ok")
     log_boot("Voice Engine online.", "voice")
@@ -694,19 +720,21 @@ def run_refresh_engine():
 
 eb_server = None
 
+
 def monitor_loop():
     global running, safe_mode, eb_server
     hb_dir = os.path.join("logs", "heartbeats")
-    
+
     # Start Event Bus Server first so services can connect instantly
     from JARVIS.core.system.event_bus import EventBusServer
+
     eb_server = EventBusServer()
     eb_server.start()
     time.sleep(0.2)
-    
+
     # Start timer
     start_time = time.time()
-    
+
     # Run System Refresh Engine
     run_refresh_engine()
 
@@ -715,7 +743,7 @@ def monitor_loop():
     launch_service("security_engine")
     time.sleep(0.5)
     sec_load_time = time.time() - sec_start
-    
+
     # 2. Run Face Verification asynchronously (DISABLED: not requested by owner)
     # def _run_face_check():
     #     try:
@@ -724,19 +752,20 @@ def monitor_loop():
     #     except Exception as e:
     #         print(f"[SUPERVISOR] Face match check failed or skipped: {e}")
     # threading.Thread(target=_run_face_check, daemon=True).start()
-    
+
     # 3. Load Memory Engine
     mem_start = time.time()
     launch_service("memory_engine")
     time.sleep(0.3)
     mem_load_time = time.time() - mem_start
-    
+
     # 4. Load Voice Engine (if enabled)
     voice_start = time.time()
     voice_enabled = True
     wake_word_enabled = True
     try:
         from JARVIS.config.manager import ConfigManager
+
         config_mgr = ConfigManager()
         config_mgr.load()
         voice_enabled = config_mgr.get("voice.voice_enabled", True)
@@ -751,10 +780,10 @@ def monitor_loop():
     else:
         SERVICES["voice_engine"]["status"] = "offline"
         voice_load_time = 0.0
-    
+
     # JARVIS voice-ready completed!
     total_time_to_ready = time.time() - start_time
-    
+
     # 5. Load remaining modules in parallel
     launch_service("automation_engine")
     launch_service("ai_agents")
@@ -762,7 +791,7 @@ def monitor_loop():
     launch_service("system_monitor")
     launch_service("camera_engine")
     launch_service("network_monitor")
-        
+
     # Generate startup timing report
     report_md = f"""=================================================
           JARVIS FAST BOOT TIMING REPORT
@@ -774,16 +803,16 @@ def monitor_loop():
 ================================================="""
     print(report_md)
     sys.stdout.flush()
-    
+
     try:
         os.makedirs("logs", exist_ok=True)
         with open(os.path.join("logs", "fast_boot_report.md"), "w", encoding="utf-8") as f:
             f.write(report_md)
     except Exception:
         pass
-        
+
     write_status_file()
-    
+
     # Initialize dashboard_ui service tracking dynamically
     if "dashboard_ui" not in SERVICES:
         SERVICES["dashboard_ui"] = {
@@ -795,7 +824,7 @@ def monitor_loop():
             "last_seen": time.time(),
             "status": "healthy",
         }
-    
+
     while running:
         now = time.time()
         changed = False  # reset each iteration — prevents UnboundLocalError if no crash branch fires
@@ -830,7 +859,7 @@ def monitor_loop():
                 os.remove(restart_flag)
             except Exception:
                 pass
-            
+
             # Coordinated execv system restart
             os.execv(sys.executable, [sys.executable] + sys.argv)
 
@@ -840,6 +869,7 @@ def monitor_loop():
         wake_word_enabled = True
         try:
             from JARVIS.config.manager import ConfigManager
+
             config_mgr = ConfigManager()
             config_mgr.load()
             camera_mode_enabled = config_mgr.get("general.camera_mode_enabled", False)
@@ -876,18 +906,14 @@ def monitor_loop():
         # Threshold: at least 2 essential services must be offline (not 1) so a
         # single transient crash during startup does not cascade into Safe Mode.
         essential_offline = sum(
-            1 for n, cfg in SERVICES.items()
-            if n in ("voice_engine", "memory_engine", "security_engine")
-            and cfg["status"] == "offline"
+            1 for n, cfg in SERVICES.items() if n in ("voice_engine", "memory_engine", "security_engine") and cfg["status"] == "offline"
         )
         # dashboard_ui deliberately excluded from total_offline count
-        total_offline = sum(
-            1 for n, cfg in SERVICES.items()
-            if n not in ("dashboard_ui",) and cfg["status"] == "offline"
-        )
+        total_offline = sum(1 for n, cfg in SERVICES.items() if n not in ("dashboard_ui",) and cfg["status"] == "offline")
 
         if (now - start_time > 30.0) and (total_offline >= 3 or essential_offline >= 2) and not safe_mode:
             from JARVIS.core.system.utils.gui_lifecycle_logger import log_supervisor_action
+
             safe_mode = True
             msg_sm = f"Safe Mode triggered (total_offline={total_offline}, essential_offline={essential_offline})"
             print(f"[SUPERVISOR] Safe Mode activated! {msg_sm}")
@@ -914,12 +940,13 @@ def monitor_loop():
                 hb_path = os.path.join(hb_dir, "dashboard_ui.json")
                 if os.path.exists(hb_path):
                     try:
-                        with open(hb_path, "r") as f:
+                        with open(hb_path) as f:
                             hb_data = json.load(f)
                         pid_val = hb_data.get("pid")
                         ts_val = hb_data.get("timestamp", 0.0)
                         if pid_val:
                             import psutil
+
                             if psutil.pid_exists(pid_val):
                                 if cfg["process"] is None or getattr(cfg["process"], "pid", None) != pid_val:
                                     try:
@@ -950,7 +977,7 @@ def monitor_loop():
                 alive = False
                 if os.path.exists(hb_path):
                     try:
-                        with open(hb_path, "r") as f:
+                        with open(hb_path) as f:
                             hb_data = json.load(f)
                         ts = hb_data.get("timestamp", 0.0)
                         grace_until = hb_data.get("grace_until", 0.0)
@@ -974,7 +1001,7 @@ def monitor_loop():
                 # Add 15-second grace period for dashboard_ui at startup
                 if name == "dashboard_ui" and (now - start_time < 15.0):
                     alive = True
-                
+
                 # Check process state dynamically
                 if cfg["process"]:
                     if not is_process_alive(cfg["process"]):
@@ -985,6 +1012,7 @@ def monitor_loop():
                 if cfg["process"] and is_process_alive(cfg["process"]):
                     try:
                         import psutil
+
                         pid = cfg["process"].pid
                         p = psutil.Process(pid)
                         cpu_use = p.cpu_percent(interval=None)
@@ -992,7 +1020,7 @@ def monitor_loop():
 
                         # Absolute limits: 2.5 GB for GUI, 1.0 GB for others
                         _abs_limit_mb = 2560.0 if name == "dashboard_ui" else 1024.0
-                        
+
                         # Rate of growth tracking
                         now_ts = time.time()
                         if "mem_history" not in cfg:
@@ -1000,11 +1028,11 @@ def monitor_loop():
                         cfg["mem_history"].append((now_ts, mem_mb))
                         # Keep last 5 minutes of history
                         cfg["mem_history"] = [pt for pt in cfg["mem_history"] if now_ts - pt[0] <= 300.0]
-                        
+
                         # Rate of growth leak detection:
                         # If memory grows by > 150 MB/min sustained over at least 2 minutes (120 seconds)
                         is_leaking_by_rate = False
-                        if len(cfg["mem_history"]) >= 6: # at least 1 minute of readings
+                        if len(cfg["mem_history"]) >= 6:  # at least 1 minute of readings
                             old_readings = [pt for pt in cfg["mem_history"] if 120.0 <= now_ts - pt[0] <= 300.0]
                             if old_readings:
                                 old_ts, old_mem = old_readings[0]
@@ -1012,28 +1040,34 @@ def monitor_loop():
                                 growth = mem_mb - old_mem
                                 growth_rate = growth / elapsed_mins
                                 if growth_rate > 150.0 and mem_mb > 400.0:
-                                    print(f"[SUPERVISOR] Rate-of-growth memory leak detected in {name} ({growth_rate:.1f} MB/min growth, current: {mem_mb:.1f} MB). Restarting service.")
+                                    print(
+                                        f"[SUPERVISOR] Rate-of-growth memory leak detected in {name} ({growth_rate:.1f} MB/min growth, current: {mem_mb:.1f} MB). Restarting service."
+                                    )
                                     is_leaking_by_rate = True
 
                         if cpu_use > 90.0:
-                             print(f"[SUPERVISOR] High CPU detected in {name} ({cpu_use:.1f}%). Restarting service.")
-                             alive = False
+                            print(f"[SUPERVISOR] High CPU detected in {name} ({cpu_use:.1f}%). Restarting service.")
+                            alive = False
                         elif mem_mb > _abs_limit_mb:
-                             print(f"[SUPERVISOR] Absolute memory leak limit exceeded in {name} ({mem_mb:.1f} MB > {_abs_limit_mb:.0f} MB limit). Restarting service.")
-                             alive = False
+                            print(
+                                f"[SUPERVISOR] Absolute memory leak limit exceeded in {name} ({mem_mb:.1f} MB > {_abs_limit_mb:.0f} MB limit). Restarting service."
+                            )
+                            alive = False
                         elif is_leaking_by_rate:
-                             alive = False
+                            alive = False
                     except Exception:
                         pass
 
             if not alive:
                 from JARVIS.core.system.utils.gui_lifecycle_logger import log_supervisor_action
+
                 # Service is dead or not responding
                 if cfg["status"] != "offline":
                     # Capture memory of crashed service for the log
                     _crashed_mem_mb = 0.0
                     try:
                         import psutil as _psu_crash
+
                         if cfg["process"] and hasattr(cfg["process"], "pid"):
                             _crashed_mem_mb = _psu_crash.Process(cfg["process"].pid).memory_info().rss / (1024 * 1024)
                     except Exception:
@@ -1061,13 +1095,16 @@ def monitor_loop():
                             timestamp_str = time.strftime("%Y-%m-%d %H:%M:%S")
                             os.makedirs("logs", exist_ok=True)
                             with open("logs/service_restart.log", "a", encoding="utf-8") as f:
-                                f.write(f"[{timestamp_str}] Service {name} restart triggered: attempt {cfg['restart_count']}/{cfg['max_restarts']} backoff={_bd:.0f}s.\n")
+                                f.write(
+                                    f"[{timestamp_str}] Service {name} restart triggered: attempt {cfg['restart_count']}/{cfg['max_restarts']} backoff={_bd:.0f}s.\n"
+                                )
                         except Exception:
                             pass
 
                         # Update Diagnostics Center status
                         try:
                             from JARVIS.core.system.diagnostics_center import DiagnosticsCenter
+
                             DiagnosticsCenter().update_subsystem(name, "recovering", recovery_restart=True)
                         except Exception:
                             pass
@@ -1100,6 +1137,7 @@ def monitor_loop():
                         # Update Diagnostics Center status to failed
                         try:
                             from JARVIS.core.system.diagnostics_center import DiagnosticsCenter
+
                             DiagnosticsCenter().update_subsystem(name, "Failed", failed=True)
                         except Exception:
                             pass
@@ -1107,6 +1145,7 @@ def monitor_loop():
                         # Trigger diagnostics scan
                         try:
                             from JARVIS.runtime.self_healing import SelfHealingEngine
+
                             SelfHealingEngine().run_diagnostics()
                         except Exception as e:
                             print(f"[SUPERVISOR] Diagnostics trigger failed: {e}")
@@ -1123,12 +1162,14 @@ def monitor_loop():
         # Run memory trimming check if idle
         try:
             from JARVIS.core.system.utils.memory_helper import trim_memory_if_eligible
+
             trim_memory_if_eligible()
         except Exception:
             pass
 
         write_status_file()
         time.sleep(3)
+
 
 if __name__ == "__main__":
     # ── Helper: append to supervisor.log (critical for pythonw.exe where
@@ -1147,21 +1188,19 @@ if __name__ == "__main__":
     # We read the PID lockfile to find and terminate any stale supervisor instances.
     try:
         import psutil as _psu
+
         _self_pid = os.getpid()
         _killed = []
         _pid_file = os.path.join("logs", "supervisor.pid")
         if os.path.exists(_pid_file):
             try:
-                with open(_pid_file, "r") as _pf:
+                with open(_pid_file) as _pf:
                     _old_pid = int(_pf.read().strip())
                 if _old_pid != _self_pid and _psu.pid_exists(_old_pid):
                     _old_proc = _psu.Process(_old_pid)
                     _old_name = _old_proc.name().lower()
                     if "python" in _old_name:
-                        _log_to_file(
-                            f"[SUPERVISOR] Terminating stale supervisor PID {_old_pid} "
-                            f"(found via lockfile, name={_old_name})"
-                        )
+                        _log_to_file(f"[SUPERVISOR] Terminating stale supervisor PID {_old_pid} (found via lockfile, name={_old_name})")
                         _old_proc.terminate()
                         try:
                             _old_proc.wait(timeout=2.0)
@@ -1183,6 +1222,7 @@ if __name__ == "__main__":
 
     _log_to_file("[SUPERVISOR] Acquiring port lock...")
     from JARVIS.core.system.utils.port_manager import PortManager
+
     # Retry up to 3 times — Windows TCP TIME_WAIT can hold port 19100 for ~1-4s
     # after a previous supervisor exits without closing its socket gracefully.
     lock_socket = None
@@ -1190,18 +1230,14 @@ if __name__ == "__main__":
         lock_socket = PortManager.acquire_service_lock("supervisor", 19100)
         if lock_socket is not None:
             break
-        _retry_msg = (
-            f"[SUPERVISOR] Port 19100 unavailable on attempt {_lock_attempt + 1}/3. "
-            f"Retrying in 2s..."
-        )
+        _retry_msg = f"[SUPERVISOR] Port 19100 unavailable on attempt {_lock_attempt + 1}/3. Retrying in 2s..."
         print(_retry_msg)
         _log_to_file(_retry_msg)
         time.sleep(2.0)
 
     if lock_socket is None:
         _fail_msg = (
-            f"[SUPERVISOR] Duplicate supervisor instance detected (port 19100 "
-            f"unavailable after 3 attempts). PID {os.getpid()} exiting."
+            f"[SUPERVISOR] Duplicate supervisor instance detected (port 19100 unavailable after 3 attempts). PID {os.getpid()} exiting."
         )
         print(_fail_msg)
         _log_to_file(_fail_msg)

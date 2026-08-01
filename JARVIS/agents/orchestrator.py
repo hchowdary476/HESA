@@ -12,19 +12,21 @@ The orchestrator:
   - Never raises — all exceptions are caught and included in the result dict
     so the UI always gets a valid response.
 """
+
 from __future__ import annotations
 
 import json
-import uuid
 import threading
-from typing import Any, Callable
+import uuid
+from collections.abc import Callable
+from typing import Any
 
 from JARVIS.agents.agent_base import AgentTask
 from JARVIS.agents.coding_agent import CodingAgent
 from JARVIS.agents.planner_agent import PlannerAgent
 from JARVIS.agents.review_agent import ReviewAgent, ReviewResult
 from JARVIS.agents.task_queue import TaskQueue
-from JARVIS.agents.testing_agent import TestingAgent, MAX_RETRIES, TestResult
+from JARVIS.agents.testing_agent import MAX_RETRIES, TestingAgent, TestResult
 from JARVIS.core.system.utils.jarvis_logging import get_logger
 
 logger = get_logger("agents.orchestrator")
@@ -34,6 +36,7 @@ def _agents_enabled() -> bool:
     """Check the kill-switch in JARVIS config."""
     try:
         from JARVIS.config.manager import ConfigManager
+
         cfg = ConfigManager()
         cfg.load()
         return bool(cfg.get("agents.enabled", True))
@@ -127,9 +130,7 @@ class AgentOrchestrator:
                 logger.error("[Orchestrator] Planner crashed: %s", exc)
                 return self._error_result(run_id, f"Planner agent failed: {exc}")
 
-            subtasks: list[dict] = plan_result.parsed or [
-                {"id": 1, "title": "Implement request", "description": task_description}
-            ]
+            subtasks: list[dict] = plan_result.parsed or [{"id": 1, "title": "Implement request", "description": task_description}]
             all_outputs: list[dict[str, Any]] = []
             step = 2
 
@@ -193,20 +194,24 @@ class AgentOrchestrator:
                         last_suggestion = tr.suggestion
                         logger.info(
                             "[Orchestrator] Subtask %d attempt %d failed. Suggestion: %s",
-                            subtask_id, attempt + 1, tr.suggestion[:100],
+                            subtask_id,
+                            attempt + 1,
+                            tr.suggestion[:100],
                         )
                     else:
                         # No structured result — treat as pass to avoid infinite loop
                         test_passed = True
                         break
 
-                all_outputs.append({
-                    "subtask_id": subtask_id,
-                    "subtask_title": subtask_title,
-                    "code": code_output,
-                    "test_passed": test_passed,
-                    "attempts": min(attempt + 1, MAX_RETRIES) if 'attempt' in dir() else 1,
-                })
+                all_outputs.append(
+                    {
+                        "subtask_id": subtask_id,
+                        "subtask_title": subtask_title,
+                        "code": code_output,
+                        "test_passed": test_passed,
+                        "attempts": min(attempt + 1, MAX_RETRIES) if "attempt" in dir() else 1,
+                    }
+                )
 
             # ── STEP N: Review ────────────────────────────────────────────────────
             all_passed = all(o.get("test_passed", False) for o in all_outputs)
@@ -248,7 +253,9 @@ class AgentOrchestrator:
             log_entries = len(TaskQueue.get_by_run_id(run_id))
             logger.info(
                 "[Orchestrator] Run %s finished: status=%s entries=%d",
-                run_id, run_status, log_entries,
+                run_id,
+                run_status,
+                log_entries,
             )
 
             return {

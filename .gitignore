@@ -1,16 +1,124 @@
-﻿# HESA (JARVIS) Production .gitignore
+# ============================================================
+# HESA (JARVIS) AI Assistant — .gitignore
+# ============================================================
 
-.venv/
-logs/
+# ── Python bytecode & caches ─────────────────────────────────
 __pycache__/
-*.pyc
-.env
-*.log
-.vscode/
-.idea/
-cache/
-tmp/
-*.db
-*.sqlite
+*.py[cod]
+*$py.class
+*.pyo
+
+# ── Virtual environments ─────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── Distribution & packaging ─────────────────────────────────
 build/
 dist/
+*.egg
+*.egg-info/
+*.whl
+*.spec
+sdist/
+wheels/
+
+# ── Testing & coverage ───────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# ── Linting & type-checking caches ───────────────────────────
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.dmypy.json
+dmypy.json
+
+# ── IDE & editor files ───────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*~
+.project
+.classpath
+.settings/
+
+# ── OS-generated files ───────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+ehthumbs_vista.db
+
+# ── OneDrive temporary files ─────────────────────────────────
+~$*
+*.tmp
+
+# ── Environment & secrets ────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+!.env.example
+
+# ── Logs & runtime data ─────────────────────────────────────
+logs/
+*.log
+*.log.*
+*.jsonl
+JARVIS/core/system/logs/
+JARVIS/core/system/utils/logs/
+
+# ── Databases ────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ── Cache & temporary directories ────────────────────────────
+cache/
+tmp/
+
+# ── Release & build artifacts ────────────────────────────────
+release/
+test_platform_sandbox/dist/
+
+# ── Audio test artifacts ─────────────────────────────────────
+logs/*.wav
+
+# ── Runtime-generated state files ────────────────────────────
+memory.json
+logs/*.json
+logs/production_memory/
+logs/backups/
+logs/heartbeats/
+logs/security_logs/
+logs/services/
+logs/mock_plugin/
+*.pid
+
+# ── Backup files ─────────────────────────────────────────────
+*.bak
+*.bak.*
+*.orig
+*.backup
+
+# ── PyInstaller ──────────────────────────────────────────────
+*.manifest
+*.spec
+
+# ── Jupyter Notebook ─────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── Node (workspace/task_manager frontend) ───────────────────
+node_modules/
+package-lock.json

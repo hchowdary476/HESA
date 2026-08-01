@@ -5,10 +5,11 @@ from __future__ import annotations
 import threading
 import time
 
-from JARVIS.core.voice.ses_motoru import speak
-from JARVIS.core.voice.speech_backend import recognition_mode
 from JARVIS.core.automation.komutlar import process_command
 from JARVIS.core.system.observability import record_runtime_event
+from JARVIS.core.system.utils.jarvis_logging import get_logger
+from JARVIS.core.voice.ses_motoru import speak
+from JARVIS.core.voice.speech_backend import recognition_mode
 from JARVIS.runtime import orchestrator as runtime_orchestrator
 from JARVIS.runtime import readiness as runtime_readiness
 from JARVIS.runtime import timer as timer_runtime
@@ -16,7 +17,6 @@ from JARVIS.runtime import ui_bridge
 from JARVIS.runtime import voice_personality as personality_runtime
 from JARVIS.runtime import wake_listener as wake_state
 from JARVIS.runtime import wake_word as voice_runtime
-from JARVIS.core.system.utils.jarvis_logging import get_logger
 
 logger = get_logger("main")
 
@@ -84,6 +84,7 @@ def start_jarvis():
     # ── Non-blocking background voice pipeline initialization & watchdog protection ──
     try:
         from JARVIS.core.voice.voice_pipeline_manager import get_voice_pipeline_manager
+
         vpm = get_voice_pipeline_manager()
         vpm.initialize_pipeline_async(timeout_seconds=10.0)
     except Exception as e:
@@ -91,6 +92,7 @@ def start_jarvis():
 
     try:
         from JARVIS.core.system.utils.camera_tracker import generate_startup_report
+
         report_str = generate_startup_report()
         print("=================================================")
         print(report_str)
@@ -111,10 +113,12 @@ def start_jarvis():
     print(f'Standby mode -- say "{voice_runtime.WAKE_WORD}" to activate...')
 
     from JARVIS.core.system.utils.service_heartbeat import update_subcomponent_heartbeat
+
     update_subcomponent_heartbeat("voice_listener", status="healthy")
 
     running = True
     from JARVIS.core.voice.ses_motoru import VoiceEngine
+
     while running:
         update_subcomponent_heartbeat("voice_listener", status="healthy")
         if not wake_state.active:

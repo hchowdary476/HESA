@@ -10,7 +10,6 @@ from pathlib import Path
 
 import speech_recognition as sr
 from dotenv import load_dotenv
-from JARVIS.core.system.utils.env_helper import find_env_file
 
 try:
     load_dotenv(".env")
@@ -112,21 +111,20 @@ def transcribe_audio(
     Unified STT fallback chain with complete traceback logging and backend diagnostics.
     Priority order: Whisper tiny.en → Vosk → Google STT → OpenAI Whisper API
     """
-    import logging
-    import traceback
     import io
-    import wave
     import time as _time
+    import traceback
+    import wave
 
     from JARVIS.core.system.utils.jarvis_logging import get_file_logger
+
     stt_logger = get_file_logger("jarvis.stt")
     _voice_logger = get_file_logger("jarvis.voice")
 
     from JARVIS.core.system.utils.service_heartbeat import update_subcomponent_heartbeat
+
     update_subcomponent_heartbeat(
-        "speech_backend",
-        status="healthy",
-        details={"language": language, "audio_len_bytes": len(audio.frame_data)}
+        "speech_backend", status="healthy", details={"language": language, "audio_len_bytes": len(audio.frame_data)}
     )
 
     # Prepare diagnostic info
@@ -140,7 +138,12 @@ def transcribe_audio(
         _voice_logger.error("[STT] FAILED backend=%s error=%s: %s", backend, exc_type, exc_msg)
         stt_logger.error(
             "[STT] FAILED backend=%s lang=%s dur=%.2fs error=%s: %s\nTraceback:\n%s",
-            backend, language, dur, exc_type, exc_msg, tb_str,
+            backend,
+            language,
+            dur,
+            exc_type,
+            exc_msg,
+            tb_str,
         )
         print(f"[STT] FAILED backend={backend} error={exc_type}: {exc_msg}", flush=True)
 
@@ -161,12 +164,13 @@ def transcribe_audio(
             if backend == "FASTER_WHISPER":
                 try:
                     from JARVIS.core.voice.faster_whisper_engine import get_faster_whisper_engine
+
                     fw_engine = get_faster_whisper_engine()
                     result = fw_engine.transcribe(audio, language=language)
                     if result and result.get("text"):
                         text = result["text"]
                         _lat = (_time.perf_counter() - _backend_start) * 1000
-                        stt_logger.info("[STT] SUCCESS backend=FASTER_WHISPER latency=%.0fms result=\"%s\"", _lat, text[:80])
+                        stt_logger.info('[STT] SUCCESS backend=FASTER_WHISPER latency=%.0fms result="%s"', _lat, text[:80])
                         _voice_logger.info("[VOICE] FASTER_WHISPER transcribed: '%s'", text)
                         print(f"[STT] USING FASTER_WHISPER — '{text}'", flush=True)
                         return text
@@ -183,10 +187,10 @@ def transcribe_audio(
                 text = transcribe_audio_offline(audio)
                 if text:
                     _lat = (_time.perf_counter() - _backend_start) * 1000
-                    stt_logger.info("[STT] SUCCESS backend=VOSK latency=%.0fms result=\"%s\"", _lat, text[:80])
+                    stt_logger.info('[STT] SUCCESS backend=VOSK latency=%.0fms result="%s"', _lat, text[:80])
                     _voice_logger.info("[VOICE] USING BACKEND: VOSK — '%s'", text)
                     return text
-                
+
             elif backend == "WHISPER":
                 # Check for local whisper library
                 try:
@@ -198,6 +202,7 @@ def transcribe_audio(
                 # Prefer tiny.en (already downloaded, fast) — fall back to base
                 _whisper_model_name = "tiny.en"
                 import os as _os
+
                 _whisper_cache = _os.path.join(_os.path.expanduser("~"), ".cache", "whisper")
                 _tiny_path = _os.path.join(_whisper_cache, "tiny.en.pt")
                 if not _os.path.exists(_tiny_path):
@@ -217,11 +222,13 @@ def transcribe_audio(
                 # Feed raw float32 numpy array directly to whisper — bypasses ffmpeg subprocess.
                 try:
                     import numpy as _np
+
                     # Convert PCM int16 → float32 in [-1, 1]
                     _pcm = _np.frombuffer(audio.frame_data, dtype=_np.int16).astype(_np.float32) / 32768.0
                     # Resample to 16 kHz if needed (whisper expects exactly 16000 Hz)
                     if audio.sample_rate != 16000:
                         import math
+
                         _ratio = 16000 / audio.sample_rate
                         _new_len = int(len(_pcm) * _ratio)
                         _pcm = _np.interp(
@@ -234,13 +241,13 @@ def transcribe_audio(
                     text = res.get("text", "").strip()
                     if text:
                         _lat = (_time.perf_counter() - _backend_start) * 1000
-                        stt_logger.info("[STT] SUCCESS backend=WHISPER latency=%.0fms result=\"%s\"", _lat, text[:80])
+                        stt_logger.info('[STT] SUCCESS backend=WHISPER latency=%.0fms result="%s"', _lat, text[:80])
                         _voice_logger.info("[VOICE] WHISPER transcribed: '%s'", text)
                         return text
                     _voice_logger.warning("[VOICE] WHISPER returned empty text — skipping")
                 except ImportError:
                     _voice_logger.warning("[VOICE] numpy not available — cannot use numpy-mode whisper")
-                        
+
             elif backend == "GOOGLE":
                 print("[STT] USING GOOGLE", flush=True)
                 try:
@@ -251,10 +258,10 @@ def transcribe_audio(
                     continue
                 if text:
                     _lat = (_time.perf_counter() - _backend_start) * 1000
-                    stt_logger.info("[STT] SUCCESS backend=GOOGLE latency=%.0fms result=\"%s\"", _lat, text[:80])
+                    stt_logger.info('[STT] SUCCESS backend=GOOGLE latency=%.0fms result="%s"', _lat, text[:80])
                     _voice_logger.info("[VOICE] GOOGLE transcribed: '%s'", text)
                     return text
-                    
+
             elif backend == "OPENAI_WHISPER":
                 api_key = os.getenv("OPENAI_API_KEY")
                 if not api_key:
@@ -264,6 +271,7 @@ def transcribe_audio(
                 print("[STT] USING OPENAI WHISPER", flush=True)
                 try:
                     import requests
+
                     wav_io = io.BytesIO()
                     with wave.open(wav_io, "wb") as wf:
                         wf.setnchannels(1)
@@ -276,14 +284,13 @@ def transcribe_audio(
                     data = {"model": "whisper-1", "language": language[:2]}
                     headers = {"Authorization": f"Bearer {api_key}"}
                     res = requests.post(
-                        "https://api.openai.com/v1/audio/transcriptions",
-                        headers=headers, files=files, data=data, timeout=15.0
+                        "https://api.openai.com/v1/audio/transcriptions", headers=headers, files=files, data=data, timeout=15.0
                     )
                     res.raise_for_status()
                     text = res.json().get("text", "").strip()
                     if text:
                         _lat = (_time.perf_counter() - _backend_start) * 1000
-                        stt_logger.info("[STT] SUCCESS backend=OPENAI_WHISPER latency=%.0fms result=\"%s\"", _lat, text[:80])
+                        stt_logger.info('[STT] SUCCESS backend=OPENAI_WHISPER latency=%.0fms result="%s"', _lat, text[:80])
                         _voice_logger.info("[VOICE] OPENAI WHISPER transcribed: '%s'", text)
                         return text
                 except Exception as e:
@@ -301,11 +308,12 @@ def transcribe_audio(
                 except ImportError:
                     logger.warning("[VOICE] Groq library not installed.")
                     continue
-                    
+
                 print("[VOICE] USING BACKEND: GROQ")
                 import httpx
+
                 client = Groq(api_key=api_key, http_client=httpx.Client(verify=False))
-                
+
                 # In-memory WAV file creation
                 wav_io = io.BytesIO()
                 with wave.open(wav_io, "wb") as wf:
@@ -315,7 +323,7 @@ def transcribe_audio(
                     wf.writeframes(audio.frame_data)
                 wav_io.seek(0)
                 wav_io.name = "audio.wav"
-                
+
                 translation = client.audio.transcriptions.create(
                     file=wav_io,
                     model="whisper-large-v3",
@@ -329,10 +337,10 @@ def transcribe_audio(
                     text = translation.get("text", "").strip()
                 else:
                     text = str(translation).strip()
-                
+
                 if text:
                     return text
-                    
+
         except sr.UnknownValueError:
             stt_logger.debug("[STT] %s: UnknownValueError (no recognisable speech)", backend)
             _voice_logger.debug("[VOICE] %s: UnknownValueError (no recognisable speech)", backend)

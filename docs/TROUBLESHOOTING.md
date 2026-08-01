@@ -1,42 +1,46 @@
-# HESA (JARVIS) Troubleshooting Guide
+# 🔧 HESA Troubleshooting Guide
 
-This document contains solutions for common operational and installation issues.
-
----
-
-## 🔍 Log File Locations
-
-- **Startup & Launcher Logs**: `logs/startup.log`
-- **GUI & Traceback Logs**: `logs/gui_traceback.log`
-- **Heartbeat & Telemetry Logs**: `logs/heartbeats/`
-- **Feature Audit Results**: `logs/feature_audit_results.json`
+Common issues and solutions for running HESA (JARVIS).
 
 ---
 
-## 🛠️ Common Issues & Fixes
+## 🎙️ Voice & Audio Troubleshooting
 
-### 1. GUI Exits Immediately After Launch
-- **Cause**: A duplicate instance of JARVIS is already running in the background.
-- **Fix**: Check your Windows Task Tray for the JARVIS icon, or end existing Python processes via Task Manager:
-  ```cmd
-  taskkill /F /IM python.exe /IM pythonw.exe
-  ```
+### 1. Wake word is not triggering ("Hey JARVIS")
+- **Cause**: Microphone gain too low or sensitivity threshold set too high.
+- **Solution**: Lower `JARVIS_WAKE_THRESHOLD` in `.env` (e.g. from `0.72` to `0.55`).
+- Check default recording device in Windows Sound Control Panel.
 
-### 2. Microphone Input Not Detected
-- **Cause**: Audio device permissions disabled or incorrect default recording device.
-- **Fix**: Ensure Windows Settings $\rightarrow$ Privacy & Security $\rightarrow$ Microphone permissions are allowed for desktop applications.
+### 2. Edge-TTS playback fails or sounds robotic
+- **Cause**: Network disconnection or Edge-TTS cloud service timeout.
+- **Solution**: HESA automatically falls back to SAPI5 `pyttsx3`. Check your internet connection or force offline TTS by setting `JARVIS_TTS_PROVIDER=pyttsx3` in `.env`.
 
-### 3. OpenWakeWord Initialization Error
-- **Cause**: ONNX models missing from virtual environment cache.
-- **Fix**: Download base models manually by running:
-  ```cmd
-  python -c "import openwakeword; openwakeword.utils.download_models()"
-  ```
+---
 
-### 4. Ollama Local LLM Connection Refused
-- **Cause**: Ollama daemon is not running on `http://127.0.0.1:11434`.
-- **Fix**: Start Ollama desktop or run `ollama serve` in a terminal window.
+## 🤖 AI Routing & Model Troubleshooting
 
-### 5. Task Scheduler Fails at Logon
-- **Cause**: Permission denial or UAC elevation blocking GUI rendering.
-- **Fix**: Ensure `create_task.ps1` was registered with `-RunLevel Limited` and `-LogonType Interactive` so it executes in your user session.
+### 1. `Gemini API key missing` warning in logs
+- **Cause**: `GEMINI_API_KEY` is empty in `.env`.
+- **Solution**: Insert a valid key from Google AI Studio into `.env`, or rely on local Ollama by running `ollama run phi3:latest`.
+
+### 2. Local Ollama queries timing out
+- **Cause**: Ollama server not running or system under high RAM load.
+- **Solution**: Open terminal and verify Ollama is active: `curl http://127.0.0.1:11434`.
+
+---
+
+## 🖥️ QML GUI & Display Issues
+
+### 1. Window fails to open or exits immediately
+- **Cause**: PySide6 QML plugin DLL path resolution failure on Windows logon.
+- **Solution**: Launch via `python jarvis.py` directly from an active virtual environment.
+
+---
+
+## 📝 Diagnostic Logs
+
+Diagnostic log outputs are stored in `logs/`:
+- `logs/startup.log`: System boot logs
+- `logs/supervisor.log`: Process manager logs
+- `logs/ai_router.log`: LLM routing decisions
+- `logs/stt.log`: Speech recognition outputs

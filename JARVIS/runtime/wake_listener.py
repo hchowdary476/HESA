@@ -1,18 +1,14 @@
 """Wake-word listener powered by OpenWakeWord engine with complete [VOICE] stage logging."""
 
 import os
-import sys
 import time
-import logging
 import traceback
-import threading
 
 import speech_recognition as sr
 
-from JARVIS.core.voice.speech_backend import recognition_mode, transcribe_audio
-from JARVIS.core.voice.openwakeword_engine import get_openwakeword_engine, wake_file_logger
-from JARVIS.core.system.observability import record_runtime_event
 from JARVIS.core.system.utils.jarvis_logging import get_file_logger
+from JARVIS.core.voice.openwakeword_engine import get_openwakeword_engine, wake_file_logger
+from JARVIS.core.voice.speech_backend import transcribe_audio
 
 logger = get_file_logger("jarvis.voice")
 _wake_logger = get_file_logger("jarvis.wake")
@@ -29,15 +25,18 @@ _wake_recognizer.dynamic_energy_threshold = False
 # HESA_TEST_MODE mock integration
 _original_listen = _wake_recognizer.listen
 
+
 def mock_listen(source, timeout=None, phrase_time_limit=None):
     if os.environ.get("HESA_TEST_MODE") == "1":
         time.sleep(2)
         return sr.AudioData(b"\x00" * 32000, 16000, 2)
     return _original_listen(source, timeout, phrase_time_limit)
 
+
 _wake_recognizer.listen = mock_listen
 
 _test_transcription_counter = 0
+
 
 def mock_transcribe_audio(*args, **kwargs):
     global _test_transcription_counter
@@ -49,7 +48,9 @@ def mock_transcribe_audio(*args, **kwargs):
             time.sleep(10)
             return ""
     from JARVIS.core.voice.speech_backend import transcribe_audio as real_transcribe
+
     return real_transcribe(*args, **kwargs)
+
 
 transcribe_audio = mock_transcribe_audio
 
@@ -98,13 +99,13 @@ def _vlog_exc(tag: str, exc: BaseException, send_log=None) -> None:
 
 def _execute_command(cmd_text: str, *, lang_code: str, send_log) -> None:
     """Transcription -> intent -> execute."""
-    from JARVIS.core.system.utils.stage_loggers import (
-        stt_log, intent_log, actions_log, router_log, memory_log, tts_log
-    )
+    from JARVIS.core.system.utils.stage_loggers import actions_log, intent_log, memory_log, router_log, stt_log
+
     cleaned_cmd = cmd_text.strip()
     stt_log("STT", cleaned_cmd)
 
     from JARVIS.core.automation.local_intent_router import classify_intent
+
     category, action = classify_intent(cleaned_cmd)
     intent_log("INTENT", f"{category} ({action.get('action', action) if isinstance(action, dict) else action})")
 
@@ -118,6 +119,7 @@ def _execute_command(cmd_text: str, *, lang_code: str, send_log) -> None:
 
     try:
         from JARVIS.core.automation.komutlar import process_command
+
         process_command(cmd_text)
     except Exception as exec_err:
         _vlog_exc("process_command", exec_err, send_log=send_log)
@@ -169,7 +171,7 @@ def get_voice_stability_report() -> dict:
         "wake_word_detection_latency_seconds": round(avg_latency, 3),
         "dropped_audio_frames": _dropped_frames,
         "listener_restart_count": _restart_count,
-        "final_status": _final_status
+        "final_status": _final_status,
     }
 
 
@@ -178,6 +180,7 @@ def listen_for_wake_word(*, logger, send_log) -> None:
     global active, _mic_open_time, _restart_count, _dropped_frames, _final_status
 
     from JARVIS.core.voice.microphone import SoundDeviceMicrophone
+
     oww_engine = get_openwakeword_engine()
 
     FRAME_SIZE = 1280  # 16kHz 16-bit PCM chunk (80ms)
@@ -189,12 +192,14 @@ def listen_for_wake_word(*, logger, send_log) -> None:
 
                 try:
                     from JARVIS.core.system.utils.service_heartbeat import update_subcomponent_heartbeat
+
                     update_subcomponent_heartbeat("voice_engine", status="healthy")
                 except Exception:
                     pass
 
                 try:
                     from JARVIS.core.voice.ses_motoru import VoiceEngine
+
                     VoiceEngine().set_listener_state("LISTENING")
                 except Exception:
                     pass
@@ -202,6 +207,7 @@ def listen_for_wake_word(*, logger, send_log) -> None:
                 while True:
                     try:
                         from JARVIS.core.system.utils.service_heartbeat import update_subcomponent_heartbeat
+
                         update_subcomponent_heartbeat("wake_listener", status="healthy")
                         update_subcomponent_heartbeat("voice_engine", status="healthy")
                     except Exception:
@@ -210,6 +216,7 @@ def listen_for_wake_word(*, logger, send_log) -> None:
                     # Pause while TTS is speaking to avoid self-recognition
                     try:
                         from JARVIS.core.voice.ses_motoru import VoiceEngine
+
                         if VoiceEngine().speaking:
                             time.sleep(0.2)
                             continue
@@ -235,6 +242,7 @@ def listen_for_wake_word(*, logger, send_log) -> None:
                     if active:
                         try:
                             from JARVIS.core.memory.memory_preferences import get_preference
+
                             pref_lang = get_preference("preferred_language")
                             lang_code = "te-IN" if pref_lang == "telugu" else "en-US"
                         except Exception:
@@ -244,8 +252,10 @@ def listen_for_wake_word(*, logger, send_log) -> None:
                             cmd_audio = _capture_command_audio(source, send_log=send_log)
                             if cmd_audio is not None:
                                 cmd_text = transcribe_audio(
-                                    _wake_recognizer, cmd_audio,
-                                    language=lang_code, prefer_offline=True,
+                                    _wake_recognizer,
+                                    cmd_audio,
+                                    language=lang_code,
+                                    prefer_offline=True,
                                 )
                                 if cmd_text and not oww_engine.is_false_positive(cmd_text):
                                     _execute_command(cmd_text, lang_code=lang_code, send_log=send_log)
@@ -262,6 +272,7 @@ def listen_for_wake_word(*, logger, send_log) -> None:
             _vlog_exc("outer mic loop (restart #" + str(_restart_count) + ")", outer_exc, send_log=send_log)
             try:
                 from JARVIS.core.voice.ses_motoru import VoiceEngine
+
                 VoiceEngine().set_listener_state("RESTARTING")
             except Exception:
                 pass
@@ -269,7 +280,7 @@ def listen_for_wake_word(*, logger, send_log) -> None:
             _final_status = "HEALTHY"
             try:
                 from JARVIS.core.voice.ses_motoru import VoiceEngine
+
                 VoiceEngine().set_listener_state("LISTENING")
             except Exception:
                 pass
-

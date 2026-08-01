@@ -8,15 +8,12 @@ and first-run download handling without freezing the HESA GUI.
 
 from __future__ import annotations
 
-import io
-import os
-import sys
-import time
-import wave
 import logging
+import os
 import threading
+import time
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any
 
 from JARVIS.core.system.utils.jarvis_logging import get_file_logger
 from JARVIS.core.system.utils.service_heartbeat import update_subcomponent_heartbeat
@@ -38,7 +35,7 @@ class FasterWhisperEngine:
     - Graceful error handling & fallback availability checks
     """
 
-    _instance: Optional[FasterWhisperEngine] = None
+    _instance: FasterWhisperEngine | None = None
     _lock = threading.Lock()
 
     def __new__(cls, *args: Any, **kwargs: Any) -> FasterWhisperEngine:
@@ -53,7 +50,7 @@ class FasterWhisperEngine:
         model_name: str = "base",
         device: str = "cpu",
         compute_type: str = "int8",
-        download_root: Optional[str] = None,
+        download_root: str | None = None,
     ) -> None:
         if getattr(self, "_initialized_attributes", False):
             return
@@ -65,10 +62,10 @@ class FasterWhisperEngine:
         self.download_root = download_root or os.getenv("JARVIS_WHISPER_CACHE")
 
         self.status = "UNINITIALIZED"
-        self.last_error: Optional[str] = None
+        self.last_error: str | None = None
         self._model: Any = None
         self._init_lock = threading.Lock()
-        self._init_thread: Optional[threading.Thread] = None
+        self._init_thread: threading.Thread | None = None
 
     def initialize_async(self) -> threading.Thread:
         """Launch non-blocking background initialization thread."""
@@ -108,6 +105,7 @@ class FasterWhisperEngine:
             if target_device == "cuda":
                 try:
                     import torch
+
                     if not torch.cuda.is_available():
                         _stt_logger.warning("[FASTER-WHISPER] CUDA requested but not available — falling back to CPU")
                         target_device = "cpu"
@@ -116,7 +114,7 @@ class FasterWhisperEngine:
                     target_device = "cpu"
                     target_compute = "int8"
 
-            model_kwargs: Dict[str, Any] = {
+            model_kwargs: dict[str, Any] = {
                 "device": target_device,
                 "compute_type": target_compute,
             }
@@ -149,9 +147,7 @@ class FasterWhisperEngine:
         except Exception as exc:
             self.status = "ERROR"
             self.last_error = str(exc)
-            _stt_logger.error(
-                "[FASTER-WHISPER] Failed to load model %s: %s", self.model_name, exc, exc_info=True
-            )
+            _stt_logger.error("[FASTER-WHISPER] Failed to load model %s: %s", self.model_name, exc, exc_info=True)
             _voice_logger.error("[VOICE] Faster-Whisper model load failed: %s", exc)
             print(f"[STT_ERROR] Faster-Whisper model load failed: {exc}", flush=True)
 
@@ -180,10 +176,10 @@ class FasterWhisperEngine:
     def transcribe(
         self,
         audio: Any,
-        language: Optional[str] = None,
+        language: str | None = None,
         beam_size: int = 5,
         vad_filter: bool = True,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Transcribe audio using Faster-Whisper.
 
@@ -236,7 +232,7 @@ class FasterWhisperEngine:
             lang_prob = getattr(info, "language_probability", 1.0)
 
             _stt_logger.info(
-                "[FASTER-WHISPER] SUCCESS lang=%s prob=%.2f lat=%.0fms result=\"%s\"",
+                '[FASTER-WHISPER] SUCCESS lang=%s prob=%.2f lat=%.0fms result="%s"',
                 detected_lang,
                 lang_prob,
                 lat_ms,
@@ -273,6 +269,7 @@ class FasterWhisperEngine:
         # Case 2: speech_recognition.AudioData
         try:
             import speech_recognition as sr
+
             if isinstance(audio, sr.AudioData):
                 pcm = np.frombuffer(audio.frame_data, dtype=np.int16).astype(np.float32) / 32768.0
                 if audio.sample_rate != 16000 and len(pcm) > 0:

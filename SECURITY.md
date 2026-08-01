@@ -1,4 +1,4 @@
-# Security Policy
+# 🛡️ Security Policy
 
 ## Supported Versions
 
@@ -9,14 +9,14 @@
 
 ## Reporting a Vulnerability
 
-The HESA (JARVIS) team takes security seriously. If you discover a security vulnerability within this repository, please do **NOT** open a public issue.
+The HESA (JARVIS) development team takes security and user privacy seriously. If you discover a security vulnerability within this repository, please do **NOT** open a public GitHub issue.
 
 ### Disclosure Process
-1. Email your findings to security@open-jarvis.org (or report via GitHub Security Advisories).
-2. Include a detailed description of the vulnerability, steps to reproduce, and potential impact.
-3. The project maintainers will acknowledge receipt within 48 hours and provide updates on resolution.
+1. Email your report privately to `security@open-jarvis.org` or report via GitHub Security Advisories.
+2. Include a detailed description of the vulnerability, steps to reproduce, and potential security impact.
+3. The project maintainers will acknowledge receipt within 48 hours and provide periodic updates until a fix is deployed.
 
 ### Security Best Practices for Users
-- Never commit your `.env` file or raw API keys to public repositories.
-- Use `JARVIS_PRIVACY_MODE=true` when running in sensitive environments.
-- Maintain key permissions on your localized SQLite and Fernet key stores.
+- Never commit your `.env` file or raw API keys to public version control.
+- Use `JARVIS_PRIVACY_MODE=true` when executing in sensitive environments.
+- Maintain restrictive permissions on local SQLite database files and Fernet key stores.

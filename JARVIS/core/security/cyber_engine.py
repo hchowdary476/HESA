@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import random
 import re
 import time
 from pathlib import Path
+
 import psutil
 
 logger = logging.getLogger("jarvis.cyber_engine")
@@ -26,7 +26,7 @@ class CyberSecurityEngine:
         anomalies = []
         try:
             if self.log_file.exists():
-                with open(self.log_file, "r", encoding="utf-8", errors="ignore") as f:
+                with open(self.log_file, encoding="utf-8", errors="ignore") as f:
                     lines = f.readlines()[-300:]  # Audit last 300 entries
                 for line in lines:
                     if any(w in line.lower() for w in ["error", "fail", "collision", "duplicate", "conflict", "warn"]):
@@ -69,9 +69,7 @@ class CyberSecurityEngine:
                 is_high_cpu = cpu > 85.0
 
                 if is_temp or is_high_cpu:
-                    suspicious.append(
-                        f"PID {info.get('pid')}: `{info.get('name')}` running from `{exe_path}` (CPU: {cpu}%)"
-                    )
+                    suspicious.append(f"PID {info.get('pid')}: `{info.get('name')}` running from `{exe_path}` (CPU: {cpu}%)")
                 count += 1
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 pass
@@ -95,7 +93,7 @@ class CyberSecurityEngine:
         """Analyze a vulnerability payload, highlighting high findings and remediation steps."""
         if not report_data:
             report_data = "OpenSSL Heartbleed, CVE-2014-0160: CVSS 7.5. Read buffer overflow allow key exposure."
-        
+
         return (
             "### Vulnerability Assessment Report\n\n"
             f"**Target:** {report_data[:80]}...\n"
@@ -115,20 +113,20 @@ class CyberSecurityEngine:
                 "name": "Log4Shell",
                 "score": "10.0 Critical",
                 "desc": "Apache Log4j2 JNDI remote code execution via LDAP lookup injections.",
-                "mitigation": "Upgrade Log4j to >= 2.15.0 or remove JndiLookup class from classpath."
+                "mitigation": "Upgrade Log4j to >= 2.15.0 or remove JndiLookup class from classpath.",
             },
             "CVE-2017-0144": {
                 "name": "EternalBlue",
                 "score": "9.3 Critical",
                 "desc": "SMBv1 buffer overflow exploited by WannaCry ransomware to propagate across networks.",
-                "mitigation": "Disable SMBv1, apply Microsoft MS17-010 security patch immediately."
+                "mitigation": "Disable SMBv1, apply Microsoft MS17-010 security patch immediately.",
             },
             "CVE-2014-0160": {
                 "name": "Heartbleed",
                 "score": "7.5 High",
                 "desc": "OpenSSL TLS Heartbeat extension memory disclosure vulnerability.",
-                "mitigation": "Upgrade OpenSSL to 1.0.1g, replace compromised private key files."
-            }
+                "mitigation": "Upgrade OpenSSL to 1.0.1g, replace compromised private key files.",
+            },
         }
 
         # Check default match or regex match
@@ -184,23 +182,23 @@ class CyberSecurityEngine:
     def explain_malware_behavior(self, malware_name: str) -> str:
         """Detail indicators and behaviors of notable malware strains."""
         m_name = malware_name.lower().strip()
-        
+
         profiles = {
             "wannacry": {
                 "vector": "EternalBlue SMBv1 Exploit (Port 445)",
                 "payload": "AES/RSA File Encryption, `.WNCRY` file extension append.",
-                "indicators": "Kill-switch URL check, registry modification under Software\\WanaCrypt0r."
+                "indicators": "Kill-switch URL check, registry modification under Software\\WanaCrypt0r.",
             },
             "emotet": {
                 "vector": "Phishing macros, malicious document attachments.",
                 "payload": "Polymorphic loader, credential harvesting, spam-bot modules.",
-                "indicators": "Scheduled tasks creation, encrypted HTTP POST beacons to dynamic C2 servers."
+                "indicators": "Scheduled tasks creation, encrypted HTTP POST beacons to dynamic C2 servers.",
             },
             "pegasus": {
                 "vector": "Zero-click exploits in messaging apps (iMessage, WhatsApp).",
                 "payload": "Complete smartphone compromise (keylogger, camera control, data exfiltration).",
-                "indicators": "Modified system binaries, anomalous background data usage spikes."
-            }
+                "indicators": "Modified system binaries, anomalous background data usage spikes.",
+            },
         }
 
         matched = None
@@ -317,30 +315,31 @@ class CyberSecurityEngine:
             {
                 "q": "Which of the following cryptographic algorithms uses a symmetric key structure?",
                 "options": ["A) RSA", "B) AES", "C) ECC", "D) Diffie-Hellman"],
-                "answer": "B) AES. Advanced Encryption Standard is a symmetric block cipher, while RSA, ECC, and DH are asymmetric."
+                "answer": "B) AES. Advanced Encryption Standard is a symmetric block cipher, while RSA, ECC, and DH are asymmetric.",
             },
             {
                 "q": "An attacker intercepts communication between a client and a server and replaces the server's public key with their own. What type of attack is this?",
                 "options": ["A) Phishing", "B) DDoS", "C) Man-in-the-Middle (MitM)", "D) SQL Injection"],
-                "answer": "C) Man-in-the-Middle (MitM). Intercepting and altering transit keys represents a classic MitM scenario."
+                "answer": "C) Man-in-the-Middle (MitM). Intercepting and altering transit keys represents a classic MitM scenario.",
             },
             {
                 "q": "Which security control is designed to detect and log unauthorized modifications to system files?",
                 "options": ["A) Firewall", "B) File Integrity Monitoring (FIM)", "C) DLP", "D) WAF"],
-                "answer": "B) File Integrity Monitoring (FIM). FIM systems (like OSSEC or Tripwire) calculate file hashes to isolate changes."
-            }
+                "answer": "B) File Integrity Monitoring (FIM). FIM systems (like OSSEC or Tripwire) calculate file hashes to isolate changes.",
+            },
         ]
 
         item = random.choice(quizzes)
-        
+
         try:
             from JARVIS.gui.qml_bridge import JarvisBridge
+
             if JarvisBridge._instance:
                 q_data = {
                     "question": item["q"],
                     "options": item["options"],
                     "answer": item["answer"].split(")")[0].strip(),
-                    "explanation": item["answer"].split(")", 1)[1].strip() if ")" in item["answer"] else item["answer"]
+                    "explanation": item["answer"].split(")", 1)[1].strip() if ")" in item["answer"] else item["answer"],
                 }
                 JarvisBridge._instance._cyber_quiz_question = json.dumps(q_data)
                 JarvisBridge._instance.cyberQuizQuestionChanged.emit(json.dumps(q_data))
@@ -348,12 +347,7 @@ class CyberSecurityEngine:
             pass
 
         options_str = "\n".join(item["options"])
-        return (
-            "### CompTIA Security+ Quiz Challenge\n\n"
-            f"**Question:** {item['q']}\n\n"
-            f"{options_str}\n\n"
-            f"**Answer Key:** ||{item['answer']}||"
-        )
+        return f"### CompTIA Security+ Quiz Challenge\n\n**Question:** {item['q']}\n\n{options_str}\n\n**Answer Key:** ||{item['answer']}||"
 
     def teach_cloud_security(self) -> str:
         """Explain core cloud security principles."""
@@ -431,7 +425,7 @@ class CyberSecurityEngine:
             r"jailbreak",
             r"system prompt leak",
             r"developer commands",
-            r"override restrictions"
+            r"override restrictions",
         ]
 
         matched = []

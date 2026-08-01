@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import patch
 
-from JARVIS.runtime.process_runner import launch_process, run_command
 from JARVIS.core.security.command_safety import validate_process_command
+from JARVIS.runtime.process_runner import launch_process, run_command
 
 
 class CommandSafetyTests(unittest.TestCase):

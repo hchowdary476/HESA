@@ -22,78 +22,110 @@ logger = get_logger("debugger_agent")
 
 # Common error pattern library
 _PYTHON_ERROR_PATTERNS: list[tuple[re.Pattern, str, str]] = [
-    (re.compile(r"ModuleNotFoundError: No module named '([^']+)'"),
-     "Missing Python module",
-     "Run: pip install {0}"),
-    (re.compile(r"ImportError: cannot import name '([^']+)' from '([^']+)'"),
-     "Import name mismatch",
-     "Check that '{0}' is exported from '{1}'. Verify module version."),
-    (re.compile(r"IndentationError: (expected an indented block|unexpected indent)"),
-     "Python indentation error",
-     "Check indentation — Python requires consistent spaces (4 spaces recommended)."),
-    (re.compile(r"SyntaxError: (.+) \((.+), line (\d+)\)"),
-     "Python syntax error",
-     "Syntax error in {1} at line {2}: {0}"),
-    (re.compile(r"TypeError: (.+) takes (\d+) positional argument"),
-     "Wrong number of arguments",
-     "Function called with wrong number of arguments. Check the function signature."),
-    (re.compile(r"AttributeError: '([^']+)' object has no attribute '([^']+)'"),
-     "Attribute does not exist",
-     "Object of type '{0}' has no attribute '{1}'. Check typos or use hasattr()."),
-    (re.compile(r"KeyError: '?([^'\s]+)'?"),
-     "Dictionary key missing",
-     "Key '{0}' not found in dict. Use dict.get('{0}', default) for safe access."),
-    (re.compile(r"FileNotFoundError: \[Errno 2\] No such file or directory: '([^']+)'"),
-     "File not found",
-     "File '{0}' does not exist. Check the path and working directory."),
-    (re.compile(r"PermissionError: \[Errno 13\] Permission denied: '([^']+)'"),
-     "Permission denied",
-     "No write permission for '{0}'. Run as administrator or change file permissions."),
-    (re.compile(r"ConnectionRefusedError"),
-     "Server not running",
-     "Connection refused — ensure the server is started before running the client."),
-    (re.compile(r"sqlalchemy\.exc\.OperationalError"),
-     "Database connection error",
-     "Database not reachable. Check DATABASE_URL in .env and ensure DB is running."),
-    (re.compile(r"pydantic\.ValidationError"),
-     "Pydantic schema validation failed",
-     "Request body does not match schema. Check required fields and data types."),
-    (re.compile(r"jwt\.exceptions\.(ExpiredSignatureError|InvalidSignatureError)"),
-     "JWT token error",
-     "JWT token is expired or invalid. Refresh the token or check SECRET_KEY."),
+    (re.compile(r"ModuleNotFoundError: No module named '([^']+)'"), "Missing Python module", "Run: pip install {0}"),
+    (
+        re.compile(r"ImportError: cannot import name '([^']+)' from '([^']+)'"),
+        "Import name mismatch",
+        "Check that '{0}' is exported from '{1}'. Verify module version.",
+    ),
+    (
+        re.compile(r"IndentationError: (expected an indented block|unexpected indent)"),
+        "Python indentation error",
+        "Check indentation — Python requires consistent spaces (4 spaces recommended).",
+    ),
+    (re.compile(r"SyntaxError: (.+) \((.+), line (\d+)\)"), "Python syntax error", "Syntax error in {1} at line {2}: {0}"),
+    (
+        re.compile(r"TypeError: (.+) takes (\d+) positional argument"),
+        "Wrong number of arguments",
+        "Function called with wrong number of arguments. Check the function signature.",
+    ),
+    (
+        re.compile(r"AttributeError: '([^']+)' object has no attribute '([^']+)'"),
+        "Attribute does not exist",
+        "Object of type '{0}' has no attribute '{1}'. Check typos or use hasattr().",
+    ),
+    (
+        re.compile(r"KeyError: '?([^'\s]+)'?"),
+        "Dictionary key missing",
+        "Key '{0}' not found in dict. Use dict.get('{0}', default) for safe access.",
+    ),
+    (
+        re.compile(r"FileNotFoundError: \[Errno 2\] No such file or directory: '([^']+)'"),
+        "File not found",
+        "File '{0}' does not exist. Check the path and working directory.",
+    ),
+    (
+        re.compile(r"PermissionError: \[Errno 13\] Permission denied: '([^']+)'"),
+        "Permission denied",
+        "No write permission for '{0}'. Run as administrator or change file permissions.",
+    ),
+    (
+        re.compile(r"ConnectionRefusedError"),
+        "Server not running",
+        "Connection refused — ensure the server is started before running the client.",
+    ),
+    (
+        re.compile(r"sqlalchemy\.exc\.OperationalError"),
+        "Database connection error",
+        "Database not reachable. Check DATABASE_URL in .env and ensure DB is running.",
+    ),
+    (
+        re.compile(r"pydantic\.ValidationError"),
+        "Pydantic schema validation failed",
+        "Request body does not match schema. Check required fields and data types.",
+    ),
+    (
+        re.compile(r"jwt\.exceptions\.(ExpiredSignatureError|InvalidSignatureError)"),
+        "JWT token error",
+        "JWT token is expired or invalid. Refresh the token or check SECRET_KEY.",
+    ),
 ]
 
 _FLUTTER_ERROR_PATTERNS: list[tuple[re.Pattern, str, str]] = [
-    (re.compile(r"Because (.+) depends on (.+) which requires .+, version solving failed"),
-     "Flutter dependency conflict",
-     "Run 'flutter pub upgrade' or pin dependency versions in pubspec.yaml."),
-    (re.compile(r"The getter '(.+)' isn't defined for the class '(.+)'"),
-     "Dart undefined getter",
-     "'{0}' is not a property of '{1}'. Check class definition or imports."),
-    (re.compile(r"FAILURE: Build failed with an exception.*Gradle"),
-     "Gradle build failure",
-     "Clean and rebuild: 'flutter clean && flutter pub get && flutter build apk'"),
-    (re.compile(r"Exception: No connected devices"),
-     "No device connected",
-     "Start an emulator or connect a physical device, then run 'flutter devices'."),
+    (
+        re.compile(r"Because (.+) depends on (.+) which requires .+, version solving failed"),
+        "Flutter dependency conflict",
+        "Run 'flutter pub upgrade' or pin dependency versions in pubspec.yaml.",
+    ),
+    (
+        re.compile(r"The getter '(.+)' isn't defined for the class '(.+)'"),
+        "Dart undefined getter",
+        "'{0}' is not a property of '{1}'. Check class definition or imports.",
+    ),
+    (
+        re.compile(r"FAILURE: Build failed with an exception.*Gradle"),
+        "Gradle build failure",
+        "Clean and rebuild: 'flutter clean && flutter pub get && flutter build apk'",
+    ),
+    (
+        re.compile(r"Exception: No connected devices"),
+        "No device connected",
+        "Start an emulator or connect a physical device, then run 'flutter devices'.",
+    ),
 ]
 
 _JS_ERROR_PATTERNS: list[tuple[re.Pattern, str, str]] = [
-    (re.compile(r"Cannot find module '([^']+)'"),
-     "Node module not found",
-     "Run: npm install {0}"),
-    (re.compile(r"SyntaxError: Unexpected token '(.+)'"),
-     "JavaScript syntax error",
-     "Syntax error near '{0}'. Check JSX/TypeScript syntax."),
-    (re.compile(r"TypeError: Cannot read propert(?:y|ies) of (null|undefined)"),
-     "Null/undefined access",
-     "Add null check: use optional chaining (?.) or check if value exists before access."),
-    (re.compile(r"CORS policy: No 'Access-Control-Allow-Origin'"),
-     "CORS blocked",
-     "Add CORS middleware to the backend. FastAPI: add CORSMiddleware with allow_origins=['*']."),
-    (re.compile(r"net::ERR_CONNECTION_REFUSED"),
-     "Backend not running",
-     "Backend server is not running. Start it with: uvicorn main:app --reload"),
+    (re.compile(r"Cannot find module '([^']+)'"), "Node module not found", "Run: npm install {0}"),
+    (
+        re.compile(r"SyntaxError: Unexpected token '(.+)'"),
+        "JavaScript syntax error",
+        "Syntax error near '{0}'. Check JSX/TypeScript syntax.",
+    ),
+    (
+        re.compile(r"TypeError: Cannot read propert(?:y|ies) of (null|undefined)"),
+        "Null/undefined access",
+        "Add null check: use optional chaining (?.) or check if value exists before access.",
+    ),
+    (
+        re.compile(r"CORS policy: No 'Access-Control-Allow-Origin'"),
+        "CORS blocked",
+        "Add CORS middleware to the backend. FastAPI: add CORSMiddleware with allow_origins=['*'].",
+    ),
+    (
+        re.compile(r"net::ERR_CONNECTION_REFUSED"),
+        "Backend not running",
+        "Backend server is not running. Start it with: uvicorn main:app --reload",
+    ),
 ]
 
 
@@ -155,7 +187,7 @@ class DebuggerAgent:
             return {"success": False, "message": f"File not found: {file_path}"}
 
         try:
-            with open(file_path, "r", encoding="utf-8") as fh:
+            with open(file_path, encoding="utf-8") as fh:
                 content = fh.read()
         except Exception as e:
             return {"success": False, "message": f"Cannot read file: {e}"}
@@ -164,13 +196,13 @@ class DebuggerAgent:
 
         if file_path.endswith(".py"):
             import ast
+
             try:
                 ast.parse(content)
             except SyntaxError as e:
-                issues.append({
-                    "type": "SyntaxError", "line": e.lineno, "msg": str(e),
-                    "fix": "Check indentation and syntax at the indicated line."
-                })
+                issues.append(
+                    {"type": "SyntaxError", "line": e.lineno, "msg": str(e), "fix": "Check indentation and syntax at the indicated line."}
+                )
 
         return {
             "success": True,
@@ -191,12 +223,14 @@ class DebuggerAgent:
                     fix = fix_template.format(*m.groups())
                 except (IndexError, KeyError):
                     fix = fix_template
-                matches.append({
-                    "pattern": pattern.pattern[:60],
-                    "cause": cause,
-                    "fix": fix,
-                    "matched_text": m.group(0)[:120],
-                })
+                matches.append(
+                    {
+                        "pattern": pattern.pattern[:60],
+                        "cause": cause,
+                        "fix": fix,
+                        "matched_text": m.group(0)[:120],
+                    }
+                )
         return matches
 
     def _parse_stack_trace(self, error_text: str) -> list[dict[str, str]]:
@@ -208,7 +242,7 @@ class DebuggerAgent:
                 frames.append({"file": m.group(1), "line": m.group(2), "function": m.group(3).strip()})
         # Dart traceback
         for line in error_text.splitlines():
-            m = re.search(r'#(\d+)\s+(.+)\s+\((.+):(\d+):(\d+)\)', line)
+            m = re.search(r"#(\d+)\s+(.+)\s+\((.+):(\d+):(\d+)\)", line)
             if m:
                 frames.append({"file": m.group(3), "line": m.group(4), "function": m.group(2).strip()})
         return frames[-10:]  # Keep last 10 frames (nearest to error)
@@ -223,38 +257,55 @@ class DebuggerAgent:
             return "WARNING"
         return "INFO"
 
-    def _generate_fixes(
-        self, pattern_results: list[dict], stack_frames: list[dict], error_text: str
-    ) -> list[dict[str, str]]:
+    def _generate_fixes(self, pattern_results: list[dict], stack_frames: list[dict], error_text: str) -> list[dict[str, str]]:
         fixes: list[dict] = []
 
         for result in pattern_results:
-            fixes.append({
-                "type": "pattern_fix",
-                "description": result["cause"],
-                "action": result["fix"],
-            })
+            fixes.append(
+                {
+                    "type": "pattern_fix",
+                    "description": result["cause"],
+                    "action": result["fix"],
+                }
+            )
 
         # Suggest looking at the top frame
         if stack_frames:
             top = stack_frames[-1]
-            fixes.append({
-                "type": "inspect_file",
-                "description": f"Examine {top['file']} at line {top['line']} in function '{top['function']}'",
-                "action": f"Open {top['file']} and inspect line {top['line']} for the root cause.",
-            })
+            fixes.append(
+                {
+                    "type": "inspect_file",
+                    "description": f"Examine {top['file']} at line {top['line']} in function '{top['function']}'",
+                    "action": f"Open {top['file']} and inspect line {top['line']} for the root cause.",
+                }
+            )
 
         # Generic suggestions based on error keywords
         err_lower = error_text.lower()
         if "import" in err_lower and "no module" in err_lower:
-            fixes.append({"type": "dependency", "description": "Missing package",
-                          "action": "Run: pip install <package-name> or check requirements.txt"})
+            fixes.append(
+                {
+                    "type": "dependency",
+                    "description": "Missing package",
+                    "action": "Run: pip install <package-name> or check requirements.txt",
+                }
+            )
         if "database" in err_lower or "sqlalchemy" in err_lower:
-            fixes.append({"type": "database", "description": "Database issue",
-                          "action": "Ensure database is running and DATABASE_URL in .env is correct."})
+            fixes.append(
+                {
+                    "type": "database",
+                    "description": "Database issue",
+                    "action": "Ensure database is running and DATABASE_URL in .env is correct.",
+                }
+            )
         if "port" in err_lower and "already in use" in err_lower:
-            fixes.append({"type": "port_conflict", "description": "Port conflict",
-                          "action": "Kill the process on that port: netstat -ano | findstr :8000 → taskkill /PID <pid> /F"})
+            fixes.append(
+                {
+                    "type": "port_conflict",
+                    "description": "Port conflict",
+                    "action": "Kill the process on that port: netstat -ano | findstr :8000 → taskkill /PID <pid> /F",
+                }
+            )
 
         return fixes
 
@@ -262,6 +313,7 @@ class DebuggerAgent:
         """Use AIOrchestrator for deep analysis of complex errors."""
         try:
             from JARVIS.core.ai_router.ai_orchestrator import AIOrchestrator
+
             orchestrator = AIOrchestrator()
             prompt = (
                 "You are an expert debugger. Analyse this error and give ONE concise root cause "

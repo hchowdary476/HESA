@@ -8,9 +8,7 @@ from JARVIS.core.voice.voice_state import VoiceState
 class VoiceFailureIsolationTest(TestCase):
     def test_listener_failure_enters_error_recovery(self):
         controller = VoiceController(
-            microphone_probe=lambda: True,
-            listen_for_command=lambda: (_ for _ in ()).throw(RuntimeError("stt failed")),
-            wake_word="jarvis"
+            microphone_probe=lambda: True, listen_for_command=lambda: (_ for _ in ()).throw(RuntimeError("stt failed")), wake_word="jarvis"
         )
 
         result = controller.handle_wake_phrase("jarvis")
@@ -25,7 +23,7 @@ class VoiceFailureIsolationTest(TestCase):
             listen_for_command=lambda: "open chrome",
             process_command=lambda command: processed.append(command) or "Opening Chrome.",
             tts_queue=TTSQueue(playback=lambda text: (_ for _ in ()).throw(RuntimeError("speaker missing"))),
-            wake_word="jarvis"
+            wake_word="jarvis",
         )
 
         result = controller.handle_wake_phrase("jarvis")

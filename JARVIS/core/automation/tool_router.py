@@ -41,7 +41,6 @@ logger = get_logger("tool_router")
 # Priority: lower = matched first
 
 _ROUTING_TABLE: list[dict[str, Any]] = [
-
     # ── Windows System Tools ─────────────────────────────────────────────────
     {
         "patterns": [r"\bopen\s+(?:vs\s?code|visual\s+studio\s?code|vscode)\b"],
@@ -163,7 +162,6 @@ _ROUTING_TABLE: list[dict[str, Any]] = [
         "tool": "get_battery",
         "priority": 3,
     },
-
     # ── Developer Tools ───────────────────────────────────────────────────────
     {
         "patterns": [r"\brun\s+tests?\b", r"\bpytest\b", r"\bunit\s+test\b"],
@@ -245,7 +243,6 @@ _ROUTING_TABLE: list[dict[str, Any]] = [
         "tool": "server_launcher",
         "priority": 1,
     },
-
     # ── AI Tools ─────────────────────────────────────────────────────────────
     {
         "patterns": [r"\bstart\s+ollama\b", r"\blaunch\s+ollama\b", r"\bollama\b"],
@@ -271,7 +268,6 @@ _ROUTING_TABLE: list[dict[str, Any]] = [
         "tool": "debate_runner",
         "priority": 1,
     },
-
     # ── ML Tools ─────────────────────────────────────────────────────────────
     {
         "patterns": [r"\btrain\s+(?:a\s+)?model\b", r"\bfine[- ]tune\b"],
@@ -289,7 +285,6 @@ _ROUTING_TABLE: list[dict[str, Any]] = [
         "tool": "ml_benchmark",
         "priority": 2,
     },
-
     # ── Cyber / Security Tools ────────────────────────────────────────────────
     {
         "patterns": [r"\bsecurity\s+audit\b", r"\baudit\s+(?:the\s+)?(?:system|logs)\b"],
@@ -323,7 +318,6 @@ _ROUTING_TABLE: list[dict[str, Any]] = [
         "tool": "firewall_checker",
         "priority": 2,
     },
-
     # ── Browser Tools ─────────────────────────────────────────────────────────
     {
         "patterns": [r"\bsearch\s+(?:for\s+|the\s+web\s+for\s+)?(.+)", r"\bgoogle\s+(.+)"],
@@ -341,7 +335,6 @@ _ROUTING_TABLE: list[dict[str, Any]] = [
         "tool": "website_opener",
         "priority": 2,
     },
-
     # ── File Tools ────────────────────────────────────────────────────────────
     {
         "patterns": [r"\bbackup\s+(?:my\s+)?project\b", r"\bcreate\s+backup\b"],
@@ -359,7 +352,6 @@ _ROUTING_TABLE: list[dict[str, Any]] = [
         "tool": "file_searcher",
         "priority": 2,
     },
-
     # ── Office Tools ──────────────────────────────────────────────────────────
     {
         "patterns": [r"\bopen\s+word\b", r"\blaunch\s+word\b", r"\bmicrosoft\s+word\b"],
@@ -393,7 +385,6 @@ _ROUTING_TABLE: list[dict[str, Any]] = [
         "tool": "report_generator",
         "priority": 2,
     },
-
     # ── Network Tools ─────────────────────────────────────────────────────────
     {
         "patterns": [r"\bnetwork\s+(?:status|speed|diagnostics)\b", r"\bcheck\s+(?:my\s+)?internet\b"],
@@ -419,7 +410,6 @@ _ROUTING_TABLE: list[dict[str, Any]] = [
         "tool": "wifi_checker",
         "priority": 2,
     },
-
     # ── Research / AI Research Mode ───────────────────────────────────────────
     {
         "patterns": [r"\bresearch\s+(.+)", r"\binvestigate\s+(.+)", r"\bsummarise\s+(.+)", r"\bsummarize\s+(.+)"],
@@ -437,7 +427,6 @@ _ROUTING_TABLE: list[dict[str, Any]] = [
         "tool": "research_engine",
         "priority": 3,
     },
-
     # ── Memory / Knowledge ────────────────────────────────────────────────────
     {
         "patterns": [r"\bremember\b", r"\bsave\s+(?:a\s+)?note\b", r"\bnote\s+(?:that\s+|down\s+)?(.+)"],
@@ -455,7 +444,6 @@ _ROUTING_TABLE: list[dict[str, Any]] = [
         "tool": "note_reader",
         "priority": 2,
     },
-
     # ── Diagnostics ───────────────────────────────────────────────────────────
     {
         "patterns": [r"\brun\s+diagnostics\b", r"\bhealth\s+check\b", r"\bsystem\s+health\b"],
@@ -465,7 +453,6 @@ _ROUTING_TABLE: list[dict[str, Any]] = [
         "tool": "diagnostics_runner",
         "priority": 1,
     },
-
     # ── Software Engineering Agents ───────────────────────────────────────────
     {
         "patterns": [r"\bbuild\s+(?:a\s+)?(?:web\s+app|website|full-stack\s+app)\b", r"\barchitect\s+app\b"],
@@ -476,7 +463,11 @@ _ROUTING_TABLE: list[dict[str, Any]] = [
         "priority": 1,
     },
     {
-        "patterns": [r"\b(?:build|generate)\s+ui\b", r"\b(?:generate|create)\s+(?:html|css|javascript|js|react|next\.?js)\b", r"\bfrontend\s+layout\b"],
+        "patterns": [
+            r"\b(?:build|generate)\s+ui\b",
+            r"\b(?:generate|create)\s+(?:html|css|javascript|js|react|next\.?js)\b",
+            r"\bfrontend\s+layout\b",
+        ],
         "agent": "frontend_agent",
         "tool_category": "developer_tools",
         "action_hint": "generate_frontend",
@@ -484,7 +475,11 @@ _ROUTING_TABLE: list[dict[str, Any]] = [
         "priority": 1,
     },
     {
-        "patterns": [r"\b(?:build|generate|create)\s+(?:rest\s+)?api\b", r"\bgenerate\s+(?:fastapi|flask|django|spring\s+boot)\b", r"\bgenerate\s+(?:database\s+models|authentication|auth)\b"],
+        "patterns": [
+            r"\b(?:build|generate|create)\s+(?:rest\s+)?api\b",
+            r"\bgenerate\s+(?:fastapi|flask|django|spring\s+boot)\b",
+            r"\bgenerate\s+(?:database\s+models|authentication|auth)\b",
+        ],
         "agent": "backend_agent",
         "tool_category": "developer_tools",
         "action_hint": "generate_backend",
@@ -492,7 +487,12 @@ _ROUTING_TABLE: list[dict[str, Any]] = [
         "priority": 1,
     },
     {
-        "patterns": [r"\b(?:build|generate|create)\s+(?:flutter|android)\s+app\b", r"\b(?:run\s+)?flutter\s+(?:pub\s+get|build\s+apk)\b", r"\banalyze\s+gradle\s+errors\b", r"\bprepare\s+(?:signing\s+config|release\s+apk)\b"],
+        "patterns": [
+            r"\b(?:build|generate|create)\s+(?:flutter|android)\s+app\b",
+            r"\b(?:run\s+)?flutter\s+(?:pub\s+get|build\s+apk)\b",
+            r"\banalyze\s+gradle\s+errors\b",
+            r"\bprepare\s+(?:signing\s+config|release\s+apk)\b",
+        ],
         "agent": "mobile_agent",
         "tool_category": "developer_tools",
         "action_hint": "generate_mobile",
@@ -500,7 +500,11 @@ _ROUTING_TABLE: list[dict[str, Any]] = [
         "priority": 1,
     },
     {
-        "patterns": [r"\b(?:build|generate)\s+(?:ai\s+pipeline|ml\s+model)\b", r"\b(?:train|evaluate)\s+model\b", r"\bgenerate\s+inference\s+api\b"],
+        "patterns": [
+            r"\b(?:build|generate)\s+(?:ai\s+pipeline|ml\s+model)\b",
+            r"\b(?:train|evaluate)\s+model\b",
+            r"\bgenerate\s+inference\s+api\b",
+        ],
         "agent": "ai_and_ml_agent",
         "tool_category": "developer_tools",
         "action_hint": "generate_ml",
@@ -508,7 +512,11 @@ _ROUTING_TABLE: list[dict[str, Any]] = [
         "priority": 1,
     },
     {
-        "patterns": [r"\b(?:generate|write)\s+(?:unit|integration)\s+tests\b", r"\b(?:run|execute)\s+test\s+suite\b", r"\bgenerate\s+coverage\s+report\b"],
+        "patterns": [
+            r"\b(?:generate|write)\s+(?:unit|integration)\s+tests\b",
+            r"\b(?:run|execute)\s+test\s+suite\b",
+            r"\bgenerate\s+coverage\s+report\b",
+        ],
         "agent": "testing_agent",
         "tool_category": "developer_tools",
         "action_hint": "generate_tests",
@@ -544,15 +552,18 @@ _ROUTING_TABLE: list[dict[str, Any]] = [
 # Pre-compile patterns for performance
 _COMPILED_TABLE: list[dict[str, Any]] = []
 for _entry in sorted(_ROUTING_TABLE, key=lambda x: x["priority"]):
-    _COMPILED_TABLE.append({
-        **_entry,
-        "_compiled": [re.compile(p, re.IGNORECASE) for p in _entry["patterns"]],
-    })
+    _COMPILED_TABLE.append(
+        {
+            **_entry,
+            "_compiled": [re.compile(p, re.IGNORECASE) for p in _entry["patterns"]],
+        }
+    )
 
 
 # ---------------------------------------------------------------------------
 # ToolRouter Class
 # ---------------------------------------------------------------------------
+
 
 class ToolRouter:
     """
@@ -566,7 +577,7 @@ class ToolRouter:
     _instance: ToolRouter | None = None
     _lock = __import__("threading").Lock()
 
-    def __new__(cls) -> "ToolRouter":
+    def __new__(cls) -> ToolRouter:
         with cls._lock:
             if cls._instance is None:
                 cls._instance = super().__new__(cls)
@@ -610,7 +621,9 @@ class ToolRouter:
                     }
                     logger.debug(
                         "ToolRouter matched: cmd='%s' → agent='%s' tool='%s'",
-                        cmd[:60], result["agent"], result["tool"],
+                        cmd[:60],
+                        result["agent"],
+                        result["tool"],
                     )
                     return result
 

@@ -22,14 +22,20 @@ class HealthCliTests(unittest.TestCase):
     def test_main_does_not_prompt_when_no_pause_flag_is_used(self):
         with (
             patch(
-                "JARVIS.core.system.utils.kontrol._check_python_version", return_value={"id": "python", "severity": "ok", "title": "Python", "detail": "", "fix": ""}
-            ),
-            patch("JARVIS.core.system.utils.kontrol._check_chrome", return_value={"id": "chrome", "severity": "ok", "title": "Chrome", "detail": "", "fix": ""}),
-            patch(
-                "JARVIS.core.system.utils.kontrol._check_internet", return_value={"id": "internet", "severity": "ok", "title": "Internet", "detail": "", "fix": ""}
+                "JARVIS.core.system.utils.kontrol._check_python_version",
+                return_value={"id": "python", "severity": "ok", "title": "Python", "detail": "", "fix": ""},
             ),
             patch(
-                "JARVIS.core.system.utils.kontrol._check_memory_health", return_value={"id": "memory", "severity": "ok", "title": "Memory", "detail": "", "fix": ""}
+                "JARVIS.core.system.utils.kontrol._check_chrome",
+                return_value={"id": "chrome", "severity": "ok", "title": "Chrome", "detail": "", "fix": ""},
+            ),
+            patch(
+                "JARVIS.core.system.utils.kontrol._check_internet",
+                return_value={"id": "internet", "severity": "ok", "title": "Internet", "detail": "", "fix": ""},
+            ),
+            patch(
+                "JARVIS.core.system.utils.kontrol._check_memory_health",
+                return_value={"id": "memory", "severity": "ok", "title": "Memory", "detail": "", "fix": ""},
             ),
             patch(
                 "JARVIS.core.system.utils.kontrol._check_runtime_posture",
@@ -40,7 +46,8 @@ class HealthCliTests(unittest.TestCase):
                 return_value={"id": "release", "severity": "ok", "title": "Release", "detail": "", "fix": ""},
             ),
             patch(
-                "JARVIS.core.system.utils.kontrol._check_project_audit", return_value={"id": "audit", "severity": "ok", "title": "Audit", "detail": "", "fix": ""}
+                "JARVIS.core.system.utils.kontrol._check_project_audit",
+                return_value={"id": "audit", "severity": "ok", "title": "Audit", "detail": "", "fix": ""},
             ),
             patch("JARVIS.core.system.utils.kontrol.build_health_checks", return_value=[]),
             patch("JARVIS.core.system.utils.kontrol.build_provider_health_checks", return_value=[]),
@@ -53,13 +60,34 @@ class HealthCliTests(unittest.TestCase):
 
     def test_main_enables_explicit_provider_probe_flag(self):
         with (
-            patch("JARVIS.core.system.utils.kontrol._check_python_version", return_value={"id": "python", "severity": "ok", "title": "Python", "detail": "", "fix": ""}),
-            patch("JARVIS.core.system.utils.kontrol._check_chrome", return_value={"id": "chrome", "severity": "ok", "title": "Chrome", "detail": "", "fix": ""}),
-            patch("JARVIS.core.system.utils.kontrol._check_internet", return_value={"id": "internet", "severity": "ok", "title": "Internet", "detail": "", "fix": ""}),
-            patch("JARVIS.core.system.utils.kontrol._check_memory_health", return_value={"id": "memory", "severity": "ok", "title": "Memory", "detail": "", "fix": ""}),
-            patch("JARVIS.core.system.utils.kontrol._check_runtime_posture", return_value={"id": "runtime", "severity": "ok", "title": "Runtime", "detail": "", "fix": ""}),
-            patch("JARVIS.core.system.utils.kontrol._check_release_signing", return_value={"id": "release", "severity": "ok", "title": "Release", "detail": "", "fix": ""}),
-            patch("JARVIS.core.system.utils.kontrol._check_project_audit", return_value={"id": "audit", "severity": "ok", "title": "Audit", "detail": "", "fix": ""}),
+            patch(
+                "JARVIS.core.system.utils.kontrol._check_python_version",
+                return_value={"id": "python", "severity": "ok", "title": "Python", "detail": "", "fix": ""},
+            ),
+            patch(
+                "JARVIS.core.system.utils.kontrol._check_chrome",
+                return_value={"id": "chrome", "severity": "ok", "title": "Chrome", "detail": "", "fix": ""},
+            ),
+            patch(
+                "JARVIS.core.system.utils.kontrol._check_internet",
+                return_value={"id": "internet", "severity": "ok", "title": "Internet", "detail": "", "fix": ""},
+            ),
+            patch(
+                "JARVIS.core.system.utils.kontrol._check_memory_health",
+                return_value={"id": "memory", "severity": "ok", "title": "Memory", "detail": "", "fix": ""},
+            ),
+            patch(
+                "JARVIS.core.system.utils.kontrol._check_runtime_posture",
+                return_value={"id": "runtime", "severity": "ok", "title": "Runtime", "detail": "", "fix": ""},
+            ),
+            patch(
+                "JARVIS.core.system.utils.kontrol._check_release_signing",
+                return_value={"id": "release", "severity": "ok", "title": "Release", "detail": "", "fix": ""},
+            ),
+            patch(
+                "JARVIS.core.system.utils.kontrol._check_project_audit",
+                return_value={"id": "audit", "severity": "ok", "title": "Audit", "detail": "", "fix": ""},
+            ),
             patch("JARVIS.core.system.utils.kontrol.build_health_checks", return_value=[]),
             patch("JARVIS.core.system.utils.kontrol.build_provider_health_checks", return_value=[]) as provider_checks,
         ):

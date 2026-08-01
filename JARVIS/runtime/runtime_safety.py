@@ -25,11 +25,7 @@ def build_confirmation_prompt(action: str, params: dict | None = None) -> str:
     """Build a concise approval prompt for sensitive actions."""
 
     detail = f"\nParameters: {params}" if params else ""
-    return (
-        "Jarvis wants to run a sensitive action.\n"
-        f"Action: {action}{detail}\n"
-        "Approve or cancel before continuing."
-    )
+    return f"Jarvis wants to run a sensitive action.\nAction: {action}{detail}\nApprove or cancel before continuing."
 
 
 def is_destructive_action_allowed(env: Mapping[str, str] | None = None) -> bool:

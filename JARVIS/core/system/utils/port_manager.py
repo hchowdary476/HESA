@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import socket
-import logging
+
 from JARVIS.core.system.utils.jarvis_logging import get_logger
 
 logger = get_logger("port_manager")
@@ -35,9 +35,7 @@ class PortManager:
             logger.warning("Port %d on %s is occupied, trying fallback...", port, host)
             port += 1
             attempts += 1
-        raise RuntimeError(
-            f"Could not find an available port starting from {base_port} after {max_attempts} attempts."
-        )
+        raise RuntimeError(f"Could not find an available port starting from {base_port} after {max_attempts} attempts.")
 
     @staticmethod
     def acquire_service_lock(service_name: str, lock_port: int) -> socket.socket | None:
@@ -48,10 +46,12 @@ class PortManager:
         process), the method retries once — this prevents zombie sockets from
         permanently blocking future launches.
         """
+
         def _try_bind() -> socket.socket | None:
             try:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 import sys
+
                 if sys.platform != "win32":
                     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 s.bind(("127.0.0.1", lock_port))
@@ -71,18 +71,20 @@ class PortManager:
 
         # Lock failed — check if the holder is still alive via PID lockfile
         import os
+
         pid_path = os.path.join("logs", f"{service_name}.pid")
         if os.path.exists(pid_path):
             try:
-                with open(pid_path, "r") as f:
+                with open(pid_path) as f:
                     old_pid = int(f.read().strip())
                 # Check if that PID is still alive
                 import psutil
+
                 if not psutil.pid_exists(old_pid):
                     logger.warning(
-                        "Stale lock detected for '%s': PID %d is dead. "
-                        "Waiting briefly for OS socket cleanup...",
-                        service_name, old_pid,
+                        "Stale lock detected for '%s': PID %d is dead. Waiting briefly for OS socket cleanup...",
+                        service_name,
+                        old_pid,
                     )
                     # Remove the stale PID file
                     try:
@@ -91,13 +93,16 @@ class PortManager:
                         pass
                     # Brief wait for the OS to release the orphaned socket
                     import time
+
                     time.sleep(1.5)
                     # Retry once
                     sock = _try_bind()
                     if sock is not None:
                         logger.info(
                             "Service lock recovered for '%s' on port %d (stale PID %d cleared).",
-                            service_name, lock_port, old_pid,
+                            service_name,
+                            lock_port,
+                            old_pid,
                         )
                         return sock
             except Exception as e:
@@ -105,7 +110,7 @@ class PortManager:
 
         logger.error(
             "Failed to acquire service lock for '%s' on port %d. Service already running?",
-            service_name, lock_port,
+            service_name,
+            lock_port,
         )
         return None
-

@@ -1,23 +1,21 @@
+import json
 import os
 import sys
-import json
 import time
-import hashlib
 import urllib.parse
-from http.server import HTTPServer, BaseHTTPRequestHandler
-import threading
-from JARVIS.core.memory.memory_store import load_memory, save_memory
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
 from JARVIS.core.automation.groq_router import analyze_with_groq
-from JARVIS.core.memory.memory_preferences import get_preference, set_preference
 
 # Global cloud state
 CLOUD_MEMORY_FILE = os.path.join("logs", "cloud_memory.json")
 START_TIME = time.time()
 
+
 def load_cloud_memory():
     if os.path.exists(CLOUD_MEMORY_FILE):
         try:
-            with open(CLOUD_MEMORY_FILE, "r", encoding="utf-8") as f:
+            with open(CLOUD_MEMORY_FILE, encoding="utf-8") as f:
                 data = json.load(f)
                 # Ensure structure exists
                 if "preferences" not in data:
@@ -35,7 +33,7 @@ def load_cloud_memory():
     local_mem_path = os.path.abspath("memory.json")
     if os.path.exists(local_mem_path):
         try:
-            with open(local_mem_path, "r", encoding="utf-8") as f:
+            with open(local_mem_path, encoding="utf-8") as f:
                 data = json.load(f)
                 if "reminders" not in data:
                     data["reminders"] = []
@@ -46,16 +44,12 @@ def load_cloud_memory():
             pass
 
     return {
-        "preferences": {
-            "preferred_language": "telugu",
-            "language_mode": "telugu",
-            "wake_word": "jarvis",
-            "recovery_pin": "1234"
-        },
+        "preferences": {"preferred_language": "telugu", "language_mode": "telugu", "wake_word": "jarvis", "recovery_pin": "1234"},
         "notes": [],
         "reminders": [],
-        "history": []
+        "history": [],
     }
+
 
 def save_cloud_memory(data):
     os.makedirs(os.path.dirname(CLOUD_MEMORY_FILE), exist_ok=True)
@@ -64,6 +58,7 @@ def save_cloud_memory(data):
             json.dump(data, f, indent=2, ensure_ascii=False)
     except Exception:
         pass
+
 
 class CloudContinuityHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
@@ -89,7 +84,7 @@ class CloudContinuityHandler(BaseHTTPRequestHandler):
         path = url_parsed.path
 
         # Read JSON body
-        content_length = int(self.headers.get('Content-Length', 0))
+        content_length = int(self.headers.get("Content-Length", 0))
         post_data = b""
         if content_length > 0:
             post_data = self.rfile.read(content_length)
@@ -116,7 +111,7 @@ class CloudContinuityHandler(BaseHTTPRequestHandler):
                 # Run the standard analyze_with_groq command router
                 action = analyze_with_groq(command)
                 response_text = action.get("response", "I could not process that, sir.")
-                
+
                 # Append to cloud history
                 history = mem.get("history", [])
                 history.append({"user": command, "jarvis": response_text, "timestamp": time.time()})
@@ -124,12 +119,8 @@ class CloudContinuityHandler(BaseHTTPRequestHandler):
                     history = history[-50:]
                 mem["history"] = history
                 save_cloud_memory(mem)
-                
-                self.send_json({
-                    "response": response_text,
-                    "action": action.get("action", "talk"),
-                    "params": action.get("params", {})
-                })
+
+                self.send_json({"response": response_text, "action": action.get("action", "talk"), "params": action.get("params", {})})
             except Exception as e:
                 self.send_json({"response": f"I encountered an issue processing that on the cloud: {e}"}, 500)
         else:
@@ -152,12 +143,13 @@ class CloudContinuityHandler(BaseHTTPRequestHandler):
         except Exception:
             pass
 
+
 def start_cloud_server(port=8008):
     server = HTTPServer(("0.0.0.0", port), CloudContinuityHandler)
     print(f"[CLOUD CONTROLLER] Cloud Continuity Server online at http://localhost:{port}")
     server.serve_forever()
 
+
 if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8008
     start_cloud_server(port)
-

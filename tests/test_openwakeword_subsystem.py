@@ -12,23 +12,21 @@ Verifies:
 """
 
 import json
-import os
 import unittest
-import numpy as np
 from pathlib import Path
 
+import numpy as np
+
+from JARVIS.core.automation.local_intent_router import route_local_intent
 from JARVIS.core.voice.openwakeword_engine import (
-    OpenWakeWordEngine,
-    get_openwakeword_engine,
-    WAKE_LOG_PATH,
     CONFIG_PATH,
     DEFAULT_MODEL_PATH,
+    OpenWakeWordEngine,
+    get_openwakeword_engine,
 )
-from JARVIS.core.automation.local_intent_router import route_local_intent
 
 
 class TestCustomSaiOpenWakeWordSubsystem(unittest.TestCase):
-
     def setUp(self):
         OpenWakeWordEngine._instance = None
         self.engine = get_openwakeword_engine()
@@ -39,7 +37,7 @@ class TestCustomSaiOpenWakeWordSubsystem(unittest.TestCase):
     def test_custom_sai_config_loaded(self):
         """Req 2: Ensure config/wake_config.json exists and is loaded."""
         self.assertTrue(CONFIG_PATH.exists())
-        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+        with open(CONFIG_PATH, encoding="utf-8") as f:
             cfg = json.load(f)
         self.assertEqual(cfg["wake_word"], "SAI")
         self.assertEqual(cfg["threshold"], 0.72)
@@ -75,23 +73,18 @@ class TestCustomSaiOpenWakeWordSubsystem(unittest.TestCase):
         """Req 3: Verify accepted wake phrases."""
         accepted = ["SAI", "Hey SAI", "Hi SAI", "Okay SAI", "ok sai"]
         for phrase in accepted:
-            self.assertFalse(
-                self.engine.is_false_positive(phrase),
-                f"Phrase '{phrase}' should be accepted as a valid wake phrase."
-            )
+            self.assertFalse(self.engine.is_false_positive(phrase), f"Phrase '{phrase}' should be accepted as a valid wake phrase.")
 
     def test_rejected_false_positive_phrases(self):
         """Req 3: Verify rejection of phonetically similar false positives."""
         rejected = ["say", "sigh", "side", "size", "science", "sai ram", "sairam", "sigh ram"]
         for phrase in rejected:
-            self.assertTrue(
-                self.engine.is_false_positive(phrase),
-                f"Phrase '{phrase}' should be rejected as a false positive."
-            )
+            self.assertTrue(self.engine.is_false_positive(phrase), f"Phrase '{phrase}' should be rejected as a false positive.")
 
     def test_audio_frame_processing_latency(self):
         """Req 5: Verify audio frame processing latency is under 300ms."""
         import time
+
         pcm_frame = np.zeros(1280, dtype=np.int16).tobytes()
 
         t0 = time.perf_counter()

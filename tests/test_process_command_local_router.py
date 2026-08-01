@@ -10,8 +10,13 @@ class ProcessCommandLocalRouterTests(unittest.TestCase):
             patch("JARVIS.core.automation.komutlar.add_to_short_term"),
             patch("JARVIS.core.automation.komutlar.track_command"),
             patch("JARVIS.core.automation.komutlar.detect_and_save_preference", return_value=None),
-            patch("JARVIS.core.automation.local_intent_router.route_local_intent", return_value={"action": "get_time", "params": {}, "response": "Sir, it is 10:00 PM."}) as local_mock,
-            patch("JARVIS.core.ai_router.ai_orchestrator.AIOrchestrator.query_with_failover", return_value="Sir, it is 10:00 PM.") as orchestrator_mock,
+            patch(
+                "JARVIS.core.automation.local_intent_router.route_local_intent",
+                return_value={"action": "get_time", "params": {}, "response": "Sir, it is 10:00 PM."},
+            ) as local_mock,
+            patch(
+                "JARVIS.core.ai_router.ai_orchestrator.AIOrchestrator.query_with_failover", return_value="Sir, it is 10:00 PM."
+            ) as orchestrator_mock,
             patch("JARVIS.core.automation.komutlar.execute_action", return_value=True) as execute_mock,
         ):
             result = komutlar.process_command("what time is it")
@@ -31,7 +36,9 @@ class ProcessCommandLocalRouterTests(unittest.TestCase):
             patch("JARVIS.core.automation.komutlar.track_command"),
             patch("JARVIS.core.automation.komutlar.detect_and_save_preference", return_value=None),
             patch("JARVIS.core.automation.local_intent_router.route_local_intent", return_value=None) as local_mock,
-            patch("JARVIS.core.ai_router.ai_orchestrator.AIOrchestrator.query_with_failover", return_value="At once, sir.") as orchestrator_mock,
+            patch(
+                "JARVIS.core.ai_router.ai_orchestrator.AIOrchestrator.query_with_failover", return_value="At once, sir."
+            ) as orchestrator_mock,
             patch("JARVIS.core.automation.komutlar.execute_action", return_value=True) as execute_mock,
         ):
             result = komutlar.process_command("please plan my morning")
@@ -56,7 +63,9 @@ class ProcessCommandLocalRouterTests(unittest.TestCase):
                     patch("JARVIS.core.automation.komutlar.add_to_short_term"),
                     patch("JARVIS.core.automation.komutlar.track_command"),
                     patch("JARVIS.core.automation.komutlar.detect_and_save_preference", return_value=None),
-                    patch("JARVIS.core.ai_router.ai_orchestrator.AIOrchestrator.query_with_failover", return_value="Sir, completed.") as orchestrator_mock,
+                    patch(
+                        "JARVIS.core.ai_router.ai_orchestrator.AIOrchestrator.query_with_failover", return_value="Sir, completed."
+                    ) as orchestrator_mock,
                     patch("JARVIS.core.automation.komutlar.execute_action", return_value=True) as execute_mock,
                 ):
                     result = komutlar.process_command(command)

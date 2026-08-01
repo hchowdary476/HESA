@@ -1,8 +1,6 @@
-import unittest
-from unittest.mock import patch, MagicMock
 import os
-import json
-import time
+import unittest
+from unittest.mock import MagicMock, patch
 
 from JARVIS.core.automation import groq_router
 from JARVIS.providers.base import ProviderResponse
@@ -12,8 +10,9 @@ class HybridAIRoutingTests(unittest.TestCase):
     def setUp(self):
         # Reset the global Groq cooldown state in the providers module to avoid inter-test pollution
         from JARVIS.providers import groq as providers_groq
+
         providers_groq._groq_cooldown_until = 0.0
-        
+
         # Clean up existing status file
         self.status_file = os.path.join("logs", "hybrid_ai_status.json")
         if os.path.exists(self.status_file):
@@ -35,17 +34,15 @@ class HybridAIRoutingTests(unittest.TestCase):
     @patch.dict(os.environ, {"GROQ_API_KEY": "test_groq_key"})
     def test_routing_online_groq_success(self, mock_gemini, mock_provider_cls, mock_internet):
         mock_internet.return_value = True
-        
+
         mock_provider = MagicMock()
         mock_provider.analyze.return_value = ProviderResponse(
-            provider="groq",
-            status="success",
-            action={"action": "talk", "params": {}, "response": "Hello from Groq"}
+            provider="groq", status="success", action={"action": "talk", "params": {}, "response": "Hello from Groq"}
         )
         mock_provider_cls.return_value = mock_provider
 
         result = groq_router.analyze_with_groq("hello")
-        
+
         self.assertEqual(result["response"], "Hello from Groq")
         stats = groq_router.get_hybrid_ai_status()
         self.assertEqual(stats["current_provider"], "GROQ")
@@ -58,15 +55,15 @@ class HybridAIRoutingTests(unittest.TestCase):
     @patch.dict(os.environ, {"GROQ_API_KEY": "test_groq_key", "GEMINI_API_KEY": "test_gemini_key"})
     def test_routing_online_groq_fails_gemini_success(self, mock_gemini, mock_provider_cls, mock_internet):
         mock_internet.return_value = True
-        
+
         mock_provider = MagicMock()
         mock_provider.analyze.side_effect = Exception("Groq failed")
         mock_provider_cls.return_value = mock_provider
-        
+
         mock_gemini.return_value = {"action": "talk", "params": {}, "response": "Hello from Gemini"}
 
         result = groq_router.analyze_with_groq("hello")
-        
+
         self.assertEqual(result["response"], "Hello from Gemini")
         stats = groq_router.get_hybrid_ai_status()
         self.assertEqual(stats["current_provider"], "GEMINI")
@@ -82,7 +79,7 @@ class HybridAIRoutingTests(unittest.TestCase):
         mock_ollama.return_value = {"action": "talk", "params": {}, "response": "Hello from Ollama"}
 
         result = groq_router.analyze_with_groq("hello")
-        
+
         self.assertEqual(result["response"], "Hello from Ollama")
         stats = groq_router.get_hybrid_ai_status()
         self.assertEqual(stats["current_provider"], "OLLAMA")
@@ -98,7 +95,7 @@ class HybridAIRoutingTests(unittest.TestCase):
         mock_ollama.side_effect = Exception("Ollama offline")
 
         result = groq_router.analyze_with_groq("hello")
-        
+
         self.assertIn("Local neural links are online", result["response"])
         stats = groq_router.get_hybrid_ai_status()
         self.assertEqual(stats["current_provider"], "OLLAMA")
@@ -130,10 +127,10 @@ class HybridAIRoutingTests(unittest.TestCase):
         mock_internet.return_value = True
         mock_context.return_value = "Recent conversation: user: hi | assistant: hello"
         mock_gemini.return_value = {"action": "talk", "params": {}, "response": "Context verified"}
-        
+
         # We want to verify that when Gemini is called, it receives the context
         groq_router.analyze_with_groq("what did I say?")
-        
+
         mock_gemini.assert_called_once()
         args, kwargs = mock_gemini.call_args
         self.assertIn("Recent conversation:", kwargs.get("context", ""))
@@ -142,13 +139,13 @@ class HybridAIRoutingTests(unittest.TestCase):
         # Verify that fallback messages do not contain forbidden strings
         fallback_act = groq_router._local_fallback_action()
         resp = fallback_act["response"]
-        
+
         self.assertNotIn("local-only mode", resp.lower())
         self.assertNotIn("cloud disabled", resp.lower())
-        
+
         missing_act = groq_router._missing_groq_action()
         resp_missing = missing_act["response"]
-        
+
         self.assertNotIn("local-only mode", resp_missing.lower())
         self.assertNotIn("cloud disabled", resp_missing.lower())
 
@@ -158,7 +155,7 @@ class HybridAIRoutingTests(unittest.TestCase):
         groq_router._internet_check_thread_started = True
         groq_router._cached_internet_status = True
         groq_router._cached_latency_ms = 4.2
-        
+
         # Test non-blocking behavior
         self.assertTrue(groq_router.is_internet_available())
         self.assertEqual(groq_router.get_cached_latency(), 4.2)
@@ -167,16 +164,19 @@ class HybridAIRoutingTests(unittest.TestCase):
     @patch("JARVIS.core.automation.groq_router.is_internet_available")
     @patch("JARVIS.core.automation.groq_router.query_gemini")
     @patch("JARVIS.core.automation.groq_router.GroqProvider")
-    @patch.dict(os.environ, {
-        "GROQ_API_KEY": "test_groq_key",
-        "GEMINI_API_KEY": "test_gemini_key",
-        "JARVIS_PRIMARY_AI": "GEMINI",
-        "JARVIS_SECONDARY_AI": "GROQ"
-    })
+    @patch.dict(
+        os.environ,
+        {
+            "GROQ_API_KEY": "test_groq_key",
+            "GEMINI_API_KEY": "test_gemini_key",
+            "JARVIS_PRIMARY_AI": "GEMINI",
+            "JARVIS_SECONDARY_AI": "GROQ",
+        },
+    )
     def test_priority_settings_routing(self, mock_provider_cls, mock_gemini, mock_internet):
         mock_internet.return_value = True
         mock_gemini.return_value = {"action": "talk", "params": {}, "response": "Hello from priority Gemini"}
-        
+
         result = groq_router.analyze_with_groq("hello")
         self.assertEqual(result["response"], "Hello from priority Gemini")
         stats = groq_router.get_hybrid_ai_status()
@@ -187,18 +187,16 @@ class HybridAIRoutingTests(unittest.TestCase):
     @patch.dict(os.environ, {"GROQ_API_KEY": "test_groq_key"})
     def test_provider_stats_tracking(self, mock_provider_cls, mock_internet):
         mock_internet.return_value = True
-        
+
         mock_provider = MagicMock()
         mock_provider.analyze.return_value = ProviderResponse(
-            provider="groq",
-            status="success",
-            action={"action": "talk", "params": {}, "response": "Stats track test"}
+            provider="groq", status="success", action={"action": "talk", "params": {}, "response": "Stats track test"}
         )
         mock_provider_cls.return_value = mock_provider
-        
+
         groq_router.analyze_with_groq("hello")
         stats = groq_router.get_hybrid_ai_status()
-        
+
         # Verify stats nested dictionary exists and tracks GROQ success
         self.assertIn("stats", stats)
         self.assertIn("GROQ", stats["stats"])
@@ -212,10 +210,10 @@ class HybridAIRoutingTests(unittest.TestCase):
         mock_internet.return_value = False
         # Simulate Ollama not installed/running by throwing connection exception
         mock_ollama.side_effect = ConnectionRefusedError("Connection refused")
-        
+
         # Execute query without raising error/exception to user
         result = groq_router.analyze_with_groq("hello")
-        
+
         # Ensure result comes from rule engine
         self.assertIn("Local neural links are online", result["response"])
         stats = groq_router.get_hybrid_ai_status()

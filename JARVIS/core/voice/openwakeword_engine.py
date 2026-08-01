@@ -13,12 +13,9 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 import threading
-import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -49,7 +46,7 @@ class OpenWakeWordEngine:
     Processes 16kHz PCM audio frames continuously without loading default models.
     """
 
-    _instance: Optional[OpenWakeWordEngine] = None
+    _instance: OpenWakeWordEngine | None = None
     _lock = threading.Lock()
 
     ACCEPTED_PHRASES = {"sai", "hey sai", "hi sai", "okay sai", "ok sai"}
@@ -71,7 +68,7 @@ class OpenWakeWordEngine:
         # Load configuration dynamically
         if CONFIG_PATH.exists():
             try:
-                with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                with open(CONFIG_PATH, encoding="utf-8") as f:
                     cfg = json.load(f)
                     self._threshold = float(cfg.get("threshold", 0.72))
                     if not getattr(self, "_model_path", None) or self._model_path == DEFAULT_MODEL_PATH:
@@ -91,14 +88,10 @@ class OpenWakeWordEngine:
             return
 
         try:
-            import openwakeword
             from openwakeword.model import Model
 
             # Load ONLY custom SAI model path. Never load default models.
-            self._model = Model(
-                wakeword_models=[str(self._model_path)],
-                inference_framework="onnx"
-            )
+            self._model = Model(wakeword_models=[str(self._model_path)], inference_framework="onnx")
             self._initialized = True
 
             print("[WAKE] Model loaded.", flush=True)
@@ -117,7 +110,7 @@ class OpenWakeWordEngine:
     def is_initialized(self) -> bool:
         return self._initialized
 
-    def process_frame(self, pcm_data: Union[bytes, np.ndarray]) -> Tuple[bool, str, float]:
+    def process_frame(self, pcm_data: bytes | np.ndarray) -> tuple[bool, str, float]:
         """
         Process 16kHz 16-bit PCM frame data.
         Returns: (is_detected: bool, model_name: str, confidence: float)
@@ -156,7 +149,7 @@ class OpenWakeWordEngine:
         if not text or not isinstance(text, str):
             return True
 
-        normalized = re.sub(r'[^\w\s]', '', text.lower()).strip()
+        normalized = re.sub(r"[^\w\s]", "", text.lower()).strip()
 
         for rejected in cls.REJECTED_PHRASES:
             if normalized == rejected or normalized.startswith(rejected + " "):

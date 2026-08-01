@@ -1,10 +1,10 @@
 """Lightweight newline-delimited JSON TCP Event Bus for cross-process IPC."""
 
-import socket
 import json
+import socket
 import threading
 import time
-import logging
+
 from JARVIS.core.system.utils.jarvis_logging import get_logger
 
 logger = get_logger("event_bus")

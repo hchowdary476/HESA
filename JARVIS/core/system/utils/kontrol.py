@@ -8,12 +8,12 @@ import urllib.error
 import urllib.request
 from collections.abc import Mapping
 
-from JARVIS.core.system.observability import build_slo_report
 from JARVIS.core.ai_router.provider_health import build_provider_health_checks
 from JARVIS.core.memory import build_memory_health_report, load_memory
-from JARVIS.release.project_audit import analyze_project, read_project_files
 from JARVIS.core.security.jarvis_admin import build_health_checks, render_health_report
 from JARVIS.core.security.release_security import load_release_policy
+from JARVIS.core.system.observability import build_slo_report
+from JARVIS.release.project_audit import analyze_project, read_project_files
 
 
 def _read_local_env(path: str = ".env") -> dict[str, str]:

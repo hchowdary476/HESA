@@ -2,9 +2,9 @@
 
 from unittest import TestCase
 
+from JARVIS.core.ai_router.offline_profile import build_offline_profile
 from JARVIS.core.voice.tts_provider import build_tts_provider_options, select_tts_provider
 from JARVIS.core.voice.voice_calibration import build_calibration_recommendation
-from JARVIS.core.ai_router.offline_profile import build_offline_profile
 
 
 class ProductAudioOfflineTest(TestCase):

@@ -7,10 +7,11 @@ Tests cover:
   4. Task-type AI Routing (coding -> Claude, reasoning -> OpenAI, general -> Gemini, offline -> Ollama)
   5. Safety confirmation guard for dangerous actions (shutdown, restart)
 """
+
 from __future__ import annotations
 
-import sys
 import os
+import sys
 import time
 
 _project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -19,11 +20,10 @@ if _project_root not in sys.path:
 
 os.environ["JARVIS_WAKE_DEBUG"] = "0"
 
-import pytest
-from JARVIS.core.voice.wake_word import analyze_wake_word
-from JARVIS.core.automation.local_intent_router import classify_intent, route_local_intent
-from JARVIS.core.memory.memory_preferences import detect_and_save_preference, get_preference, set_preference
 from JARVIS.core.ai_router.ai_orchestrator import AIOrchestrator
+from JARVIS.core.automation.local_intent_router import classify_intent, route_local_intent
+from JARVIS.core.memory.memory_preferences import detect_and_save_preference, set_preference
+from JARVIS.core.voice.wake_word import analyze_wake_word
 
 
 def test_wake_word_sai():
@@ -94,4 +94,3 @@ def test_ai_router_task_priorities(monkeypatch):
 
     assert res == "mock claude response"
     assert decision_ms < 100.0, f"Routing decision took {decision_ms:.2f}ms (must be < 100ms)"
-

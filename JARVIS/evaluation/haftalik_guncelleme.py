@@ -10,8 +10,8 @@ import requests
 from dotenv import load_dotenv
 from groq import Groq, GroqError
 
-from JARVIS.providers.groq import safe_provider_error
 from JARVIS.core.system.utils.jarvis_logging import get_logger
+from JARVIS.providers.groq import safe_provider_error
 
 logger = get_logger("weekly_update")
 from JARVIS.core.system.utils.env_helper import find_env_file

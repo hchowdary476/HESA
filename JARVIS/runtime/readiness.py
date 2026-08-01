@@ -5,8 +5,6 @@ from __future__ import annotations
 import os
 from collections.abc import Callable, Mapping
 
-import speech_recognition as sr
-
 from JARVIS.runtime.config_runtime import resolved_env
 
 
@@ -20,28 +18,31 @@ def _env_flag_enabled(values: Mapping[str, str], name: str, default: bool = True
 _mic_ready_cached = None
 _mic_check_thread_started = False
 
+
 def microphone_available() -> bool:
     """Return whether a microphone source can be opened asynchronously without blocking startup."""
     global _mic_ready_cached, _mic_check_thread_started
     if _mic_ready_cached is not None:
         return _mic_ready_cached
-        
+
     if not _mic_check_thread_started:
         _mic_check_thread_started = True
-        
+
         def _check():
             global _mic_ready_cached
             try:
                 from JARVIS.core.voice.microphone import SoundDeviceMicrophone
+
                 with SoundDeviceMicrophone():
                     _mic_ready_cached = True
             except Exception:
                 _mic_ready_cached = False
-                
+
         import threading
+
         t = threading.Thread(target=_check, name="jarvis_mic_probe", daemon=True)
         t.start()
-        
+
     return True  # Non-blocking default
 
 
@@ -70,6 +71,7 @@ def emit_startup_readiness(
         send_log("[ERROR] Microphone not detected.")
     else:
         import logging
+
         logging.getLogger("jarvis.audio").info("Microphone detected")
         send_log("Microphone detected")
     send_log(f"[INFO] Speech recognition mode: {stt_mode}")

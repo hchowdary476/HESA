@@ -6,13 +6,14 @@ Safely loads environment variables, API keys, ports, and feature flags.
 from __future__ import annotations
 
 import os
-from typing import Any
 from pathlib import Path
+from typing import Any
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
 
 try:
     from dotenv import load_dotenv
+
     load_dotenv(ROOT_DIR / ".env")
 except ImportError:
     pass

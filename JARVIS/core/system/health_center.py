@@ -7,8 +7,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from JARVIS.core.system.observability import EVENT_LOG, record_runtime_event
 from JARVIS.core.memory.memory_store import prune_memory
+from JARVIS.core.system.observability import EVENT_LOG, record_runtime_event
 from JARVIS.core.system.utils.jarvis_logging import LOG_FILE
 
 SEVERITY_RANK = {"critical": 0, "warning": 1, "info": 2, "ok": 3}

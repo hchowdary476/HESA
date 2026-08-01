@@ -1,9 +1,11 @@
-import os
-import time
 import json
-import threading
-import psutil
+import os
 import socket
+import threading
+import time
+
+import psutil
+
 
 def check_internet(host="8.8.8.8", port=53, timeout=3.0):
     try:
@@ -14,6 +16,7 @@ def check_internet(host="8.8.8.8", port=53, timeout=3.0):
         return True
     except Exception:
         return False
+
 
 def get_ping_latency(host="8.8.8.8", port=53, timeout=0.5):
     try:
@@ -26,7 +29,9 @@ def get_ping_latency(host="8.8.8.8", port=53, timeout=0.5):
     except Exception:
         return 999.0
 
+
 start_time = time.time()
+
 
 def publish_heartbeat():
     hb_dir = os.path.join("logs", "heartbeats")
@@ -42,7 +47,7 @@ def publish_heartbeat():
             grace_until = 0.0
             if os.path.exists(hb_path):
                 try:
-                    with open(hb_path, "r") as rf:
+                    with open(hb_path) as rf:
                         existing = json.load(rf)
                     grace_until = existing.get("grace_until", 0.0)
                 except Exception:
@@ -55,7 +60,7 @@ def publish_heartbeat():
                 "cpu_usage": round(cpu, 1),
                 "memory_usage": round(ram, 1),
                 "last_heartbeat": now,
-                "timestamp": now
+                "timestamp": now,
             }
             if grace_until > 0.0:
                 hb_data["grace_until"] = grace_until
@@ -64,14 +69,17 @@ def publish_heartbeat():
             # Log to logs/service_heartbeat.log
             timestamp_str = time.strftime("%Y-%m-%d %H:%M:%S")
             with open("logs/service_heartbeat.log", "a", encoding="utf-8") as lf:
-                lf.write(f"[{timestamp_str}] Service network_monitor heartbeat: CPU={hb_data['cpu_usage']}%, RAM={hb_data['memory_usage']}MB, Uptime={uptime}s\n")
+                lf.write(
+                    f"[{timestamp_str}] Service network_monitor heartbeat: CPU={hb_data['cpu_usage']}%, RAM={hb_data['memory_usage']}MB, Uptime={uptime}s\n"
+                )
         except Exception:
             pass
         time.sleep(2)
 
+
 def network_loop():
     network_path = os.path.join("logs", "network_status.json")
-    
+
     last_net_bytes = 0
     last_net_sent = 0
     last_net_recv = 0
@@ -89,13 +97,13 @@ def network_loop():
         try:
             internet_status = "ONLINE" if check_internet() else "OFFLINE"
             latency = get_ping_latency()
-            
+
             # Speed calculations
             current_time = time.perf_counter()
             net_speed_str = "0.0 KB/s"
             upload_speed_str = "0.0 KB/s"
             download_speed_str = "0.0 KB/s"
-            
+
             try:
                 net_io = psutil.net_io_counters()
                 current_bytes = net_io.bytes_sent + net_io.bytes_recv
@@ -107,21 +115,21 @@ def network_loop():
                     net_speed_str = f"{round(net_speed / 1024.0, 1)} KB/s"
                     upload_speed_str = f"{round(sent_speed / 1024.0, 1)} KB/s"
                     download_speed_str = f"{round(recv_speed / 1024.0, 1)} KB/s"
-                
+
                 last_net_bytes = current_bytes
                 last_net_sent = net_io.bytes_sent
                 last_net_recv = net_io.bytes_recv
                 last_net_time = current_time
             except Exception:
                 pass
-                
+
             report = {
                 "internet_status": internet_status,
                 "internet_latency": latency,
                 "network_speed": net_speed_str,
                 "upload_speed": upload_speed_str,
                 "download_speed": download_speed_str,
-                "timestamp": time.time()
+                "timestamp": time.time(),
             }
             os.makedirs(os.path.dirname(network_path), exist_ok=True)
             with open(network_path, "w") as f:
@@ -130,9 +138,12 @@ def network_loop():
             pass
         time.sleep(10)
 
+
 if __name__ == "__main__":
     import sys
+
     from JARVIS.core.system.utils.port_manager import PortManager
+
     lock_socket = PortManager.acquire_service_lock("network_monitor_service", 19109)
     if lock_socket is None:
         print("[NETWORK MONITOR] Duplicate instance detected. Exiting.")
@@ -140,8 +151,9 @@ if __name__ == "__main__":
     try:
         threading.Thread(target=publish_heartbeat, daemon=True).start()
         network_loop()
-    except Exception as e:
+    except Exception:
         import traceback
+
         timestamp_str = time.strftime("%Y-%m-%d %H:%M:%S")
         os.makedirs("logs", exist_ok=True)
         with open("logs/service_crash.log", "a", encoding="utf-8") as cf:

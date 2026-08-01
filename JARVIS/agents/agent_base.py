@@ -8,12 +8,14 @@ Every agent:
   4. Never swallows exceptions silently — it raises ``AgentError``
      with context so the orchestrator can decide whether to retry.
 """
+
 from __future__ import annotations
 
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any
 
 from JARVIS.agents.task_queue import TaskQueue
 from JARVIS.core.system.utils.jarvis_logging import get_logger
@@ -28,20 +30,22 @@ class AgentError(RuntimeError):
 @dataclass
 class AgentTask:
     """Inputs passed to an agent."""
+
     run_id: str
     step: int
-    description: str                          # The specific task for this agent
-    context: str = ""                         # Prior outputs / additional context
+    description: str  # The specific task for this agent
+    context: str = ""  # Prior outputs / additional context
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class AgentResult:
     """Structured output from an agent."""
+
     agent: str
-    status: str                               # "success" | "error" | "retry"
-    output: str                               # Raw text output from LLM
-    parsed: Any = None                        # Structured parsed value (agent-specific)
+    status: str  # "success" | "error" | "retry"
+    output: str  # Raw text output from LLM
+    parsed: Any = None  # Structured parsed value (agent-specific)
     elapsed_ms: float = 0.0
     tokens_estimate: int = 0
     retry_count: int = 0
@@ -79,8 +83,9 @@ class AgentBase(ABC):
             (response_text, token_estimate, elapsed_ms, model_used)
         """
         import concurrent.futures
-        from JARVIS.core.ai_router.ai_orchestrator import AIOrchestrator
+
         from JARVIS.config.manager import ConfigManager
+        from JARVIS.core.ai_router.ai_orchestrator import AIOrchestrator
 
         try:
             cfg = ConfigManager()
@@ -133,7 +138,6 @@ class AgentBase(ABC):
             )
         except Exception as exc:
             logger.warning("TaskQueue write failed for agent %s: %s", self.name, exc)
-
 
     @abstractmethod
     def run(self, task: AgentTask) -> AgentResult:

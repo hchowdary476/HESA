@@ -5,6 +5,7 @@ Tests cover:
   - extract_inline_command(): extracts trailing commands from SAI wake phrases
   - False positive checks  : guarantees rejection of "say", "sigh", "side", "site", "size", "sai ram", "science"
 """
+
 from __future__ import annotations
 
 import os
@@ -19,17 +20,15 @@ if _project_root not in sys.path:
 os.environ.setdefault("JARVIS_WAKE_DEBUG", "0")
 
 import pytest
+
 from JARVIS.core.voice.wake_word import (
-    WAKE_ALIASES,
-    WAKE_FUZZY_THRESHOLD,
     analyze_wake_word,
     extract_inline_command,
     normalize_voice_phrase,
-    wake_word_detected,
 )
 
-
 # ── normalize_voice_phrase ────────────────────────────────────────────────────
+
 
 class TestNormalize:
     def test_uppercase(self):
@@ -102,11 +101,21 @@ class TestWakeWordDetected:
 
 # ── analyze_wake_word (result dict fields) ────────────────────────────────────
 
+
 class TestAnalyzeWakeWord:
     def test_result_keys_present(self):
         r = analyze_wake_word("hey sai open calculator")
-        for key in ("detected", "enabled", "wake_word", "normalized", "reason",
-                    "cooldown_active", "alias_match", "fuzzy_score", "matched_alias"):
+        for key in (
+            "detected",
+            "enabled",
+            "wake_word",
+            "normalized",
+            "reason",
+            "cooldown_active",
+            "alias_match",
+            "fuzzy_score",
+            "matched_alias",
+        ):
             assert key in r, f"Missing key: {key}"
 
     def test_alias_match_true_for_variant(self):
@@ -121,7 +130,6 @@ class TestAnalyzeWakeWord:
     def test_matched_alias_populated(self):
         r = analyze_wake_word("hisai play music")
         assert r["matched_alias"] != "", "matched_alias should be set on a successful alias match"
-
 
     def test_disabled_config(self):
         r = analyze_wake_word("hey sai", config={"enabled": False, "wake_word": "sai", "cooldown_seconds": 0})
@@ -142,16 +150,16 @@ class TestAnalyzeWakeWord:
 # ── extract_inline_command ────────────────────────────────────────────────────
 
 _INLINE_CASES: list[tuple[str, str | None]] = [
-    ("hey sai open calculator",     "open calculator"),
-    ("sai open chrome",              "open chrome"),
-    ("sai what time is it",          "what time is it"),
-    ("sai play music",               "play music"),
-    ("sai shutdown system",          "shutdown system"),
-    ("hey sai",                      None),
-    ("sai",                          None),
-    ("open calculator",              None),
-    ("say open calculator",          None),
-    ("sai ram open calculator",      None),
+    ("hey sai open calculator", "open calculator"),
+    ("sai open chrome", "open chrome"),
+    ("sai what time is it", "what time is it"),
+    ("sai play music", "play music"),
+    ("sai shutdown system", "shutdown system"),
+    ("hey sai", None),
+    ("sai", None),
+    ("open calculator", None),
+    ("say open calculator", None),
+    ("sai ram open calculator", None),
 ]
 
 
@@ -159,11 +167,7 @@ class TestExtractInlineCommand:
     @pytest.mark.parametrize("text,expected", _INLINE_CASES)
     def test_extract(self, text: str, expected: str | None):
         result = extract_inline_command(text)
-        assert result == expected, (
-            f"extract_inline_command('{text}')\n"
-            f"  expected: {expected!r}\n"
-            f"  got:      {result!r}"
-        )
+        assert result == expected, f"extract_inline_command('{text}')\n  expected: {expected!r}\n  got:      {result!r}"
 
 
 # ── Standalone runner ─────────────────────────────────────────────────────────

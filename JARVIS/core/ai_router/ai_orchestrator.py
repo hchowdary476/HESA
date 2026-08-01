@@ -12,14 +12,13 @@ from __future__ import annotations
 import base64
 import concurrent.futures
 import hashlib
-import json
-import logging
 import os
 import time
 from typing import Any
-import requests
 
+import requests
 from cryptography.fernet import Fernet
+
 from JARVIS.core.system.utils.jarvis_logging import get_file_logger
 
 logger = get_file_logger("ai_orchestrator")
@@ -57,6 +56,7 @@ class AIOrchestrator:
         # Load environment variables
         try:
             from dotenv import load_dotenv
+
             load_dotenv()
         except Exception:
             pass
@@ -178,7 +178,9 @@ class AIOrchestrator:
 
                 logger.info(
                     "[AI] CLAUDE REQUEST url=%s model=%s max_tokens=1024 timeout=%s",
-                    url, model, timeout,
+                    url,
+                    model,
+                    timeout,
                 )
                 print(f"[AI] SENDING CLAUDE REQUEST (model={model}) ...", flush=True)
 
@@ -263,7 +265,9 @@ class AIOrchestrator:
 
                 logger.info(
                     "[AI] OLLAMA REQUEST url=%s model=%s timeout=%s",
-                    url, model, ollama_timeout,
+                    url,
+                    model,
+                    ollama_timeout,
                 )
                 print(
                     f"[AI] SENDING OLLAMA REQUEST url={url} model={model} timeout={ollama_timeout} ...",
@@ -276,8 +280,9 @@ class AIOrchestrator:
                 content = str(res.json()["message"]["content"])
                 latency = (time.perf_counter() - start) * 1000
                 logger.info(
-                    "[AI] OLLAMA RESPONSE status=200 latency=%.0fms result=\"%s\"",
-                    latency, content[:80].replace("\n", " "),
+                    '[AI] OLLAMA RESPONSE status=200 latency=%.0fms result="%s"',
+                    latency,
+                    content[:80].replace("\n", " "),
                 )
                 print(f"[AI] OLLAMA SUCCESS (latency={latency:.0f}ms)", flush=True)
                 return content
@@ -385,7 +390,6 @@ class AIOrchestrator:
                 logger.info("[AI] ROUTING QUERY TO PROVIDER: %s", provider)
                 response = self.query_provider(provider, prompt)
 
-
                 # Log active provider selection
                 if provider == "claude":
                     print("[AI] ACTIVE PROVIDER = CLAUDE", flush=True)
@@ -403,17 +407,25 @@ class AIOrchestrator:
 
                 # Update status variables
                 self.active_ai = (
-                    "Claude" if provider == "claude"
-                    else "ChatGPT" if provider == "chatgpt"
-                    else "Gemini" if provider == "gemini"
-                    else "Ollama" if provider == "ollama"
+                    "Claude"
+                    if provider == "claude"
+                    else "ChatGPT"
+                    if provider == "chatgpt"
+                    else "Gemini"
+                    if provider == "gemini"
+                    else "Ollama"
+                    if provider == "ollama"
                     else provider.title()
                 )
                 self.active_model = (
-                    "claude-3-5-sonnet-20241022" if provider == "claude"
-                    else "gpt-4o-mini" if provider == "chatgpt"
-                    else "gemini-2.5-flash" if provider == "gemini"
-                    else "phi3:latest" if provider == "ollama"
+                    "claude-3-5-sonnet-20241022"
+                    if provider == "claude"
+                    else "gpt-4o-mini"
+                    if provider == "chatgpt"
+                    else "gemini-2.5-flash"
+                    if provider == "gemini"
+                    else "phi3:latest"
+                    if provider == "ollama"
                     else "unknown"
                 )
                 self.api_status = "Online"
@@ -424,7 +436,7 @@ class AIOrchestrator:
                     "expires": time.time() + self.cache_ttl,
                 }
                 return response
-            except Exception as e:
+            except Exception:
                 logger.warning("[AI] Provider %s failed, cascading to next in failover chain...", provider)
                 continue
 

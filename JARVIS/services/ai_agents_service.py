@@ -1,13 +1,15 @@
-import os
-import time
 import json
+import os
 import threading
-from JARVIS.core.system.utils.service_heartbeat import publish_heartbeat, wrap_service_main
+import time
+
+from JARVIS.core.system.utils.service_heartbeat import wrap_service_main
 
 
 def _start():
+
     import psutil
-    import traceback
+
     from JARVIS.core.ai_router.multi_agent_system import AgentManager
 
     _exc_box = []
@@ -53,7 +55,7 @@ def _start():
                         "timestamp": now,
                         "active_agent": active_agent_name,
                         "active_agent_desc": active_agent_desc,
-                        "agents": agent_telemetry
+                        "agents": agent_telemetry,
                     }
 
                     with open(hb_path, "w") as f:
@@ -62,7 +64,9 @@ def _start():
                     # Log to logs/service_heartbeat.log
                     timestamp_str = time.strftime("%Y-%m-%d %H:%M:%S")
                     with open("logs/service_heartbeat.log", "a", encoding="utf-8") as lf:
-                        lf.write(f"[{timestamp_str}] Service ai_agents heartbeat: CPU={hb_data['cpu_usage']}%, RAM={hb_data['memory_usage']}MB, Uptime={uptime}s\n")
+                        lf.write(
+                            f"[{timestamp_str}] Service ai_agents heartbeat: CPU={hb_data['cpu_usage']}%, RAM={hb_data['memory_usage']}MB, Uptime={uptime}s\n"
+                        )
                 except Exception:
                     pass
                 time.sleep(2)
@@ -80,16 +84,19 @@ def _start():
 
 if __name__ == "__main__":
     import sys
+
     from JARVIS.core.system.utils.port_manager import PortManager
+
     lock_socket = PortManager.acquire_service_lock("ai_agents_service", 19105)
     if lock_socket is None:
         print("[AI AGENTS SERVICE] Duplicate instance detected. Exiting.")
         sys.exit(1)
     try:
         wrap_service_main("ai_agents", _start)
-    except Exception as e:
+    except Exception:
         timestamp_str = time.strftime("%Y-%m-%d %H:%M:%S")
         import traceback
+
         os.makedirs("logs", exist_ok=True)
         with open("logs/service_crash.log", "a", encoding="utf-8") as cf:
             cf.write(f"[{timestamp_str}] Service ai_agents CRASHED:\n{traceback.format_exc()}\n")

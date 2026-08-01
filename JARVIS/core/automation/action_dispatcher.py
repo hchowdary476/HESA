@@ -7,11 +7,11 @@ import time
 from typing import Any
 
 from JARVIS.core.automation.action_schema import validate_action_payload
+from JARVIS.core.automation.domains.ai_actions import handle_ai_action
+from JARVIS.core.automation.domains.cyber_actions import handle_cyber_action
 from JARVIS.core.automation.domains.media_actions import handle_media_action
 from JARVIS.core.automation.domains.memory_actions import handle_memory_action
 from JARVIS.core.automation.domains.runtime_actions import handle_runtime_action
-from JARVIS.core.automation.domains.cyber_actions import handle_cyber_action
-from JARVIS.core.automation.domains.ai_actions import handle_ai_action
 
 DomainContext = dict[str, Any]
 
@@ -51,20 +51,12 @@ def execute_action(action: dict, context: DomainContext) -> bool:
     """Execute a single or multi-action payload."""
 
     speak = context["speak"]
-    
+
     # Graceful Auto-Healing of payload
     if isinstance(action, str):
-        action = {
-            "action": "talk",
-            "params": {},
-            "response": action
-        }
+        action = {"action": "talk", "params": {}, "response": action}
     elif action is None:
-        action = {
-            "action": "talk",
-            "params": {},
-            "response": ""
-        }
+        action = {"action": "talk", "params": {}, "response": ""}
     elif isinstance(action, dict):
         if "actions" in action:
             actions = action.get("actions")

@@ -66,15 +66,16 @@ def build_provider_result(
 
 def describe_ai_status(env: Mapping[str, str] | None = None) -> dict[str, str]:
     """Return compact labels that can be shown in the UI."""
-    import os
     import json
+    import os
+
     path = os.path.join("logs", "hybrid_ai_status.json")
     provider = "GROQ"
     mode = "ONLINE"
     reason = "Active AI: GROQ"
     if os.path.exists(path):
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
                 provider = data.get("current_provider", "GROQ").upper()
                 mode = data.get("network_status", "ONLINE")
@@ -86,7 +87,7 @@ def describe_ai_status(env: Mapping[str, str] | None = None) -> dict[str, str]:
         provider = resolved["provider"].upper()
         mode = resolved["mode"].upper().replace("_", " ")
         reason = resolved["reason"]
-        
+
     return {
         "provider": f"AI Provider: {provider}",
         "mode": mode,

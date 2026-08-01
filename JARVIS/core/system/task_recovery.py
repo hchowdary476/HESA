@@ -9,10 +9,9 @@ from __future__ import annotations
 
 import re
 import subprocess
-from typing import Any
 
-from JARVIS.core.system.utils.jarvis_logging import get_logger
 from JARVIS.core.system.mission_control import MissionControl
+from JARVIS.core.system.utils.jarvis_logging import get_logger
 
 logger = get_logger("task_recovery")
 
@@ -44,7 +43,7 @@ class TaskRecoveryEngine:
             if match:
                 logger.warning("Detected failure pattern: %s for %s", desc, task_id)
                 self.mc.log_task_event(task_id, f"[RECOVERY] Analyzing failure: {desc}")
-                
+
                 # Execute action
                 success = False
                 if action_name == "install_pip_pkg":
@@ -52,7 +51,7 @@ class TaskRecoveryEngine:
                     success = self._install_pip_pkg(task_id, pkg_name)
                 elif action_name == "reset_network_ports":
                     success = self._reset_network_ports(task_id)
-                
+
                 if success:
                     task["retries"] += 1
                     task["status"] = "PENDING"  # Queue it again
@@ -67,12 +66,7 @@ class TaskRecoveryEngine:
         """Attempt to automatically install missing pip dependency."""
         self.mc.log_task_event(task_id, f"[RECOVERY] Running: pip install {pkg_name}")
         try:
-            res = subprocess.run(
-                ["pip", "install", pkg_name],
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
+            res = subprocess.run(["pip", "install", pkg_name], capture_output=True, text=True, timeout=30)
             if res.returncode == 0:
                 self.mc.log_task_event(task_id, f"[RECOVERY] Successfully installed package: {pkg_name}")
                 return True

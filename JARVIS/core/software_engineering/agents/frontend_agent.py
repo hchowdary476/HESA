@@ -14,8 +14,8 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from JARVIS.core.system.utils.jarvis_logging import get_logger
 from JARVIS.core.software_engineering.agents.architect_agent import ArchitectureSpec
+from JARVIS.core.system.utils.jarvis_logging import get_logger
 
 logger = get_logger("frontend_agent")
 
@@ -117,7 +117,7 @@ class FrontendAgent:
 '''
 
     def _vite_config(self) -> str:
-        return '''import { defineConfig } from 'vite'
+        return """import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
@@ -128,10 +128,10 @@ export default defineConfig({
     }
   }
 })
-'''
+"""
 
     def _tailwind_config(self) -> str:
-        return '''/** @type {import('tailwindcss').Config} */
+        return """/** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
@@ -143,10 +143,10 @@ export default {
   },
   plugins: []
 }
-'''
+"""
 
     def _tailwind_css(self) -> str:
-        return '''@tailwind base;
+        return """@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -160,10 +160,10 @@ export default {
   .card { @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200; }
   .input { @apply w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500; }
 }
-'''
+"""
 
     def _react_main(self) -> str:
-        return '''import React from 'react'
+        return """import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
@@ -176,12 +176,12 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </BrowserRouter>
   </React.StrictMode>
 )
-'''
+"""
 
     def _react_app(self, has_auth: bool) -> str:
-        login_route = "      <Route path=\"/login\" element={<LoginPage />} />" if has_auth else ""
+        login_route = '      <Route path="/login" element={<LoginPage />} />' if has_auth else ""
         login_import = "import LoginPage from './pages/LoginPage'" if has_auth else ""
-        return f'''import {{ Routes, Route }} from 'react-router-dom'
+        return f"""import {{ Routes, Route }} from 'react-router-dom'
 import Navbar from './components/Navbar'
 import HomePage from './pages/HomePage'
 import ItemsPage from './pages/ItemsPage'
@@ -201,10 +201,10 @@ export default function App() {{
     </div>
   )
 }}
-'''
+"""
 
     def _react_api_service(self, spec: ArchitectureSpec) -> str:
-        return '''import axios from 'axios'
+        return """import axios from 'axios'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
@@ -243,10 +243,10 @@ export const authApi = {
 }
 
 export default api
-'''
+"""
 
     def _react_navbar(self, title: str) -> str:
-        return f'''import {{ Link }} from 'react-router-dom'
+        return f"""import {{ Link }} from 'react-router-dom'
 
 export default function Navbar() {{
   return (
@@ -262,10 +262,10 @@ export default function Navbar() {{
     </nav>
   )
 }}
-'''
+"""
 
     def _react_item_card(self) -> str:
-        return '''export default function ItemCard({ item, onToggle, onDelete }) {
+        return """export default function ItemCard({ item, onToggle, onDelete }) {
   return (
     <div className={`card group ${item.is_completed ? 'opacity-60' : ''}`}>
       <div className="flex items-start justify-between gap-3">
@@ -292,10 +292,10 @@ export default function Navbar() {{
     </div>
   )
 }
-'''
+"""
 
     def _react_item_form(self) -> str:
-        return '''import { useState } from 'react'
+        return """import { useState } from 'react'
 
 export default function ItemForm({ onSubmit }) {
   const [form, setForm] = useState({ title: '', description: '' })
@@ -324,10 +324,10 @@ export default function ItemForm({ onSubmit }) {
     </form>
   )
 }
-'''
+"""
 
     def _react_home_page(self, title: str) -> str:
-        return f'''import {{ Link }} from 'react-router-dom'
+        return f"""import {{ Link }} from 'react-router-dom'
 
 export default function HomePage() {{
   return (
@@ -355,10 +355,10 @@ export default function HomePage() {{
     </div>
   )
 }}
-'''
+"""
 
     def _react_items_page(self) -> str:
-        return '''import { useState, useEffect } from 'react'
+        return """import { useState, useEffect } from 'react'
 import { itemsApi } from '../services/api'
 import ItemCard from '../components/ItemCard'
 import ItemForm from '../components/ItemForm'
@@ -432,10 +432,10 @@ export default function ItemsPage() {
     </div>
   )
 }
-'''
+"""
 
     def _react_login_page(self) -> str:
-        return '''import { useState } from 'react'
+        return """import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authApi } from '../services/api'
 
@@ -478,21 +478,31 @@ export default function LoginPage() {
     </div>
   )
 }
-'''
+"""
 
     # ── Next.js ───────────────────────────────────────────────────────────────
 
     def _generate_nextjs(self, spec: ArchitectureSpec, out_dir: str) -> list[str]:
         written: list[str] = []
         title = spec.project_name.replace("_", " ").title()
-        written.append(self._write(out_dir, "package.json", f'''{{"name": "{spec.project_name}",
+        written.append(
+            self._write(
+                out_dir,
+                "package.json",
+                f'''{{"name": "{spec.project_name}",
   "version": "0.1.0",
   "scripts": {{"dev": "next dev", "build": "next build", "start": "next start"}},
   "dependencies": {{"next": "14.0.0", "react": "^18", "react-dom": "^18", "axios": "^1.6.0"}},
   "devDependencies": {{"typescript": "^5", "@types/react": "^18", "tailwindcss": "^3.4.0"}}
 }}
-'''))
-        written.append(self._write(os.path.join(out_dir, "app"), "page.tsx", f'''export default function Home() {{
+''',
+            )
+        )
+        written.append(
+            self._write(
+                os.path.join(out_dir, "app"),
+                "page.tsx",
+                f"""export default function Home() {{
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
       <h1 className="text-5xl font-bold text-gray-900">{title}</h1>
@@ -500,7 +510,9 @@ export default function LoginPage() {
     </main>
   )
 }}
-'''))
+""",
+            )
+        )
         return written
 
     # ── Vanilla ───────────────────────────────────────────────────────────────
@@ -508,7 +520,11 @@ export default function LoginPage() {
     def _generate_vanilla(self, spec: ArchitectureSpec, out_dir: str) -> list[str]:
         written: list[str] = []
         title = spec.project_name.replace("_", " ").title()
-        written.append(self._write(out_dir, "index.html", f'''<!DOCTYPE html>
+        written.append(
+            self._write(
+                out_dir,
+                "index.html",
+                f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -522,22 +538,36 @@ export default function LoginPage() {
   <script src="app.js"></script>
 </body>
 </html>
-'''))
-        written.append(self._write(out_dir, "styles.css", '''* { box-sizing: border-box; margin: 0; padding: 0; }
+""",
+            )
+        )
+        written.append(
+            self._write(
+                out_dir,
+                "styles.css",
+                """* { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: system-ui, sans-serif; background: #f9fafb; color: #111827; }
 nav { background: white; padding: 1rem 2rem; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; }
 .logo { font-size: 1.25rem; font-weight: 700; color: #2563eb; text-decoration: none; }
 main { max-width: 800px; margin: 4rem auto; padding: 0 1rem; }
 h1 { font-size: 2.5rem; color: #111827; }
-'''))
-        written.append(self._write(out_dir, "app.js", f'''// {title} — Generated by JARVIS SE Platform
+""",
+            )
+        )
+        written.append(
+            self._write(
+                out_dir,
+                "app.js",
+                f"""// {title} — Generated by JARVIS SE Platform
 const API_URL = 'http://localhost:8000';
 
 async function fetchItems() {{
   const res = await fetch(`${{API_URL}}/api/items`);
   return res.json();
 }}
-'''))
+""",
+            )
+        )
         return written
 
     def _frontend_readme(self, spec: ArchitectureSpec) -> str:

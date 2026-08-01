@@ -1,29 +1,25 @@
-import unittest
-import os
 import json
-import time
+import os
 import shutil
-import urllib.request
-import urllib.error
 import threading
-from unittest.mock import patch, MagicMock
+import time
+import unittest
+import urllib.error
+import urllib.request
+from unittest.mock import patch
 
-from JARVIS.core.ai_router.cloud.server import start_cloud_server, CLOUD_MEMORY_FILE
-from JARVIS.core.memory.memory_store import MEMORY_FILE, load_memory, save_memory
+from JARVIS.core.ai_router.cloud.server import CLOUD_MEMORY_FILE, start_cloud_server
+from JARVIS.core.memory.memory_store import MEMORY_FILE
 
 TEST_PORT = 8999
 CLOUD_URL = f"http://localhost:{TEST_PORT}"
+
 
 class TestCloudContinuity(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Start server in a background thread
-        cls.server_thread = threading.Thread(
-            target=start_cloud_server,
-            args=(TEST_PORT,),
-            daemon=True,
-            name="test_cloud_server"
-        )
+        cls.server_thread = threading.Thread(target=start_cloud_server, args=(TEST_PORT,), daemon=True, name="test_cloud_server")
         cls.server_thread.start()
         # Give server time to bind and listen
         time.sleep(0.5)
@@ -62,7 +58,7 @@ class TestCloudContinuity(unittest.TestCase):
         req_headers = {"Content-Type": "application/json"}
         if headers:
             req_headers.update(headers)
-        
+
         req_data = json.dumps(data).encode("utf-8")
         req = urllib.request.Request(url, data=req_data, headers=req_headers, method="POST")
         with urllib.request.urlopen(req, timeout=2) as response:
@@ -85,25 +81,26 @@ class TestCloudContinuity(unittest.TestCase):
 
     def test_telugu_intelligence_chat(self):
         headers = {"Authorization": "Bearer session_ok"}
-        
+
         # Test basic mock command routing
         res, code = self._post_json("/api/chat", {"command": "hello jarvis"}, headers=headers)
         self.assertEqual(code, 200)
         self.assertIn("response", res)
-        
+
         # Test Telugu mixed question fallback routing
         res_tel, code_tel = self._post_json("/api/chat", {"command": "Jarvis em chestunnav?"}, headers=headers)
         self.assertEqual(code_tel, 200)
         self.assertIn("response", res_tel)
         # Check standard Telugu response
         self.assertTrue(
-            "ready" in res_tel["response"].lower() or 
-            "commands" in res_tel["response"].lower() or
-            "command" in res_tel["response"].lower() or
-            "siddhanga" in res_tel["response"].lower() or
-            "vachindi" in res_tel["response"].lower() or
-            "received" in res_tel["response"].lower()
+            "ready" in res_tel["response"].lower()
+            or "commands" in res_tel["response"].lower()
+            or "command" in res_tel["response"].lower()
+            or "siddhanga" in res_tel["response"].lower()
+            or "vachindi" in res_tel["response"].lower()
+            or "received" in res_tel["response"].lower()
         )
+
 
 if __name__ == "__main__":
     unittest.main()

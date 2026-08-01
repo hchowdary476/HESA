@@ -20,31 +20,32 @@ import os
 import queue
 import threading
 import time
-from typing import Callable
+from collections.abc import Callable
 
 logger = logging.getLogger("jarvis.activation")
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 # Import canonical phonetic aliases so smart_activation uses the same set as wake_word.py
 from JARVIS.core.voice.wake_word import WAKE_ALIASES as _WAKE_ALIASES  # noqa: E402
+
 WAKE_WORDS: list[str] = list(_WAKE_ALIASES) + ["friday", "wake up", "hesa wake up"]
 CLAP_ENERGY_THRESHOLD = float(os.getenv("JARVIS_CLAP_THRESHOLD", "0.18"))
-CLAP_SPIKE_DURATION_MAX = 0.12   # seconds — max clap duration
-CLAP_WINDOW = 0.85               # seconds — single-clap detection window
-DOUBLE_CLAP_WINDOW = 0.85        # seconds — double-clap detection window
-TRIPLE_CLAP_WINDOW = 1.5         # seconds — triple-clap detection window
-CLAP_MIN_SILENCE = 0.01          # seconds — min gap between claps
+CLAP_SPIKE_DURATION_MAX = 0.12  # seconds — max clap duration
+CLAP_WINDOW = 0.85  # seconds — single-clap detection window
+DOUBLE_CLAP_WINDOW = 0.85  # seconds — double-clap detection window
+TRIPLE_CLAP_WINDOW = 1.5  # seconds — triple-clap detection window
+CLAP_MIN_SILENCE = 0.01  # seconds — min gap between claps
 SAMPLE_RATE = 16000
-CHUNK_DURATION = 0.02            # 20ms chunks
+CHUNK_DURATION = 0.02  # 20ms chunks
 CHUNK_SIZE = int(SAMPLE_RATE * CHUNK_DURATION)
-WAKE_CONFIDENCE_MIN = 0.72       # fuzzy match threshold
+WAKE_CONFIDENCE_MIN = 0.72  # fuzzy match threshold
 
 
 # ── State Machine ──────────────────────────────────────────────────────────────
 class ActivationState(enum.Enum):
-    STANDBY   = "STANDBY"
-    ACTIVE    = "ACTIVE"
-    SLEEP     = "SLEEP"
+    STANDBY = "STANDBY"
+    ACTIVE = "ACTIVE"
+    SLEEP = "SLEEP"
     EMERGENCY = "EMERGENCY"
 
 
@@ -99,13 +100,14 @@ class ClapDetector:
         self._clap_times: list[float] = []
         self._in_clap = False
         self._clap_start = 0.0
-        self._audio_level = 0.0   # exposed for UI
+        self._audio_level = 0.0  # exposed for UI
         self._available = False
         self._stream = None
 
         try:
-            import sounddevice  # type: ignore  # noqa: F401
             import numpy  # noqa: F401
+            import sounddevice  # type: ignore  # noqa: F401
+
             self._available = True
         except ImportError:
             logger.warning("sounddevice/numpy not installed — clap detection disabled.")
@@ -126,15 +128,15 @@ class ClapDetector:
 
     def _stream_loop(self) -> None:
         try:
-            import sounddevice as sd  # type: ignore
             import numpy as np
+
             from JARVIS.core.voice.microphone import _resolve_best_input_device, _try_open_input_stream
 
             def _callback(indata, frames, time_info, status):
                 if not self._running:
                     return
                 chunk = indata[:, 0].astype(np.float32)
-                energy = float(np.sqrt(np.mean(chunk ** 2)))
+                energy = float(np.sqrt(np.mean(chunk**2)))
                 self._audio_level = min(1.0, energy * 5.0)
                 self._process_energy(energy)
 
@@ -198,6 +200,7 @@ class ClapDetector:
 
             def _fire_single_if_still_one():
                 import time as _t
+
                 _t.sleep(CLAP_WINDOW)
                 if len(self._clap_times) == 1 and self._clap_times[0] == first_time:
                     logger.info("👏 Single clap detected!")
@@ -208,6 +211,7 @@ class ClapDetector:
                         logger.debug("Single clap callback error", exc_info=True)
 
             import threading as _th
+
             _th.Thread(target=_fire_single_if_still_one, daemon=True).start()
 
 
@@ -224,11 +228,12 @@ class WakeWordListener:
         self._on_wake = on_wake
         self._running = False
         self._last_triggered = 0.0
-        self._cooldown = 2.0   # seconds between triggers
+        self._cooldown = 2.0  # seconds between triggers
         self._available = False
 
         try:
             import speech_recognition  # type: ignore  # noqa: F401
+
             self._available = True
         except ImportError:
             logger.warning("SpeechRecognition not installed — voice wake disabled.")
@@ -262,6 +267,7 @@ class WakeWordListener:
     def _listen_loop(self) -> None:
         try:
             import speech_recognition as sr  # type: ignore
+
             from JARVIS.core.voice.microphone import SoundDeviceMicrophone
 
             recognizer = sr.Recognizer()

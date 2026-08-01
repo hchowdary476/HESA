@@ -106,7 +106,7 @@ def _alias_match(normalized_text: str) -> tuple[bool, str, float]:
         # ── 1. Exact substring (anchored at token positions 0, 1, or 2) ──────
         max_start = min(3, max(0, len(text_tokens) - n + 1))
         for i in range(max_start):
-            ngram = " ".join(text_tokens[i: i + n])
+            ngram = " ".join(text_tokens[i : i + n])
             if ngram == alias:
                 return True, alias, 1.0
 
@@ -214,29 +214,22 @@ def analyze_wake_word(
     if not cooldown_active:
         # ── 0. Reject Explicit False Positives (Requirement #8) ───────────────
         full_norm = " ".join(tokens)
-        is_rejected = any(
-            full_norm == r or full_norm.startswith(r + " ")
-            for r in REJECTED_WAKE_PHRASES
-        )
+        is_rejected = any(full_norm == r or full_norm.startswith(r + " ") for r in REJECTED_WAKE_PHRASES)
         if not is_rejected:
             # ── 1. Exact token-sequence match against configured wake word ────
             if wake_tokens and len(tokens) >= len(wake_tokens):
-                detected = any(
-                    tokens[i: i + len(wake_tokens)] == wake_tokens
-                    for i in range(min(3, len(tokens) - len(wake_tokens) + 1))
-                )
+                detected = any(tokens[i : i + len(wake_tokens)] == wake_tokens for i in range(min(3, len(tokens) - len(wake_tokens) + 1)))
 
             # ── 2. Phonetic alias + fuzzy match ───────────────────────────────
             if not detected:
                 alias_match, matched_alias, fuzzy_score = _alias_match(normalized_text)
                 detected = alias_match
 
-
     if _WAKE_DEBUG:
         print(
-            f"[WAKE_DEBUG] normalized=\"{normalized_text}\" "
+            f'[WAKE_DEBUG] normalized="{normalized_text}" '
             f"alias_match={alias_match} fuzzy_score={fuzzy_score:.3f} "
-            f"matched_alias=\"{matched_alias}\" detected={detected}",
+            f'matched_alias="{matched_alias}" detected={detected}',
             flush=True,
         )
 
@@ -281,6 +274,7 @@ class WakeWordDetector:
 
 # ── Inline-command extraction for SAI ─────────────────────────────────────────
 
+
 def extract_inline_command(
     text: str,
     *,
@@ -313,7 +307,7 @@ def extract_inline_command(
     # ── 1. Exact prefix match ─────────────────────────────────────────────────
     for alias in sorted_aliases:
         if normalized.startswith(alias + " "):
-            remainder = normalized[len(alias):].strip()
+            remainder = normalized[len(alias) :].strip()
             return remainder if remainder else None
         if normalized == alias:
             return None

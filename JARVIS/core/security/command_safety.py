@@ -72,7 +72,9 @@ def validate_process_command(command: Any, *, allow_destructive: bool = False) -
         return CommandSafetyResult(False, f"destructive executable requires explicit approval: {executable}", parts)
     if executable in SHELL_EXECUTABLES and any(arg in SHELL_EXECUTION_FLAGS for arg in lowered_args):
         return CommandSafetyResult(False, "shell command execution flags are blocked", parts)
-    if executable in {"curl", "curl.exe", "wget", "wget.exe"} and any(marker in arg for arg in lowered_args for marker in PIPE_TO_SHELL_MARKERS):
+    if executable in {"curl", "curl.exe", "wget", "wget.exe"} and any(
+        marker in arg for arg in lowered_args for marker in PIPE_TO_SHELL_MARKERS
+    ):
         return CommandSafetyResult(False, "pipe-to-shell command patterns are blocked", parts)
 
     return CommandSafetyResult(True, command=parts)

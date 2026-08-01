@@ -9,22 +9,18 @@ Verifies system stability, zero memory leaks, zero crashes, and performance SLAs
 5. Pronunciation Engine string transformation under load.
 """
 
-import os
 import time
 import unittest
-import numpy as np
-from pathlib import Path
 
+import numpy as np
+
+from JARVIS.core.automation.local_intent_router import classify_intent
+from JARVIS.core.system.utils.stage_loggers import actions_log, intent_log, memory_log, router_log, stt_log, tts_log, wake_log
 from JARVIS.core.voice.openwakeword_engine import OpenWakeWordEngine, get_openwakeword_engine
-from JARVIS.core.automation.local_intent_router import classify_intent, route_local_intent
 from JARVIS.core.voice.pronunciation_engine import get_pronunciation_engine
-from JARVIS.core.system.utils.stage_loggers import (
-    STAGE_LOG_FILES, wake_log, stt_log, intent_log, actions_log, router_log, memory_log, tts_log
-)
 
 
 class TestHesaStressSuite(unittest.TestCase):
-
     def setUp(self):
         OpenWakeWordEngine._instance = None
         self.oww_engine = get_openwakeword_engine()
@@ -48,13 +44,7 @@ class TestHesaStressSuite(unittest.TestCase):
 
     def test_intent_router_100_queries_stress(self):
         """Stress Test: 100+ rapid intent classifications."""
-        test_commands = [
-            "open calculator",
-            "shutdown computer",
-            "what is my name",
-            "write a python script to parse json",
-            "solve 15 * 42"
-        ]
+        test_commands = ["open calculator", "shutdown computer", "what is my name", "write a python script to parse json", "solve 15 * 42"]
 
         t0 = time.perf_counter()
         for i in range(100):
@@ -69,6 +59,7 @@ class TestHesaStressSuite(unittest.TestCase):
     def test_memory_engine_100_lookups_stress(self):
         """Stress Test: 100+ rapid Memory Engine lookups."""
         from JARVIS.core.memory.memory_preferences import get_preference, set_preference
+
         set_preference("preferred_language", "english")
 
         t0 = time.perf_counter()

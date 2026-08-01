@@ -18,7 +18,10 @@ class MemorySplitTests(unittest.TestCase):
 
     def test_track_command_updates_top_habits(self):
         memory = {"habits": {}, "total_commands": 0, "preferences": {}, "notes": []}
-        with patch("JARVIS.core.memory.memory_habits.load_memory", return_value=memory), patch("JARVIS.core.memory.memory_habits.save_memory") as save_mock:
+        with (
+            patch("JARVIS.core.memory.memory_habits.load_memory", return_value=memory),
+            patch("JARVIS.core.memory.memory_habits.save_memory") as save_mock,
+        ):
             memory_habits.track_command("open chrome")
 
         save_mock.assert_called_once()
@@ -29,7 +32,10 @@ class MemorySplitTests(unittest.TestCase):
         self.assertIn("chrome", result)
         set_pref.assert_called_with("favorite_app", "chrome")
 
-        with patch("JARVIS.core.memory.memory_notes.load_memory", return_value={"notes": []}), patch("JARVIS.core.memory.memory_notes.save_memory") as save_mock:
+        with (
+            patch("JARVIS.core.memory.memory_notes.load_memory", return_value={"notes": []}),
+            patch("JARVIS.core.memory.memory_notes.save_memory") as save_mock,
+        ):
             memory_notes.add_note("buy milk")
         save_mock.assert_called_once()
 

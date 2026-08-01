@@ -11,11 +11,11 @@ import psutil
 import pyautogui
 import pyperclip
 
-from JARVIS.core.system.observability import record_runtime_event
 from JARVIS.core.ai_router.url_safety import build_google_search_url, normalize_web_url
+from JARVIS.core.security.jarvis_admin import format_actionable_message
+from JARVIS.core.system.observability import record_runtime_event
 from JARVIS.runtime.process_runner import launch_process, run_command
 from JARVIS.runtime.runtime_safety import block_message, is_destructive_action, is_destructive_action_allowed
-from JARVIS.core.security.jarvis_admin import format_actionable_message
 
 APPLICATIONS = {
     "chrome": [
@@ -121,6 +121,7 @@ def launch_app(app_name: str, *, speak, logger) -> bool:
             logger.warning("Failed to launch Settings via protocol: %s", e)
 
     import shutil
+
     paths = APPLICATIONS.get(app_name.lower(), [app_name])
     for path in paths:
         if os.path.exists(path) or shutil.which(path):
@@ -317,6 +318,7 @@ def handle_runtime_action(action: str, params: dict, context: dict) -> bool | No
 
     if action == "face_match":
         from JARVIS.core.security.security_shield import run_face_match_check
+
         run_face_match_check(app=context.get("app"))
         return True
 
@@ -341,9 +343,9 @@ def handle_runtime_action(action: str, params: dict, context: dict) -> bool | No
             return False
         target = app_name.lower()
         closed = False
-        for proc in psutil.process_iter(['name']):
+        for proc in psutil.process_iter(["name"]):
             try:
-                if target in proc.info['name'].lower():
+                if target in proc.info["name"].lower():
                     proc.terminate()
                     closed = True
             except (psutil.NoSuchProcess, psutil.AccessDenied):
@@ -362,12 +364,11 @@ def handle_runtime_action(action: str, params: dict, context: dict) -> bool | No
         query = params.get("query", "")
         if not query:
             return False
-        import glob
         search_dirs = [
             os.path.join(os.path.expanduser("~"), "Desktop"),
             os.path.join(os.path.expanduser("~"), "Documents"),
             os.path.join(os.path.expanduser("~"), "Downloads"),
-            os.getcwd()
+            os.getcwd(),
         ]
         results = []
         for s_dir in search_dirs:
@@ -456,7 +457,7 @@ def handle_runtime_action(action: str, params: dict, context: dict) -> bool | No
         sub_act = params.get("action", "")
         try:
             webbrowser.open("ms-settings:bluetooth")
-            speak(f"I have opened the Bluetooth configuration pane, sir.")
+            speak("I have opened the Bluetooth configuration pane, sir.")
         except Exception as e:
             logger.error(f"Failed to toggle bluetooth: {e}")
         return True
@@ -476,7 +477,7 @@ def handle_runtime_action(action: str, params: dict, context: dict) -> bool | No
     if action == "get_hardware_stats":
         cpu = psutil.cpu_percent(interval=0.1)
         ram = psutil.virtual_memory().percent
-        disk = psutil.disk_usage('C:').percent
+        disk = psutil.disk_usage("C:").percent
         net_prev = psutil.net_io_counters()
         time.sleep(0.1)
         net_curr = psutil.net_io_counters()
@@ -497,6 +498,7 @@ def handle_runtime_action(action: str, params: dict, context: dict) -> bool | No
         enabled = params.get("enabled", True)
         try:
             import winreg
+
             key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
             app_name = "JarvisCyberInterface"
             cmd = f'"{sys.executable}" -m JARVIS.services.supervisor'
@@ -517,8 +519,10 @@ def handle_runtime_action(action: str, params: dict, context: dict) -> bool | No
 
     if action == "run_system_diagnostics":
         try:
-            from JARVIS.runtime.diagnostics import SystemDiagnosticsManager
             import json
+
+            from JARVIS.runtime.diagnostics import SystemDiagnosticsManager
+
             mgr = SystemDiagnosticsManager()
             data = mgr.run_health_scan()
             diag_path = os.path.join("logs", "diagnostics_results.json")
@@ -541,8 +545,10 @@ def handle_runtime_action(action: str, params: dict, context: dict) -> bool | No
 
     if action == "run_safe_repairs":
         try:
-            from JARVIS.runtime.diagnostics import SystemDiagnosticsManager
             import json
+
+            from JARVIS.runtime.diagnostics import SystemDiagnosticsManager
+
             mgr = SystemDiagnosticsManager()
             reports = []
             for repair_id in ["clear_temp", "flush_dns", "optimize_memory"]:
@@ -564,6 +570,7 @@ def handle_runtime_action(action: str, params: dict, context: dict) -> bool | No
         components = params.get("components", "")
         try:
             import json
+
             req_path = os.path.join("logs", "protected_action_request.json")
             os.makedirs("logs", exist_ok=True)
             with open(req_path, "w", encoding="utf-8") as f:
@@ -575,4 +582,3 @@ def handle_runtime_action(action: str, params: dict, context: dict) -> bool | No
         return True
 
     return None
-

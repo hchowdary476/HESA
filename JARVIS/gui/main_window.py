@@ -14,15 +14,16 @@ import threading
 import time
 
 # ── Qt GPU acceleration flags (must be set before QApplication) ──────────────
-os.environ.setdefault("QT_QUICK_BACKEND", "rhi")          # Use RHI/GPU renderer
-os.environ.setdefault("QSG_RHI_BACKEND", "d3d11")         # Windows: D3D11 (fallback: opengl)
+os.environ.setdefault("QT_QUICK_BACKEND", "rhi")  # Use RHI/GPU renderer
+os.environ.setdefault("QSG_RHI_BACKEND", "d3d11")  # Windows: D3D11 (fallback: opengl)
 os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "1")
-os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic") # Use Basic style for full custom control customization
-os.environ["QML_DISABLE_DISK_CACHE"] = "1"                # Force dynamic load, disable disk cache
+os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")  # Use Basic style for full custom control customization
+os.environ["QML_DISABLE_DISK_CACHE"] = "1"  # Force dynamic load, disable disk cache
 
 # Programmatic QML Cache Purging
 try:
     import shutil
+
     local_app_data = os.environ.get("LOCALAPPDATA")
     if local_app_data:
         qml_cache_path = os.path.join(local_app_data, "QtProject", "qmlcache")
@@ -33,7 +34,9 @@ except Exception as e:
     print(f"[GUI] Error clearing QML cache: {e}")
 
 from dotenv import load_dotenv
+
 from JARVIS.core.system.utils.env_helper import find_env_file
+
 load_dotenv(find_env_file())
 
 import logging
@@ -41,32 +44,35 @@ import logging
 logger = logging.getLogger("jarvis.gui")
 
 # ── App constants ────────────────────────────────────────────────────────────
-STARTUP_GREETING = "Namaskaram sir. JARVIS siddhanga undi. Mee commands kosam ready ga unnanu sir."
+STARTUP_GREETING = "Namaskaram sir. HESA siddhanga undi. Mee commands kosam ready ga unnanu sir."
 _QML_DIR = os.path.join(os.path.dirname(__file__), "qml")
 
 
 def setup_gui_dashboard(app) -> tuple:
     """Helper to initialize GUI dashboard state, bridge, and load QML main window."""
+    from PySide6.QtCore import QTimer, QUrl
     from PySide6.QtQml import QQmlApplicationEngine
-    from PySide6.QtCore import QUrl, QTimer
-    
+
     # ── Avatar state engine (headless, no canvas) ────────────────────────────
     from JARVIS.gui.ui_avatar import JarvisAvatarState
+
     avatar = JarvisAvatarState()
 
     # ── Bridge (QObject visible to QML) ─────────────────────────────────────
     from JARVIS.gui.qml_bridge import JarvisBridge
+
     bridge = JarvisBridge()
     bridge.attach_avatar(avatar)
 
     # Register as ui_bridge callback so ALL backend engines route through bridge
     from JARVIS.runtime import ui_bridge
+
     ui_bridge.set_ui_callback(bridge._update_ui)
 
     # ── 25 FPS avatar poll timer ─────────────────────────────────────────────
     avatar_timer = QTimer(app)
     avatar_timer.timeout.connect(bridge.poll_avatar_frame)
-    avatar_timer.start(40)   # ~25 FPS — smooth for face animation, less signal noise
+    avatar_timer.start(40)  # ~25 FPS — smooth for face animation, less signal noise
 
     # ── QML Engine ───────────────────────────────────────────────────────────
     engine = QQmlApplicationEngine()
@@ -75,9 +81,7 @@ def setup_gui_dashboard(app) -> tuple:
     engine.rootContext().setContextProperty("jarvis", bridge)
 
     # Expose asset path to QML for the face image
-    assets_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "..", "assets")
-    )
+    assets_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "assets"))
     engine.rootContext().setContextProperty("assetsPath", assets_path)
 
     qml_main = os.path.join(_QML_DIR, "main.qml")
@@ -86,18 +90,20 @@ def setup_gui_dashboard(app) -> tuple:
     if not engine.rootObjects():
         logger.error("Failed to load QML main.qml — check file path and syntax.")
         raise RuntimeError("Failed to load QML main.qml")
-        
+
     return engine, bridge, avatar, avatar_timer
 
 
 def main() -> int:
-    from JARVIS.core.system.utils.gui_lifecycle_logger import install_lifecycle_hooks, log_lifecycle, log_close_reason
+    from JARVIS.core.system.utils.gui_lifecycle_logger import install_lifecycle_hooks, log_close_reason, log_lifecycle
+
     install_lifecycle_hooks()
     log_lifecycle("MAIN_ENTRY", f"main_window.py main() starting (PID {os.getpid()})")
 
     # ── Duplicate process guard ──────────────────────────────────────────────
     try:
         from JARVIS.core.system.utils.port_manager import PortManager
+
         lock_socket = PortManager.acquire_service_lock("gui_dashboard", 19106)
         if lock_socket is None:
             print("[GUI] Duplicate JARVIS GUI instance detected. Exiting.")
@@ -109,9 +115,9 @@ def main() -> int:
 
     # ── Splash (lightweight Tk splash removed in favour of QML splash) ───────
     try:
-        from PySide6.QtWidgets import QApplication
         from PySide6.QtCore import Qt, QTimer
         from PySide6.QtGui import QIcon
+        from PySide6.QtWidgets import QApplication
     except ImportError as e:
         print(f"[JARVIS] PySide6 not installed: {e}")
         print("[JARVIS] Run: pip install PySide6>=6.7.0")
@@ -120,9 +126,7 @@ def main() -> int:
         return 1
 
     # High-DPI + GPU setup
-    QApplication.setHighDpiScaleFactorRoundingPolicy(
-        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
-    )
+    QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
 
     app = QApplication.instance()
     if not app:
@@ -138,22 +142,20 @@ def main() -> int:
     app.setQuitOnLastWindowClosed(False)
     log_lifecycle("QUIT_ON_LAST_WINDOW_CLOSED_SET", "app.setQuitOnLastWindowClosed(False) forced in main_window")
 
-    icon_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "jarvis.ico"
-    )
+    icon_path = os.path.join(os.path.dirname(__file__), "..", "..", "jarvis.ico")
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
 
     # Initialize GUI dashboard state
     try:
         engine, bridge, avatar, avatar_timer = setup_gui_dashboard(app)
-        
+
         # Connect to root window visibility and close events
         root_objs = engine.rootObjects()
         if root_objs:
             root_win = root_objs[0]
             log_lifecycle("WINDOW_INITIAL_VISIBILITY", f"visible={root_win.property('visible')} (main_window)")
-            
+
             # Trace show / hide times
             def on_visible_changed():
                 vis = root_win.property("visible")
@@ -161,13 +163,15 @@ def main() -> int:
                     log_lifecycle("WINDOW_SHOW", "Root QML window became visible (main_window)")
                 else:
                     log_lifecycle("WINDOW_HIDE", "Root QML window was hidden (main_window)")
+
             root_win.visibleChanged.connect(on_visible_changed)
-            
+
             # Trace close request
             def on_closing(close_event):
                 log_close_reason("QML window closing event", "Close event triggered in main_window")
+
             root_win.closing.connect(on_closing)
-            
+
             log_lifecycle("QML_WINDOW_LISTENERS_REGISTERED", "visibleChanged and closing signals connected (main_window)")
     except Exception as e:
         logger.exception("Failed to setup GUI dashboard: %s", e)
@@ -200,9 +204,8 @@ def main() -> int:
 
             # Start Supervisor subprocess (same as old _start_jarvis)
             import subprocess
-            root_dir = os.path.abspath(
-                os.path.join(os.path.dirname(__file__), "..", "..")
-            )
+
+            root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
             env = os.environ.copy()
             env["PYTHONPATH"] = root_dir + os.pathsep + env.get("PYTHONPATH", "")
 
@@ -265,12 +268,16 @@ def main() -> int:
     QTimer.singleShot(1000, _setup_tray)
 
     log_lifecycle("EVENT_LOOP_START", "app.exec() entering Qt event loop (main_window)")
-    
+
     def _on_about_to_quit():
         import traceback as _tb
+
         _stack = "".join(_tb.format_stack())
         log_lifecycle("ABOUT_TO_QUIT", "QApplication.aboutToQuit signal fired (main_window)")
-        log_close_reason("QApplication.aboutToQuit", f"QApplication.aboutToQuit fired in main_window — call stack:\n{_stack}", include_stack=False)
+        log_close_reason(
+            "QApplication.aboutToQuit", f"QApplication.aboutToQuit fired in main_window — call stack:\n{_stack}", include_stack=False
+        )
+
     app.aboutToQuit.connect(_on_about_to_quit)
 
     exit_code = app.exec()

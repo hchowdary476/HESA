@@ -18,7 +18,7 @@ import json
 import os
 import re
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from JARVIS.core.system.utils.jarvis_logging import get_logger
@@ -32,72 +32,106 @@ logger = get_logger("architect_agent")
 
 TECH_STACKS = {
     "fastapi": {
-        "backend": "FastAPI", "language": "Python", "orm": "SQLAlchemy",
-        "auth": "JWT (python-jose)", "db_default": "SQLite",
+        "backend": "FastAPI",
+        "language": "Python",
+        "orm": "SQLAlchemy",
+        "auth": "JWT (python-jose)",
+        "db_default": "SQLite",
         "deps": ["fastapi", "uvicorn", "sqlalchemy", "python-jose", "passlib", "pydantic"],
     },
     "flask": {
-        "backend": "Flask", "language": "Python", "orm": "SQLAlchemy",
-        "auth": "Flask-JWT-Extended", "db_default": "SQLite",
+        "backend": "Flask",
+        "language": "Python",
+        "orm": "SQLAlchemy",
+        "auth": "Flask-JWT-Extended",
+        "db_default": "SQLite",
         "deps": ["flask", "flask-sqlalchemy", "flask-jwt-extended", "flask-cors"],
     },
     "django": {
-        "backend": "Django", "language": "Python", "orm": "Django ORM",
-        "auth": "Django Auth", "db_default": "PostgreSQL",
+        "backend": "Django",
+        "language": "Python",
+        "orm": "Django ORM",
+        "auth": "Django Auth",
+        "db_default": "PostgreSQL",
         "deps": ["django", "djangorestframework", "django-cors-headers", "psycopg2-binary"],
     },
     "spring": {
-        "backend": "Spring Boot", "language": "Java",
-        "orm": "Spring Data JPA", "auth": "Spring Security JWT",
+        "backend": "Spring Boot",
+        "language": "Java",
+        "orm": "Spring Data JPA",
+        "auth": "Spring Security JWT",
         "db_default": "PostgreSQL",
         "deps": ["spring-boot-starter-web", "spring-data-jpa", "spring-security"],
     },
     "react": {
-        "frontend": "React", "language": "JavaScript/TypeScript",
-        "ui_lib": "Tailwind CSS", "build_tool": "Vite",
+        "frontend": "React",
+        "language": "JavaScript/TypeScript",
+        "ui_lib": "Tailwind CSS",
+        "build_tool": "Vite",
         "deps": ["react", "react-dom", "react-router-dom", "axios", "tailwindcss"],
     },
     "nextjs": {
-        "frontend": "Next.js", "language": "TypeScript",
-        "ui_lib": "Tailwind CSS", "build_tool": "built-in",
+        "frontend": "Next.js",
+        "language": "TypeScript",
+        "ui_lib": "Tailwind CSS",
+        "build_tool": "built-in",
         "deps": ["next", "react", "react-dom", "typescript", "tailwindcss"],
     },
     "vanilla": {
-        "frontend": "Vanilla HTML/CSS/JS", "language": "JavaScript",
-        "ui_lib": "Custom CSS", "build_tool": "None",
+        "frontend": "Vanilla HTML/CSS/JS",
+        "language": "JavaScript",
+        "ui_lib": "Custom CSS",
+        "build_tool": "None",
         "deps": [],
     },
     "flutter": {
-        "mobile": "Flutter", "language": "Dart",
-        "state": "Riverpod", "http": "dio",
+        "mobile": "Flutter",
+        "language": "Dart",
+        "state": "Riverpod",
+        "http": "dio",
         "deps": ["flutter", "riverpod", "dio", "shared_preferences", "go_router"],
     },
     "android": {
-        "mobile": "Android Native", "language": "Kotlin",
-        "arch": "MVVM", "http": "Retrofit",
+        "mobile": "Android Native",
+        "language": "Kotlin",
+        "arch": "MVVM",
+        "http": "Retrofit",
         "deps": ["retrofit", "okhttp3", "room", "lifecycle-viewmodel"],
     },
 }
 
 # Keyword → stack selection heuristics
 _BACKEND_KEYWORDS = {
-    "fastapi": "fastapi", "fast api": "fastapi",
-    "flask": "flask", "django": "django",
-    "spring": "spring", "spring boot": "spring",
-    "rest api": "fastapi", "api": "fastapi",
+    "fastapi": "fastapi",
+    "fast api": "fastapi",
+    "flask": "flask",
+    "django": "django",
+    "spring": "spring",
+    "spring boot": "spring",
+    "rest api": "fastapi",
+    "api": "fastapi",
 }
 _FRONTEND_KEYWORDS = {
-    "react": "react", "next": "nextjs", "next.js": "nextjs",
-    "nextjs": "nextjs", "html": "vanilla", "vanilla": "vanilla",
+    "react": "react",
+    "next": "nextjs",
+    "next.js": "nextjs",
+    "nextjs": "nextjs",
+    "html": "vanilla",
+    "vanilla": "vanilla",
 }
 _MOBILE_KEYWORDS = {
-    "flutter": "flutter", "android": "android",
-    "mobile": "flutter", "app": "flutter",
+    "flutter": "flutter",
+    "android": "android",
+    "mobile": "flutter",
+    "app": "flutter",
 }
 _DB_KEYWORDS = {
-    "postgres": "PostgreSQL", "postgresql": "PostgreSQL",
-    "mysql": "MySQL", "sqlite": "SQLite",
-    "mongodb": "MongoDB", "mongo": "MongoDB",
+    "postgres": "PostgreSQL",
+    "postgresql": "PostgreSQL",
+    "mysql": "MySQL",
+    "sqlite": "SQLite",
+    "mongodb": "MongoDB",
+    "mongo": "MongoDB",
     "redis": "Redis",
 }
 
@@ -106,19 +140,21 @@ _DB_KEYWORDS = {
 # Architecture Spec Dataclass
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class ArchitectureSpec:
     """Full project specification produced by the Architect Agent."""
+
     project_name: str
     description: str
-    project_type: str                  # fullstack | api | mobile | ml | cli
-    backend_stack: str | None          # FastAPI | Flask | Django | Spring Boot | None
-    frontend_stack: str | None         # React | Next.js | Vanilla | None
-    mobile_stack: str | None           # Flutter | Android | None
-    ml_stack: str | None               # PyTorch | scikit-learn | TensorFlow | None
-    database: str                      # SQLite | PostgreSQL | MySQL | MongoDB
-    auth_method: str                   # JWT | Session | None
-    features: list[str] = field(default_factory=list)   # user-specified features
+    project_type: str  # fullstack | api | mobile | ml | cli
+    backend_stack: str | None  # FastAPI | Flask | Django | Spring Boot | None
+    frontend_stack: str | None  # React | Next.js | Vanilla | None
+    mobile_stack: str | None  # Flutter | Android | None
+    ml_stack: str | None  # PyTorch | scikit-learn | TensorFlow | None
+    database: str  # SQLite | PostgreSQL | MySQL | MongoDB
+    auth_method: str  # JWT | Session | None
+    features: list[str] = field(default_factory=list)  # user-specified features
     folder_structure: dict[str, Any] = field(default_factory=dict)
     backend_deps: list[str] = field(default_factory=list)
     frontend_deps: list[str] = field(default_factory=list)
@@ -138,6 +174,7 @@ class ArchitectureSpec:
 # ---------------------------------------------------------------------------
 # Architect Agent
 # ---------------------------------------------------------------------------
+
 
 class ArchitectAgent:
     """
@@ -198,9 +235,7 @@ class ArchitectAgent:
         data_models = self._generate_data_models(features)
 
         # ── Folder Structure ─────────────────────────────────────────────────
-        folder_structure = self._build_folder_structure(
-            project_type, backend_stack, frontend_stack, mobile_stack, ml_stack
-        )
+        folder_structure = self._build_folder_structure(project_type, backend_stack, frontend_stack, mobile_stack, ml_stack)
 
         spec = ArchitectureSpec(
             project_name=project_name,
@@ -226,7 +261,10 @@ class ArchitectAgent:
         self._save_spec(spec)
         logger.info(
             "ArchitectAgent complete: %s | type=%s | backend=%s | frontend=%s",
-            project_name, project_type, backend_stack, frontend_stack,
+            project_name,
+            project_type,
+            backend_stack,
+            frontend_stack,
         )
         return spec
 
@@ -334,8 +372,16 @@ class ArchitectAgent:
             return []
         stack_key = stack.lower().replace(" ", "_").replace(".", "")
         base = {
-            "fastapi": ["fastapi", "uvicorn[standard]", "sqlalchemy", "alembic", "pydantic[email]",
-                        "python-multipart", "python-dotenv", "httpx"],
+            "fastapi": [
+                "fastapi",
+                "uvicorn[standard]",
+                "sqlalchemy",
+                "alembic",
+                "pydantic[email]",
+                "python-multipart",
+                "python-dotenv",
+                "httpx",
+            ],
             "flask": ["flask", "flask-sqlalchemy", "flask-migrate", "flask-cors", "python-dotenv"],
             "django": ["django", "djangorestframework", "django-cors-headers", "python-dotenv"],
             "spring_boot": [],
@@ -394,30 +440,34 @@ class ArchitectAgent:
     def _generate_data_models(self, features: list[str]) -> list[dict]:
         models: list[dict] = []
         if "auth" in features:
-            models.append({
-                "name": "User",
-                "fields": [
-                    {"name": "id", "type": "Integer", "primary_key": True},
-                    {"name": "username", "type": "String(50)", "unique": True, "nullable": False},
-                    {"name": "email", "type": "String(120)", "unique": True, "nullable": False},
-                    {"name": "hashed_password", "type": "String(255)", "nullable": False},
-                    {"name": "is_active", "type": "Boolean", "default": True},
-                    {"name": "created_at", "type": "DateTime", "default": "now()"},
-                ],
-            })
+            models.append(
+                {
+                    "name": "User",
+                    "fields": [
+                        {"name": "id", "type": "Integer", "primary_key": True},
+                        {"name": "username", "type": "String(50)", "unique": True, "nullable": False},
+                        {"name": "email", "type": "String(120)", "unique": True, "nullable": False},
+                        {"name": "hashed_password", "type": "String(255)", "nullable": False},
+                        {"name": "is_active", "type": "Boolean", "default": True},
+                        {"name": "created_at", "type": "DateTime", "default": "now()"},
+                    ],
+                }
+            )
         if "crud" in features:
-            models.append({
-                "name": "Item",
-                "fields": [
-                    {"name": "id", "type": "Integer", "primary_key": True},
-                    {"name": "title", "type": "String(200)", "nullable": False},
-                    {"name": "description", "type": "Text", "nullable": True},
-                    {"name": "is_completed", "type": "Boolean", "default": False},
-                    {"name": "owner_id", "type": "Integer", "foreign_key": "user.id"},
-                    {"name": "created_at", "type": "DateTime", "default": "now()"},
-                    {"name": "updated_at", "type": "DateTime", "onupdate": "now()"},
-                ],
-            })
+            models.append(
+                {
+                    "name": "Item",
+                    "fields": [
+                        {"name": "id", "type": "Integer", "primary_key": True},
+                        {"name": "title", "type": "String(200)", "nullable": False},
+                        {"name": "description", "type": "Text", "nullable": True},
+                        {"name": "is_completed", "type": "Boolean", "default": False},
+                        {"name": "owner_id", "type": "Integer", "foreign_key": "user.id"},
+                        {"name": "created_at", "type": "DateTime", "default": "now()"},
+                        {"name": "updated_at", "type": "DateTime", "onupdate": "now()"},
+                    ],
+                }
+            )
         return models
 
     def _build_folder_structure(

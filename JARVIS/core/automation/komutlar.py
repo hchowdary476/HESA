@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
-import time
 from time import perf_counter
 
-from JARVIS.core.voice.ses_motoru import speak
 from JARVIS.core.automation.action_dispatcher import execute_action as dispatch_execute_action
 from JARVIS.core.automation.groq_router import summarize_text
-from JARVIS.core.automation.local_intent_router import classify_intent, route_local_intent
-from JARVIS.core.system.observability import record_latency_metric
-from JARVIS.core.memory import add_to_short_term, detect_and_save_preference, get_preference, set_preference, track_command
-from JARVIS.runtime.ui_bridge import send_log, send_state
+from JARVIS.core.automation.local_intent_router import classify_intent
+from JARVIS.core.memory import add_to_short_term, get_preference, set_preference, track_command
 from JARVIS.core.system.utils.jarvis_logging import get_file_logger, get_logger
+from JARVIS.core.voice.ses_motoru import speak
+from JARVIS.runtime.ui_bridge import send_state
 
 logger = get_logger("commands")
 intent_logger = get_file_logger("jarvis.intent")
@@ -45,6 +43,16 @@ def process_command(command: str) -> bool:
     add_to_short_term("user", command)
     track_command(command)
 
+    # ── 0. Pending Learning Command Intercept ──────────────────────────────────
+    learning_cmd = get_preference("learning_command")
+    if learning_cmd:
+        learned = get_preference("learned_commands") or {}
+        learned[learning_cmd] = command
+        set_preference("learned_commands", learned)
+        set_preference("learning_command", None)
+        speak("Sir, ee command ni future kosam gurthupettukunnanu.")
+        return True
+
     # ── 1. Safety Confirmation Guard for Dangerous Commands (Requirement #7) ─
     pending_danger = get_preference("pending_dangerous_action")
     if pending_danger and isinstance(pending_danger, dict):
@@ -71,7 +79,7 @@ def process_command(command: str) -> bool:
     intent_type, payload = classify_intent(command)
     latency_ms = (perf_counter() - t0) * 1000
 
-    intent_msg = f"[INTENT] {intent_type} (latency={latency_ms:.2f}ms command=\"{command}\")"
+    intent_msg = f'[INTENT] {intent_type} (latency={latency_ms:.2f}ms command="{command}")'
     print(intent_msg, flush=True)
     intent_logger.info(intent_msg)
 
@@ -114,6 +122,7 @@ def process_command(command: str) -> bool:
 
     try:
         from JARVIS.core.ai_router.ai_orchestrator import AIOrchestrator
+
         orchestrator = AIOrchestrator()
         ai_response = orchestrator.query_with_failover(command, task_type=task_type)
 

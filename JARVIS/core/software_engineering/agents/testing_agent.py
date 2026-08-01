@@ -14,8 +14,8 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from JARVIS.core.system.utils.jarvis_logging import get_logger
 from JARVIS.core.software_engineering.agents.architect_agent import ArchitectureSpec
+from JARVIS.core.system.utils.jarvis_logging import get_logger
 
 logger = get_logger("testing_agent")
 
@@ -266,21 +266,21 @@ title = {name} Coverage Report
 
     def _vitest_app_test(self, name: str) -> str:
         title = name.replace("_", " ").title()
-        return f'''import {{ render, screen }} from '@testing-library/react'
-import {{ BrowserRouter }} from 'react-router-dom'
-import {{ describe, it, expect }} from 'vitest'
+        return """import { render, screen } from '@testing-library/react'
+import { BrowserRouter } from 'react-router-dom'
+import { describe, it, expect } from 'vitest'
 import App from '../App'
 
-describe('App', () => {{
-  it('renders without crashing', () => {{
+describe('App', () => {
+  it('renders without crashing', () => {
     render(<BrowserRouter><App /></BrowserRouter>)
     expect(document.body).toBeTruthy()
-  }})
-}})
-'''
+  })
+})
+"""
 
     def _vitest_item_card_test(self) -> str:
-        return '''import { render, screen, fireEvent } from '@testing-library/react'
+        return """import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import ItemCard from '../components/ItemCard'
 
@@ -306,10 +306,10 @@ describe('ItemCard', () => {
     expect(onDelete).toHaveBeenCalledWith(1)
   })
 })
-'''
+"""
 
     def _vitest_api_test(self) -> str:
-        return '''import { describe, it, expect, vi } from 'vitest'
+        return """import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('axios')
 
@@ -322,7 +322,7 @@ describe('API Service', () => {
     expect(typeof itemsApi.delete).toBe('function')
   })
 })
-'''
+"""
 
     def _write(self, directory: str, filename: str, content: str) -> str:
         os.makedirs(directory, exist_ok=True)

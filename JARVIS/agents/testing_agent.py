@@ -18,6 +18,7 @@ Strategy
 The orchestrator calls this agent up to ``MAX_RETRIES`` times per subtask,
 passing each failure's ``suggestion`` back to the CodingAgent as context.
 """
+
 from __future__ import annotations
 
 import os
@@ -25,8 +26,8 @@ import re
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from JARVIS.agents.agent_base import AgentBase, AgentError, AgentResult, AgentTask
 from JARVIS.core.system.utils.jarvis_logging import get_logger
@@ -64,9 +65,7 @@ class TestResult:
 def _python_syntax_check(code: str) -> tuple[bool, str]:
     """Run py_compile on code string. Returns (ok, error_message)."""
     # Write to a temp file
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".py", delete=False, encoding="utf-8"
-    ) as tmp:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False, encoding="utf-8") as tmp:
         tmp.write(code)
         tmp_path = tmp.name
     try:
@@ -101,6 +100,7 @@ def _has_python(code: str) -> bool:
 def _extract_verdict(text: str) -> tuple[bool, str, str]:
     """Parse the JSON verdict from LLM response.  Returns (passed, errors_str, suggestion)."""
     import json
+
     match = re.search(r"\{[\s\S]*\}", text)
     if not match:
         # If LLM didn't return JSON, treat as PASS (don't block on bad reviewer response)
@@ -110,7 +110,7 @@ def _extract_verdict(text: str) -> tuple[bool, str, str]:
         verdict = str(data.get("verdict", "PASS")).upper()
         issues = data.get("issues", [])
         suggestion = str(data.get("suggestion", ""))
-        passed = (verdict == "PASS")
+        passed = verdict == "PASS"
         errors_str = "; ".join(str(i) for i in issues) if issues else ""
         return passed, errors_str, suggestion
     except Exception:
@@ -136,7 +136,9 @@ class TestingAgent(AgentBase):
         self._emit_progress(f"Testing code for: {subtask_title} (attempt {retry_count + 1}/{MAX_RETRIES})…")
         logger.info(
             "[TestingAgent] run_id=%s step=%d retry=%d",
-            task.run_id, task.step, retry_count,
+            task.run_id,
+            task.step,
+            retry_count,
         )
 
         # --- Step 1: Syntax check (Python only) ---
@@ -145,7 +147,7 @@ class TestingAgent(AgentBase):
         if _has_python(code):
             syntax_ok, syntax_error = _python_syntax_check(code)
             if not syntax_ok:
-                self._emit_progress(f"⚠️ Syntax error detected — requesting fix…")
+                self._emit_progress("⚠️ Syntax error detected — requesting fix…")
                 logger.warning("[TestingAgent] Syntax error: %s", syntax_error[:200])
                 result = TestResult(
                     passed=False,
@@ -165,10 +167,7 @@ class TestingAgent(AgentBase):
                 )
 
         # --- Step 2: LLM code review ---
-        review_prompt = (
-            f"Subtask:\n{task.description}\n\n"
-            f"Code to review:\n```\n{code}\n```"
-        )
+        review_prompt = f"Subtask:\n{task.description}\n\nCode to review:\n```\n{code}\n```"
         model_used = "unknown"
         try:
             response, tokens, elapsed, model_used = self._call_llm(review_prompt)
@@ -193,7 +192,9 @@ class TestingAgent(AgentBase):
             status = "success"
         else:
             level = "retry" if retry_count < MAX_RETRIES - 1 else "error"
-            self._emit_progress(f"⚠️ Test failed (attempt {retry_count + 1}) — {'retrying…' if level == 'retry' else 'max retries reached.'}")
+            self._emit_progress(
+                f"⚠️ Test failed (attempt {retry_count + 1}) — {'retrying…' if level == 'retry' else 'max retries reached.'}"
+            )
             logger.warning("[TestingAgent] FAIL: %s", errors[:200])
             status = level
 
@@ -207,4 +208,3 @@ class TestingAgent(AgentBase):
             tokens_estimate=tokens,
             retry_count=retry_count,
         )
-

@@ -1,16 +1,15 @@
 """Unit and integration tests for JARVIS Knowledge Graph & Long-Term Memory Engine."""
 
 import os
-import json
-import time
 import shutil
+import time
 import unittest
 
-from knowledge_graph import ProductionKnowledgeGraph
-from semantic_search import SemanticSearchEngine
-from memory_engine import MemoryEngine
 from context_builder import ContextBuilder
+from knowledge_graph import ProductionKnowledgeGraph
+from memory_engine import MemoryEngine
 from memory_manager import MemoryManager
+from semantic_search import SemanticSearchEngine
 
 
 class TestProductionMemory(unittest.TestCase):
@@ -21,10 +20,10 @@ class TestProductionMemory(unittest.TestCase):
         # Re-initialize clean test singletons
         self.kg = ProductionKnowledgeGraph(os.path.join(self.data_root, "knowledge_graph.json"))
         self.kg.clear()
-        
+
         self.semantic_index = SemanticSearchEngine(os.path.join(self.data_root, "semantic_index.json"))
         self.semantic_index.clear()
-        
+
         self.engine = MemoryEngine(self.data_root)
         self.engine.clear()
 
@@ -33,7 +32,7 @@ class TestProductionMemory(unittest.TestCase):
         self.manager.kg = self.kg
         self.manager.semantic_index = self.semantic_index
         self.manager.memory = self.engine
-        
+
         self.builder = ContextBuilder()
         self.builder.kg = self.kg
         self.builder.semantic_index = self.semantic_index
@@ -82,7 +81,7 @@ class TestProductionMemory(unittest.TestCase):
         """Verify vector similarity matching with exponential time decay and KG connectivity weight."""
         # 1. Add identical text snippets at different timestamps to isolate recency decay
         now = time.time()
-        
+
         # doc_new is brand new
         self.semantic_index.add_document("doc_new", "neural network training details", timestamp=now)
         # doc_old is 2 days old
@@ -103,7 +102,7 @@ class TestProductionMemory(unittest.TestCase):
 
         # Now, doc_connected should score higher than doc_old because of relationship connectivity strength
         results_with_graph = self.semantic_index.search("neural network training")
-        
+
         scores_by_id = {r["id"]: r["score"] for r in results_with_graph}
         self.assertGreater(scores_by_id["doc_connected"], scores_by_id["doc_old"])
 
@@ -121,7 +120,7 @@ class TestProductionMemory(unittest.TestCase):
             self.engine.write_memory("conversation", f"query_{i}", f"answer_{i}")
 
         self.assertEqual(len(self.engine.conversation_mem), 12)
-        
+
         # Trigger manual compression
         stats = self.engine.compress_memory()
         self.assertEqual(stats["summarized_conversations"], 7)
@@ -150,7 +149,7 @@ class TestProductionMemory(unittest.TestCase):
         # Restore from backup
         success_restore = self.engine.restore_backup(zip_path)
         self.assertTrue(success_restore)
-        
+
         # Verify content
         self.assertEqual(self.engine.read_memory("long_term", "user_preferences"), "dark_mode")
         self.assertIsNotNone(self.kg.get_node("test_node"))
@@ -159,10 +158,10 @@ class TestProductionMemory(unittest.TestCase):
         # Create corrupted edge (pointing to non-existent target)
         self.kg.edges.append({"source": "test_node", "target": "non_existent", "relation": "DEPENDS_ON", "properties": {}})
         self.kg.save()
-        
+
         is_clean_init = self.engine.corruption_detection()
         self.assertFalse(is_clean_init)  # repairs occurred
-        
+
         # Corrupted edge should be pruned
         is_clean_post = self.engine.corruption_detection()
         self.assertTrue(is_clean_post)  # databases are clean now
@@ -183,7 +182,7 @@ class TestProductionMemory(unittest.TestCase):
         # Add values
         self.engine.write_memory("long_term", "secret_passcode", "12345")
         self.engine.write_memory("long_term", "favorite_color", "blue")
-        
+
         self.semantic_index.add_document("doc_passcode", "the secret passcode is 12345", metadata={"layer": "long_term"})
         self.kg.add_node("doc_passcode", "DOCUMENT", "Secret code node")
 

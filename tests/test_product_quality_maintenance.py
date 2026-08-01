@@ -2,8 +2,8 @@
 
 from unittest import TestCase
 
-from JARVIS.evaluation.performance_benchmarks import build_performance_budget, summarize_benchmark_results
 from JARVIS.core.system.feature_quality import build_feature_catalog, build_feature_quality_report, render_feature_quality_report
+from JARVIS.evaluation.performance_benchmarks import build_performance_budget, summarize_benchmark_results
 from JARVIS.release.maintenance import build_maintenance_plan
 
 

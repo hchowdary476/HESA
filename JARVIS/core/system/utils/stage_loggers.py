@@ -15,12 +15,11 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Dict
 
 LOG_DIR = Path("logs")
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-STAGE_LOG_FILES: Dict[str, Path] = {
+STAGE_LOG_FILES: dict[str, Path] = {
     "wake": LOG_DIR / "wake.log",
     "stt": LOG_DIR / "stt.log",
     "intent": LOG_DIR / "intent.log",
@@ -30,7 +29,7 @@ STAGE_LOG_FILES: Dict[str, Path] = {
     "tts": LOG_DIR / "tts.log",
 }
 
-_loggers: Dict[str, logging.Logger] = {}
+_loggers: dict[str, logging.Logger] = {}
 
 
 def get_stage_logger(stage: str) -> logging.Logger:

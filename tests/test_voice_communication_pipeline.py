@@ -10,18 +10,15 @@ Verifies:
 6. Voice Diagnostics payload generation.
 """
 
-import json
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-from JARVIS.core.voice.voice_state import VoiceState, VoiceStateMachine
-from JARVIS.core.voice.voice_pipeline import VoicePipeline, get_voice_pipeline
 from JARVIS.core.voice.pronunciation_engine import get_pronunciation_engine
-from JARVIS.core.voice.ses_motoru import VoiceEngine
+from JARVIS.core.voice.voice_pipeline import VoicePipeline, get_voice_pipeline
+from JARVIS.core.voice.voice_state import VoiceState, VoiceStateMachine
 
 
 class TestVoiceCommunicationPipeline(unittest.TestCase):
-
     def setUp(self):
         VoicePipeline._instance = None
         self.pipeline = get_voice_pipeline()

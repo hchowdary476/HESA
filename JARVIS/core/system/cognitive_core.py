@@ -1,20 +1,22 @@
 """Cognitive Core - Central AI Brain coordinating safety, RAG memory, model selection, planning, and explainability."""
 
 from __future__ import annotations
+
+import json
 import os
 import time
-import json
-import logging
 from typing import Any
-from JARVIS.core.security.safety_layer import AISafetyLayer
-from knowledge_graph import ProductionKnowledgeGraph
-from JARVIS.core.learning.learning_engine import PersonalLearningEngine
+
 from JARVIS.core.ai_router.ai_orchestrator import AIOrchestrator
+from JARVIS.core.learning.learning_engine import PersonalLearningEngine
+from JARVIS.core.security.safety_layer import AISafetyLayer
 from JARVIS.core.system.task_planner import TaskPlanner
-from JARVIS.core.system.workflow_builder import WorkflowBuilder
 from JARVIS.core.system.utils.jarvis_logging import get_logger
+from JARVIS.core.system.workflow_builder import WorkflowBuilder
+from knowledge_graph import ProductionKnowledgeGraph
 
 logger = get_logger("cognitive_core")
+
 
 class CognitiveCore:
     """Central synaptic coordinator directing all AI subsystems and safety guards."""
@@ -34,15 +36,18 @@ class CognitiveCore:
         self.kg = ProductionKnowledgeGraph()
         self.learning = PersonalLearningEngine()
         from context_builder import ContextBuilder
+
         self.context_builder = ContextBuilder()
         from memory_manager import MemoryManager
+
         self.memory_manager = MemoryManager()
         self.orchestrator = AIOrchestrator()
         self.planner = TaskPlanner()
         self.workflow = WorkflowBuilder()
         from JARVIS.core.system.diagnostics_center import DiagnosticsCenter
+
         self.diagnostics = DiagnosticsCenter()
-        
+
         self.last_explanation: dict[str, Any] = {}
         self.core_log_path = os.path.abspath(os.path.join("logs", "cognitive_core.json"))
         os.makedirs(os.path.dirname(self.core_log_path), exist_ok=True)
@@ -51,7 +56,7 @@ class CognitiveCore:
         """Core entry point to process any incoming query or command with safety and explainability."""
         start_time = time.time()
         timings = {}
-        
+
         # ── 1. RATE LIMITING CHECK
         t0 = time.time()
         if self.safety.is_rate_limited():
@@ -61,7 +66,7 @@ class CognitiveCore:
                 "reasoning": "Gatekeeper triggered rate limit block.",
                 "execution_plan": ["halt_execution"],
                 "result": "RateLimitedException",
-                "confidence": 1.0
+                "confidence": 1.0,
             }
             return {"action": "talk", "params": {}, "response": resp, "explanation": self.last_explanation}
         timings["rate_limiting_check"] = (time.time() - t0) * 1000
@@ -69,6 +74,7 @@ class CognitiveCore:
         # ── 2. INTENT UNDERSTANDING (Intent Engine)
         t0 = time.time()
         from JARVIS.core.automation.local_intent_router import route_local_intent
+
         intent_resolved = route_local_intent(command)
         intent_desc = "General conversational query"
         action_name = "talk"
@@ -103,9 +109,9 @@ class CognitiveCore:
                 execution_plan_steps = [step.get("prompt", "Execute Step") for step in plan_details.get("subtasks", [])]
                 self.diagnostics.record_plan_stats(
                     len(plan_details.get("subtasks", [])),
-                    4, # Max DAG depth
-                    2, # Parallel tasks
-                    (time.time() - plan_start) * 1000
+                    4,  # Max DAG depth
+                    2,  # Parallel tasks
+                    (time.time() - plan_start) * 1000,
                 )
         timings["goal_planning"] = (time.time() - t0) * 1000
 
@@ -120,7 +126,7 @@ class CognitiveCore:
             "coding": "Coding Agent",
             "research": "Research Agent",
             "security": "Cyber Security Agent",
-            "execute_plan": "System Administrator Agent"
+            "execute_plan": "System Administrator Agent",
         }
         target_agent = agent_mapping.get(action_name, "General Assistant")
         timings["tool_selection"] = (time.time() - t0) * 1000
@@ -143,7 +149,7 @@ class CognitiveCore:
         if needs_confirm:
             if action_name == "write_settings" and "file" in params:
                 self.safety.create_rollback_point(params["file"], f"Modify settings via {command}")
-            
+
             self.last_explanation = {
                 "intent": intent_desc,
                 "reasoning": f"Intercepted action due to decision/safety alert: {reason}",
@@ -154,14 +160,14 @@ class CognitiveCore:
                     "intent_confidence": intent_conf,
                     "planning_confidence": planning_conf,
                     "model_confidence": model_conf,
-                    "execution_confidence": execution_conf
-                }
+                    "execution_confidence": execution_conf,
+                },
             }
             return {
                 "action": "confirm_action",
                 "params": {"action_to_confirm": action_name, "original_params": params},
                 "response": f"Sir, I require confirmation to execute this action: {reason}. Shall I proceed?",
-                "explanation": self.last_explanation
+                "explanation": self.last_explanation,
             }
 
         # ── 9. EXECUTION
@@ -171,6 +177,7 @@ class CognitiveCore:
         exception_str = ""
         try:
             from JARVIS.core.software_engineering.se_orchestrator import SoftwareEngineeringOrchestrator
+
             if SoftwareEngineeringOrchestrator.is_se_request(command):
                 se_res = SoftwareEngineeringOrchestrator().handle(command)
                 ai_response = se_res.get("response", "")
@@ -185,14 +192,14 @@ class CognitiveCore:
                 params = {"plan_id": plan_id}
             else:
                 ai_response = self.orchestrator.query_with_failover(prompt_with_context)
-            
+
             # Record success query analytics
             self.diagnostics.record_model_query(
                 provider,
                 (time.time() - t0) * 1000,
-                0.0015, # Cost per query
-                len(prompt_with_context) // 4 + len(ai_response) // 4, # Estimated tokens
-                True
+                0.0015,  # Cost per query
+                len(prompt_with_context) // 4 + len(ai_response) // 4,  # Estimated tokens
+                True,
             )
         except Exception as e:
             success = False
@@ -201,17 +208,13 @@ class CognitiveCore:
             self.diagnostics.record_model_query(provider, (time.time() - t0) * 1000, 0.0, 0, False)
             self.diagnostics.record_failure("execution", target_agent, model, "general_tool", exception_str, False)
             self.diagnostics.record_task_outcome(False)
-            
+
         timings["execution"] = (time.time() - t0) * 1000
 
         # ── 10. LEARNING ENGINE
         t0 = time.time()
         self.learning.log_interaction(command, action_name, params, success=success)
-        self.memory_manager.track_learning_interaction(
-            model=model,
-            language=params.get("language", "Python"),
-            tools_used=[action_name]
-        )
+        self.memory_manager.track_learning_interaction(model=model, language=params.get("language", "Python"), tools_used=[action_name])
         self.diagnostics.record_learning_event("successful_workflow", f"goal: {command}")
         timings["learning"] = (time.time() - t0) * 1000
 
@@ -219,6 +222,7 @@ class CognitiveCore:
         t0 = time.time()
         self.kg.add_node(f"cmd_{int(time.time())}", "COMMAND", command, {"action": action_name})
         from memory_engine import MemoryEngine
+
         MemoryEngine().write_memory("conversation", command, f"Action: {action_name}, Success: {success}")
         timings["memory_update"] = (time.time() - t0) * 1000
 
@@ -227,7 +231,7 @@ class CognitiveCore:
         timings["response_compilation"] = (time.time() - start_time) * 1000 - elapsed
         self.diagnostics.record_timeline(timings)
         self.diagnostics.record_task_outcome(success)
-        
+
         self.last_explanation = {
             "intent": intent_desc,
             "reasoning": f"Synaptic pipeline successfully executed in {elapsed:.1f}ms on {provider} ({model}) via {target_agent}.",
@@ -238,17 +242,12 @@ class CognitiveCore:
                 "intent_confidence": intent_conf,
                 "planning_confidence": planning_conf,
                 "model_confidence": model_conf,
-                "execution_confidence": execution_conf
+                "execution_confidence": execution_conf,
             },
-            "timeline": timings
+            "timeline": timings,
         }
 
-        result = {
-            "action": action_name,
-            "params": params,
-            "response": ai_response,
-            "explanation": self.last_explanation
-        }
+        result = {"action": action_name, "params": params, "response": ai_response, "explanation": self.last_explanation}
         self._save_core_state(result)
         return result
 
@@ -256,31 +255,38 @@ class CognitiveCore:
         # Models configuration parameters dictionary
         model_features = {
             "grok": {"provider": "xAI", "model": "Grok 3", "cost": 0.002, "latency": 145, "context": 128, "offline": False},
-            "claude": {"provider": "Anthropic", "model": "Claude 3.5 Sonnet", "cost": 0.003, "latency": 180, "context": 200, "offline": False},
+            "claude": {
+                "provider": "Anthropic",
+                "model": "Claude 3.5 Sonnet",
+                "cost": 0.003,
+                "latency": 180,
+                "context": 200,
+                "offline": False,
+            },
             "gemini": {"provider": "Google", "model": "Gemini 1.5 Pro", "cost": 0.00125, "latency": 120, "context": 2048, "offline": False},
             "chatgpt": {"provider": "OpenAI", "model": "ChatGPT 4o", "cost": 0.0025, "latency": 165, "context": 128, "offline": False},
             "deepseek": {"provider": "DeepSeek", "model": "DeepSeek R1", "cost": 0.00055, "latency": 250, "context": 64, "offline": False},
             "ollama": {"provider": "Local", "model": "Ollama (Llama 3)", "cost": 0.0, "latency": 12, "context": 8, "offline": True},
-            "lmstudio": {"provider": "Local", "model": "LM Studio (Mistral)", "cost": 0.0, "latency": 14, "context": 16, "offline": True}
+            "lmstudio": {"provider": "Local", "model": "LM Studio (Mistral)", "cost": 0.0, "latency": 14, "context": 16, "offline": True},
         }
-        
+
         is_offline = "offline" in command.lower() or "local" in command.lower()
         is_cost_sensitive = "cheap" in command.lower() or "cost" in command.lower()
         is_large_context = "large" in command.lower() or "context" in command.lower()
-        
+
         candidates = list(model_features.values())
         if is_offline:
             candidates = [c for c in candidates if c["offline"]]
         if is_large_context:
             candidates = [c for c in candidates if c["context"] >= 128]
-            
+
         if not candidates:
             candidates = [model_features["gemini"]]
-            
+
         candidates.sort(key=lambda x: x["latency"])
         if is_cost_sensitive:
             candidates.sort(key=lambda x: x["cost"])
-            
+
         best = candidates[0]
         return best["provider"], best["model"]
 

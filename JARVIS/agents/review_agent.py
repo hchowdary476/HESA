@@ -10,12 +10,13 @@ If the ReviewAgent returns ``approved=False``, the orchestrator marks the run
 as "needs_review" but still returns all outputs for user inspection — it does
 NOT automatically retry (a human should decide the next step).
 """
+
 from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Callable, Any
 
 from JARVIS.agents.agent_base import AgentBase, AgentError, AgentResult, AgentTask
 from JARVIS.core.system.utils.jarvis_logging import get_logger
@@ -84,13 +85,9 @@ class ReviewAgent(AgentBase):
         Returns an AgentResult whose ``parsed`` field is a ``ReviewResult``.
         """
         self._emit_progress("Running final review and security check…")
-        logger.info("[ReviewAgent] run_id=%s reviewing %d subtasks", task.run_id,
-                    task.metadata.get("subtask_count", 0))
+        logger.info("[ReviewAgent] run_id=%s reviewing %d subtasks", task.run_id, task.metadata.get("subtask_count", 0))
 
-        user_prompt = (
-            f"Original request:\n{task.description}\n\n"
-            f"Pipeline outputs:\n{task.context}"
-        )
+        user_prompt = f"Original request:\n{task.description}\n\nPipeline outputs:\n{task.context}"
 
         model_used = "unknown"
         try:
@@ -105,8 +102,11 @@ class ReviewAgent(AgentBase):
             self._log_to_queue(task, err, "error", 0.0, model_used="unknown")
             logger.error("[ReviewAgent] LLM call failed: %s", err)
             return AgentResult(
-                agent=self.name, status="error", output=err,
-                parsed=fallback, error=err,
+                agent=self.name,
+                status="error",
+                output=err,
+                parsed=fallback,
+                error=err,
             )
 
         review = _extract_review(response)
@@ -129,4 +129,3 @@ class ReviewAgent(AgentBase):
             elapsed_ms=elapsed,
             tokens_estimate=tokens,
         )
-

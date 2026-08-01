@@ -1,10 +1,12 @@
-import os
-import time
 import json
+import os
 import threading
+import time
+
 import psutil
 
 start_time = time.time()
+
 
 def publish_heartbeat():
     hb_dir = os.path.join("logs", "heartbeats")
@@ -20,7 +22,7 @@ def publish_heartbeat():
             grace_until = 0.0
             if os.path.exists(hb_path):
                 try:
-                    with open(hb_path, "r") as rf:
+                    with open(hb_path) as rf:
                         existing = json.load(rf)
                     grace_until = existing.get("grace_until", 0.0)
                 except Exception:
@@ -42,14 +44,18 @@ def publish_heartbeat():
             # Log to logs/service_heartbeat.log
             timestamp_str = time.strftime("%Y-%m-%d %H:%M:%S")
             with open("logs/service_heartbeat.log", "a", encoding="utf-8") as lf:
-                lf.write(f"[{timestamp_str}] Service diagnostics_engine heartbeat: CPU={hb_data['cpu_usage']}%, RAM={hb_data['memory_usage']}MB, Uptime={uptime}s\n")
-        except Exception as exc:
+                lf.write(
+                    f"[{timestamp_str}] Service diagnostics_engine heartbeat: CPU={hb_data['cpu_usage']}%, RAM={hb_data['memory_usage']}MB, Uptime={uptime}s\n"
+                )
+        except Exception:
             import traceback
+
             timestamp_str = time.strftime("%Y-%m-%d %H:%M:%S")
             os.makedirs("logs", exist_ok=True)
             with open("logs/service_crash.log", "a", encoding="utf-8") as cf:
                 cf.write(f"[{timestamp_str}] publish_heartbeat diagnostics_engine error:\n{traceback.format_exc()}\n")
         time.sleep(2)
+
 
 def diagnostics_loop():
     diag_path = os.path.join("logs", "diagnostics.json")
@@ -57,7 +63,7 @@ def diagnostics_loop():
         try:
             cpu = psutil.cpu_percent(interval=None)
             ram = psutil.virtual_memory().percent
-            
+
             try:
                 disk = psutil.disk_usage("C:").percent
             except Exception:
@@ -93,12 +99,8 @@ def diagnostics_loop():
                 "battery": battery,
                 "warnings": warnings,
                 "recommendations": recs,
-                "drivers": {
-                    "display": "PASS",
-                    "audio": "PASS",
-                    "network": "PASS"
-                },
-                "display_health": "PRIMARY: 1920x1080 @ 60Hz (HEALTHY)"
+                "drivers": {"display": "PASS", "audio": "PASS", "network": "PASS"},
+                "display_health": "PRIMARY: 1920x1080 @ 60Hz (HEALTHY)",
             }
 
             os.makedirs(os.path.dirname(diag_path), exist_ok=True)
@@ -109,9 +111,12 @@ def diagnostics_loop():
             pass
         time.sleep(5)
 
+
 if __name__ == "__main__":
     import sys
+
     from JARVIS.core.system.utils.port_manager import PortManager
+
     lock_socket = PortManager.acquire_service_lock("diagnostics_service", 19111)
     if lock_socket is None:
         print("[DIAGNOSTICS ENGINE] Duplicate instance detected. Exiting.")
@@ -119,8 +124,9 @@ if __name__ == "__main__":
     try:
         threading.Thread(target=publish_heartbeat, daemon=True).start()
         diagnostics_loop()
-    except Exception as e:
+    except Exception:
         import traceback
+
         timestamp_str = time.strftime("%Y-%m-%d %H:%M:%S")
         os.makedirs("logs", exist_ok=True)
         with open("logs/service_crash.log", "a", encoding="utf-8") as cf:

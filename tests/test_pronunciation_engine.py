@@ -15,31 +15,20 @@ Verifies:
 """
 
 import json
-import os
 import tempfile
 import unittest
 from pathlib import Path
 
 from JARVIS.core.voice.pronunciation_engine import (
-    LanguageDetector,
-    PronunciationDetector,
-    PronunciationDictionary,
     PronunciationEngine,
-    EdgeTTSProviderAdapter,
-    KokoroProviderAdapter,
-    PyTTSx3ProviderAdapter,
-    SAPIFallbackProviderAdapter,
-    get_pronunciation_engine,
 )
-from JARVIS.core.automation.local_intent_router import route_local_intent
 
 
 class TestHemanthPronunciationCorrection(unittest.TestCase):
-
     def setUp(self):
         self.tmp_dir = tempfile.TemporaryDirectory()
         self.dict_path = Path(self.tmp_dir.name) / "test_pronunciation.json"
-        
+
         PronunciationEngine._instance = None
         self.engine = PronunciationEngine(self.dict_path)
         self.p_dict = self.engine.dictionary
@@ -51,10 +40,7 @@ class TestHemanthPronunciationCorrection(unittest.TestCase):
     def test_hemanth_pronunciation_correction_and_debug(self):
         """Req 1-5: Verify replacement of 'హమత' with 'హేమంత్' and process_for_tts_debug output."""
         self.engine.set_native_script_pronunciation(
-            display_name="Hemanth",
-            native_spoken_form="హేమంత్",
-            phonetic_fallback="HEY-manth",
-            language="telugu"
+            display_name="Hemanth", native_spoken_form="హేమంత్", phonetic_fallback="HEY-manth", language="telugu"
         )
 
         entry = self.p_dict.get_entry("Hemanth")
@@ -65,7 +51,7 @@ class TestHemanthPronunciationCorrection(unittest.TestCase):
 
         # Edge TTS uses Priority 4 Native-Script Spoken Form to prevent raw XML escaping
         debug_edge = self.engine.process_for_tts_debug("Hello Hemanth, welcome back.", provider="edge")
-        self.assertEqual(debug_edge["normalized_text"], 'Hello హేమంత్, welcome back.')
+        self.assertEqual(debug_edge["normalized_text"], "Hello హేమంత్, welcome back.")
         self.assertIn("Matched 'Hemanth' -> Priority 4: Native-Script Spoken Form ('హేమంత్')", debug_edge["strategy_log"])
 
         # Azure Speech uses Priority 2 SSML Sub Alias
@@ -79,17 +65,17 @@ class TestHemanthPronunciationCorrection(unittest.TestCase):
 
         # Warmup cache
         res_before = self.engine.process_for_tts("Hello Hemanth.", provider="edge")
-        self.assertIn('హేమంత్', res_before)
+        self.assertIn("హేమంత్", res_before)
 
         # Update entry dynamically
         self.engine.set_native_script_pronunciation("Hemanth", "హేమంత్")
 
         # Cache is invalidated and new output is immediately served without restart
         res_after = self.engine.process_for_tts("Hello Hemanth.", provider="edge")
-        self.assertIn('హేమంత్', res_after)
+        self.assertIn("హేమంత్", res_after)
 
         # Check file content on disk
-        with open(self.dict_path, "r", encoding="utf-8") as f:
+        with open(self.dict_path, encoding="utf-8") as f:
             data = json.load(f)
 
         stored = data["entries"]["hemanth"]

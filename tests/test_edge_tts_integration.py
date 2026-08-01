@@ -10,12 +10,13 @@ Verifies:
 
 import asyncio
 import unittest
+
 import edge_tts
-from JARVIS.core.voice.pronunciation_engine import get_pronunciation_engine, PronunciationEngine
+
+from JARVIS.core.voice.pronunciation_engine import PronunciationEngine, get_pronunciation_engine
 
 
 class TestEdgeTTSIntegrationPipeline(unittest.TestCase):
-
     def setUp(self):
         PronunciationEngine._instance = None
         self.engine = get_pronunciation_engine()
@@ -53,8 +54,9 @@ class TestEdgeTTSIntegrationPipeline(unittest.TestCase):
 
         async def simulate_fallback_flow():
             import re
+
             # Strip XML tags to prevent Edge TTS from speaking raw XML strings
-            fallback_payload = re.sub(r'<[^>]+>', '', raw_ssml).strip()
+            fallback_payload = re.sub(r"<[^>]+>", "", raw_ssml).strip()
             c2 = edge_tts.Communicate(fallback_payload, voice="en-US-AriaNeural")
             audio2 = b"".join([chunk["data"] async for chunk in c2.stream() if chunk["type"] == "audio"])
             return audio2, fallback_payload

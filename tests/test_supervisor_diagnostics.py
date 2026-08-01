@@ -2,18 +2,15 @@
 Unit and Integration Tests for Supervisor, Diagnostics, UI State Disambiguation, and Voice Health.
 """
 
-import unittest
-import json
-import time
-import os
 import socket
-from JARVIS.gui.ui_state import infer_state_from_message, ASSISTANT_STATE_PROFILES
+import unittest
+
 from JARVIS.core.voice.voice_pipeline_manager import get_voice_pipeline_manager
+from JARVIS.gui.ui_state import infer_state_from_message
 from JARVIS.services.network_monitor_service import check_internet, get_ping_latency
 
 
 class TestSupervisorAndDiagnostics(unittest.TestCase):
-
     def test_infer_state_from_message_filters_system_messages(self):
         # Service status / supervisor messages with "failed" or "error" must return None or non-ERROR
         sys_msgs = [
@@ -23,7 +20,7 @@ class TestSupervisorAndDiagnostics(unittest.TestCase):
             "[ServiceMonitor] Exception checking diagnostics: Error",
             "[ENV ERROR] Missing package",
             "⚙️ Multi-Process Supervisor Core: ACTIVE",
-            "✓ Service 'ai_router': HEALTHY"
+            "✓ Service 'ai_router': HEALTHY",
         ]
         for msg in sys_msgs:
             state = infer_state_from_message(msg)
@@ -34,7 +31,7 @@ class TestSupervisorAndDiagnostics(unittest.TestCase):
         cmd_msgs = [
             "COMMAND FAILED: Unable to open file",
             "[command_error] Failed to execute target process",
-            "User command error occurred"
+            "User command error occurred",
         ]
         for msg in cmd_msgs:
             state = infer_state_from_message(msg)

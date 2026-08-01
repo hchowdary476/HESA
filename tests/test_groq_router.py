@@ -24,8 +24,7 @@ class GroqRouterTests(unittest.TestCase):
             self.assertEqual(groq_router.get_groq_model(), "llama-3.1-8b-instant")
 
     def test_missing_client_returns_actionable_fallback(self):
-        with patch.object(groq_router, "client", None), \
-             patch.dict("os.environ", {"GROQ_API_KEY": "", "GEMINI_API_KEY": ""}):
+        with patch.object(groq_router, "client", None), patch.dict("os.environ", {"GROQ_API_KEY": "", "GEMINI_API_KEY": ""}):
             result = groq_router.analyze_with_groq("open chrome", client=None, logger=DummyLogger())
 
         self.assertEqual(result["action"], "talk")

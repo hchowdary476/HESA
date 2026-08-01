@@ -1,7 +1,8 @@
-import os
-import time
 import json
+import os
 import threading
+import time
+
 
 class ServiceCoordinator:
     """Thread-safe coordinator running consolidated background services."""
@@ -19,20 +20,14 @@ class ServiceCoordinator:
             if self.running:
                 return
             self.running = True
-            
-            self.threads["automation_engine"] = threading.Thread(
-                target=self._service_loop, args=("automation_engine",), daemon=True
-            )
-            self.threads["memory_engine"] = threading.Thread(
-                target=self._service_loop, args=("memory_engine",), daemon=True
-            )
-            self.threads["security_engine"] = threading.Thread(
-                target=self._service_loop, args=("security_engine",), daemon=True
-            )
-            
+
+            self.threads["automation_engine"] = threading.Thread(target=self._service_loop, args=("automation_engine",), daemon=True)
+            self.threads["memory_engine"] = threading.Thread(target=self._service_loop, args=("memory_engine",), daemon=True)
+            self.threads["security_engine"] = threading.Thread(target=self._service_loop, args=("security_engine",), daemon=True)
+
             for name, thread in self.threads.items():
                 thread.start()
-                
+
             print("[SERVICE COORDINATOR] Started consolidated services (automation, memory, security).")
 
     def stop(self) -> None:
@@ -47,7 +42,7 @@ class ServiceCoordinator:
             with self.lock:
                 if not self.running:
                     break
-            
+
             try:
                 # Thread-safe/atomic heartbeat file writing
                 temp_hb = hb_path + ".tmp"
@@ -69,6 +64,7 @@ def main() -> None:
             time.sleep(1)
     except KeyboardInterrupt:
         coordinator.stop()
+
 
 if __name__ == "__main__":
     main()

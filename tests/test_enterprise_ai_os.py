@@ -1,21 +1,20 @@
 """Unit and integration tests for Phase V Enterprise AI Operating System."""
 
 from __future__ import annotations
-import os
-import json
+
 import time
-import socket
 import unittest
+
 import requests
-from unittest.mock import patch, MagicMock
+
+from ai_kernel import AIKernel
+from api_gateway import ApiGateway
 
 # Import new AI OS elements
 from event_bus import EventBus
+from knowledge_services import KnowledgeServices
 from resource_manager import ResourceManager
 from scheduler import GlobalScheduler, ScheduledTask
-from knowledge_services import KnowledgeServices
-from api_gateway import ApiGateway
-from ai_kernel import AIKernel
 
 
 class TestEventBus(unittest.TestCase):
@@ -29,37 +28,39 @@ class TestEventBus(unittest.TestCase):
     def test_local_pub_sub(self) -> None:
         """Test event subscription and async callback publishing."""
         received = []
+
         def _callback(payload):
             received.append(payload)
 
         self.eb.subscribe("TestEvent", _callback)
         self.eb.publish("TestEvent", {"data": 123})
-        
+
         # Give small window for async thread dispatch
         time.sleep(0.1)
-        
+
         self.assertEqual(len(received), 1)
         self.assertEqual(received[0]["data"], 123)
 
     def test_wildcard_subscription(self) -> None:
         """Test wildcard subscriber captures all event types."""
         received = []
+
         def _wildcard_callback(payload):
             received.append(payload)
 
         self.eb.subscribe("*", _wildcard_callback)
         self.eb.publish("EventA", {"a": 1})
         self.eb.publish("EventB", {"b": 2})
-        
+
         time.sleep(0.1)
-        
+
         self.assertEqual(len(received), 2)
 
     def test_event_history(self) -> None:
         """Verify published events list is properly cached in history."""
         self.eb.publish("EventA", {"a": 1})
         self.eb.publish("EventB", {"b": 2})
-        
+
         history = self.eb.get_history()
         self.assertEqual(len(history), 2)
         self.assertEqual(history[0]["event_type"], "EventA")
@@ -73,7 +74,7 @@ class TestResourceManager(unittest.TestCase):
     def test_resource_metrics(self) -> None:
         """Verify telemetry gathers valid system metrics."""
         metrics = self.rm.get_resource_usage()
-        
+
         self.assertIn("cpu", metrics)
         self.assertIn("ram", metrics)
         self.assertIn("disk", metrics)
@@ -107,7 +108,7 @@ class TestGlobalScheduler(unittest.TestCase):
         t1 = ScheduledTask("TEST", {}, "LOW")
         t2 = ScheduledTask("TEST", {}, "HIGH")
         t3 = ScheduledTask("TEST", {}, "MEDIUM")
-        
+
         # Test comparison operators used by PriorityQueue
         self.assertTrue(t2 < t3)  # HIGH < MEDIUM (Priority value 1 < 2)
         self.assertTrue(t3 < t1)  # MEDIUM < LOW (Priority value 2 < 3)
@@ -115,11 +116,11 @@ class TestGlobalScheduler(unittest.TestCase):
     def test_task_scheduling_and_cancellation(self) -> None:
         """Test task enqueuing, cancel command, and processing status updates."""
         t_id = self.scheduler.schedule_task("AI_REQUEST", {"command": "test scheduler"}, "HIGH")
-        
+
         # Verify status exists
         status = self.scheduler.get_queue_status()
         self.assertGreaterEqual(len(status["active_tasks"]), 0)
-        
+
         # Test cancellation
         cancelled = self.scheduler.cancel_task(t_id)
         self.assertTrue(cancelled)
@@ -137,7 +138,7 @@ class TestKnowledgeServices(unittest.TestCase):
         """Test indexing document strings and searching matching query text."""
         self.ks.add_document("doc1", "The quick brown fox jumps over the lazy dog.")
         self.ks.add_document("doc2", "Artificial Intelligence is shifting host architecture.")
-        
+
         # Exact keyword search matches
         res = self.ks.semantic_search("artificial intelligence", top_k=1)
         self.assertEqual(len(res), 1)
@@ -160,7 +161,7 @@ class TestApiGateway(unittest.TestCase):
         cls.gateway = ApiGateway(port=0)
         cls.gateway.start(cls.kernel)
         cls.port = cls.gateway.port
-        
+
         # Wait for the HTTP server to be responsive
         for _ in range(100):
             try:
@@ -197,14 +198,9 @@ class TestApiGateway(unittest.TestCase):
 
     def test_command_scheduling_endpoint(self) -> None:
         """REST POST /api/v1/command schedules input commands."""
-        headers = {
-            "Authorization": "Bearer jarvis_secret_key",
-            "Content-Type": "application/json"
-        }
+        headers = {"Authorization": "Bearer jarvis_secret_key", "Content-Type": "application/json"}
         res = requests.post(
-            f"http://127.0.0.1:{self.port}/api/v1/command",
-            headers=headers,
-            json={"command": "explain system latency", "priority": "HIGH"}
+            f"http://127.0.0.1:{self.port}/api/v1/command", headers=headers, json={"command": "explain system latency", "priority": "HIGH"}
         )
         self.assertEqual(res.status_code, 202)
         data = res.json()
@@ -234,7 +230,7 @@ class TestAIKernel(unittest.TestCase):
         route_short = self.kernel.optimize_ai_route("hi", latency_threshold_ms=500.0)
         self.assertEqual(route_short["provider"], "cloud")
         self.assertEqual(route_short["model"], "groq/llama3")
-        
+
         # Query long context prompt
         route_long = self.kernel.optimize_ai_route("a" * 5000)
         self.assertEqual(route_long["provider"], "cloud")

@@ -1,10 +1,7 @@
-import os
-import time
-import json
 import threading
-from JARVIS.core.voice import patch_microphone
-from JARVIS.runtime.jarvis_runtime import start_jarvis
+
 from JARVIS.core.system.utils.service_heartbeat import publish_heartbeat, wrap_service_main
+from JARVIS.runtime.jarvis_runtime import start_jarvis
 
 
 def _start():
@@ -35,7 +32,9 @@ def _start():
 
 if __name__ == "__main__":
     import sys
+
     from JARVIS.core.system.utils.port_manager import PortManager
+
     lock_socket = PortManager.acquire_service_lock("voice_service", 19101)
     if lock_socket is None:
         print("[VOICE SERVICE] Duplicate instance detected. Exiting.")

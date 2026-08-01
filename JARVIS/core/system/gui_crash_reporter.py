@@ -24,12 +24,12 @@ Usage:
 
 from __future__ import annotations
 
+import datetime
 import os
 import sys
-import time
 import threading
+import time
 import traceback
-import datetime
 
 _STARTUP_TIMESTAMP = datetime.datetime.now().isoformat(timespec="seconds")
 
@@ -41,29 +41,29 @@ class GUICrashReporter:
     """
 
     def __init__(self, root_dir: str):
-        self.root_dir     = root_dir
-        self.logs_dir     = os.path.join(root_dir, "logs")
-        self._lock        = threading.Lock()
-        self._start_ts    = _STARTUP_TIMESTAMP
+        self.root_dir = root_dir
+        self.logs_dir = os.path.join(root_dir, "logs")
+        self._lock = threading.Lock()
+        self._start_ts = _STARTUP_TIMESTAMP
         self._shutdown_ts: str | None = None
-        self._shutdown_reason: str    = "unknown"
-        self._crash_count: int        = 0
+        self._shutdown_reason: str = "unknown"
+        self._crash_count: int = 0
 
         # Ensure log directory exists
         os.makedirs(self.logs_dir, exist_ok=True)
 
         # Log paths
-        self.crash_log     = os.path.join(self.logs_dir, "gui_crash.log")
+        self.crash_log = os.path.join(self.logs_dir, "gui_crash.log")
         self.traceback_log = os.path.join(self.logs_dir, "gui_traceback.log")
         self.lifecycle_log = os.path.join(self.logs_dir, "gui_lifecycle.log")
-        self.shutdown_log  = os.path.join(self.logs_dir, "service_shutdown.log")
-        self.crash_report  = os.path.join(root_dir, "GUI_CRASH_REPORT.md")
+        self.shutdown_log = os.path.join(self.logs_dir, "service_shutdown.log")
+        self.crash_report = os.path.join(root_dir, "GUI_CRASH_REPORT.md")
         self.runtime_report = os.path.join(root_dir, "GUI_RUNTIME_REPORT.md")
 
         self._lifecycle_event("STARTUP", f"GUI process started (PID {os.getpid()})")
-        self._lifecycle_event("LOG_PATHS",
-            f"crash={self.crash_log} | traceback={self.traceback_log} | "
-            f"lifecycle={self.lifecycle_log} | shutdown={self.shutdown_log}"
+        self._lifecycle_event(
+            "LOG_PATHS",
+            f"crash={self.crash_log} | traceback={self.traceback_log} | lifecycle={self.lifecycle_log} | shutdown={self.shutdown_log}",
         )
 
     # ── Public API ─────────────────────────────────────────────────────────
@@ -73,6 +73,7 @@ class GUICrashReporter:
         # ── 1. Python faulthandler (catches C-level segfaults / SIGSEGV) ────────
         try:
             import faulthandler
+
             _tb_file = open(self.traceback_log, "a", encoding="utf-8")
             faulthandler.enable(file=_tb_file)
             self._lifecycle_event("FAULTHANDLER", f"faulthandler enabled → {self.traceback_log}")
@@ -81,16 +82,17 @@ class GUICrashReporter:
 
         # ── 2. Qt message handler (catches Qt CRITICAL / FATAL before Python sees them)
         try:
-            from PySide6.QtCore import qInstallMessageHandler, QtMsgType
+            from PySide6.QtCore import QtMsgType, qInstallMessageHandler
+
             _reporter_ref = self
 
             def _qt_msg_handler(msg_type, context, message):
                 _level_map = {
-                    QtMsgType.QtDebugMsg:    "QT_DEBUG",
-                    QtMsgType.QtInfoMsg:     "QT_INFO",
-                    QtMsgType.QtWarningMsg:  "QT_WARNING",
+                    QtMsgType.QtDebugMsg: "QT_DEBUG",
+                    QtMsgType.QtInfoMsg: "QT_INFO",
+                    QtMsgType.QtWarningMsg: "QT_WARNING",
                     QtMsgType.QtCriticalMsg: "QT_CRITICAL",
-                    QtMsgType.QtFatalMsg:    "QT_FATAL",
+                    QtMsgType.QtFatalMsg: "QT_FATAL",
                 }
                 level = _level_map.get(msg_type, "QT_UNKNOWN")
                 loc = f"{context.file}:{context.line}" if context.file else "<unknown>"
@@ -117,7 +119,9 @@ class GUICrashReporter:
                 return
             self._handle_crash(
                 "MAIN_THREAD",
-                exc_type, exc_value, exc_tb,
+                exc_type,
+                exc_value,
+                exc_tb,
                 show_dialog=True,
             )
 
@@ -134,7 +138,9 @@ class GUICrashReporter:
                 return
             self._handle_crash(
                 f"THREAD:{getattr(args.thread, 'name', 'unknown')}",
-                args.exc_type, args.exc_value, args.exc_traceback,
+                args.exc_type,
+                args.exc_value,
+                args.exc_traceback,
                 show_dialog=False,
             )
             original_thread_excepthook(args)
@@ -149,17 +155,14 @@ class GUICrashReporter:
 
     def log_shutdown(self, reason: str, exit_code: int = 0):
         """Record a clean or forced shutdown event."""
-        self._shutdown_ts     = datetime.datetime.now().isoformat(timespec="seconds")
+        self._shutdown_ts = datetime.datetime.now().isoformat(timespec="seconds")
         self._shutdown_reason = reason
         ts = time.strftime("%Y-%m-%d %H:%M:%S")
 
         with self._lock:
             try:
                 with open(self.shutdown_log, "a", encoding="utf-8") as f:
-                    f.write(
-                        f"[{ts}] SHUTDOWN | reason={reason} | "
-                        f"exit_code={exit_code} | pid={os.getpid()}\n"
-                    )
+                    f.write(f"[{ts}] SHUTDOWN | reason={reason} | exit_code={exit_code} | pid={os.getpid()}\n")
             except Exception:
                 pass
 
@@ -192,7 +195,7 @@ class GUICrashReporter:
         show_dialog: bool = False,
     ):
         """Central crash handler — writes all logs and optionally shows dialog."""
-        ts    = time.strftime("%Y-%m-%d %H:%M:%S")
+        ts = time.strftime("%Y-%m-%d %H:%M:%S")
         tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
 
         # Extract offending file / line from innermost frame
@@ -200,6 +203,7 @@ class GUICrashReporter:
         offending_line = 0
         if exc_tb:
             import traceback as tb_mod
+
             frames = list(tb_mod.extract_tb(exc_tb))
             if frames:
                 last = frames[-1]
@@ -223,9 +227,9 @@ class GUICrashReporter:
             # gui_traceback.log — full traceback
             try:
                 with open(self.traceback_log, "a", encoding="utf-8") as f:
-                    f.write(f"\n{'='*70}\n")
+                    f.write(f"\n{'=' * 70}\n")
                     f.write(f"[{ts}] CRASH#{self._crash_count} SOURCE={source}\n")
-                    f.write(f"{'='*70}\n")
+                    f.write(f"{'=' * 70}\n")
                     f.write(tb_str)
                     f.write("\n")
             except Exception:
@@ -233,14 +237,16 @@ class GUICrashReporter:
 
             # GUI_CRASH_REPORT.md
             self._generate_crash_report(
-                ts, source, exc_type, exc_value, tb_str,
-                offending_file, offending_line,
+                ts,
+                source,
+                exc_type,
+                exc_value,
+                tb_str,
+                offending_file,
+                offending_line,
             )
 
-        self._lifecycle_event(
-            "CRASH",
-            f"source={source} | {exc_type.__name__}: {exc_value} | {offending_file}:{offending_line}"
-        )
+        self._lifecycle_event("CRASH", f"source={source} | {exc_type.__name__}: {exc_value} | {offending_file}:{offending_line}")
 
         if show_dialog:
             self._show_crash_dialog(exc_type, exc_value, offending_file, offending_line)
@@ -254,10 +260,7 @@ class GUICrashReporter:
         except Exception:
             pass
 
-    def _generate_crash_report(
-        self, ts, source, exc_type, exc_value, tb_str,
-        offending_file, offending_line
-    ):
+    def _generate_crash_report(self, ts, source, exc_type, exc_value, tb_str, offending_file, offending_line):
         """Write/overwrite GUI_CRASH_REPORT.md with the latest crash info."""
         try:
             content = f"""# GUI CRASH REPORT
@@ -316,7 +319,7 @@ class GUICrashReporter:
             # Compute uptime
             try:
                 start = datetime.datetime.fromisoformat(self._start_ts)
-                end   = datetime.datetime.fromisoformat(shutdown_ts)
+                end = datetime.datetime.fromisoformat(shutdown_ts)
                 uptime = str(end - start)
             except Exception:
                 uptime = "unknown"
@@ -383,6 +386,7 @@ class GUICrashReporter:
         )
         try:
             from PySide6.QtWidgets import QApplication, QMessageBox
+
             app = QApplication.instance()
             if app:
                 msg = QMessageBox()
@@ -394,9 +398,9 @@ class GUICrashReporter:
         except Exception:
             pass
         # Fallback: keep console open with the error
-        print(f"\n{'='*60}", file=sys.stderr)
+        print(f"\n{'=' * 60}", file=sys.stderr)
         print("HESA GUI CRASH DETECTED", file=sys.stderr)
-        print(f"{'='*60}", file=sys.stderr)
+        print(f"{'=' * 60}", file=sys.stderr)
         print(message, file=sys.stderr)
-        print(f"{'='*60}\n", file=sys.stderr)
+        print(f"{'=' * 60}\n", file=sys.stderr)
         input("Press ENTER to close this window...")

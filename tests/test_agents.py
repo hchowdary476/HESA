@@ -1,20 +1,17 @@
-import json
 import os
 import shutil
 import threading
-import time
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-from JARVIS.agents.agent_base import AgentTask, AgentError
-from JARVIS.agents.planner_agent import PlannerAgent
-from JARVIS.agents.testing_agent import TestingAgent
-from JARVIS.agents.task_queue import TaskQueue
+from JARVIS.agents.agent_base import AgentTask
 from JARVIS.agents.orchestrator import AgentOrchestrator
+from JARVIS.agents.planner_agent import PlannerAgent
+from JARVIS.agents.task_queue import TaskQueue
+from JARVIS.agents.testing_agent import TestingAgent
 
 
 class MultiAgentCoreTests(unittest.TestCase):
-
     def setUp(self):
         # Setup clean environment for each test
         self.test_log_dir = "test_agents_logs"
@@ -44,7 +41,7 @@ class MultiAgentCoreTests(unittest.TestCase):
                     output_text=f"output_{thread_idx}_{i}",
                     elapsed_ms=10.5,
                     status="success",
-                    model_used="mock_model"
+                    model_used="mock_model",
                 )
 
         for t_idx in range(num_threads):
@@ -85,19 +82,16 @@ class MultiAgentCoreTests(unittest.TestCase):
     def test_testing_agent_pass_fail(self, mock_call_llm):
         """Test TestingAgent correctly reports syntax pass/fail and LLM verdict."""
         # 1. Valid python syntax + LLM PASS
-        mock_call_llm.return_value = (
-            '{"verdict": "PASS", "issues": [], "suggestion": ""}',
-            10, 50.0, "mock_model"
-        )
+        mock_call_llm.return_value = ('{"verdict": "PASS", "issues": [], "suggestion": ""}', 10, 50.0, "mock_model")
         agent = TestingAgent()
-        
+
         valid_code = "def get_time():\n    return '12:00'\n"
         task_pass = AgentTask(
             run_id="run_pass",
             step=1,
             description="Write a get_time function",
             context=valid_code,
-            metadata={"subtask_title": "Time Subtask", "retry_count": 0}
+            metadata={"subtask_title": "Time Subtask", "retry_count": 0},
         )
         result_pass = agent.run(task_pass)
         self.assertEqual(result_pass.status, "success")
@@ -111,7 +105,7 @@ class MultiAgentCoreTests(unittest.TestCase):
             step=1,
             description="Write a get_time function",
             context=broken_code,
-            metadata={"subtask_title": "Time Subtask", "retry_count": 0}
+            metadata={"subtask_title": "Time Subtask", "retry_count": 0},
         )
         result_fail_syntax = agent.run(task_fail_syntax)
         self.assertEqual(result_fail_syntax.status, "retry")
@@ -122,7 +116,7 @@ class MultiAgentCoreTests(unittest.TestCase):
     def test_orchestrator_concurrency_guard(self):
         """Test that calling run() concurrently returns busy status."""
         orch = AgentOrchestrator()
-        
+
         # Lock AgentOrchestrator running state manually to simulate a running thread
         AgentOrchestrator._is_running = True
         try:

@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+
 def find_env_file() -> Path:
     """Find the correct path to the .env file."""
     if getattr(sys, "frozen", False):
@@ -33,4 +34,3 @@ def find_env_file() -> Path:
     # Fallback to repository root (5 levels up from env_helper.py)
     source_root = Path(__file__).resolve().parents[4]
     return source_root / ".env"
-

@@ -1,10 +1,11 @@
-import os
-import time
 import json
-import traceback
-import psutil
+import os
 import threading
-import sys
+import time
+import traceback
+
+import psutil
+
 
 def publish_heartbeat(service_name: str, filename: str, interval: float = 2.0):
     """
@@ -15,10 +16,10 @@ def publish_heartbeat(service_name: str, filename: str, interval: float = 2.0):
     hb_dir = os.path.abspath(os.path.join("logs", "heartbeats"))
     os.makedirs(hb_dir, exist_ok=True)
     hb_path = os.path.join(hb_dir, filename)
-    
+
     start_time = time.time()
     process = psutil.Process(os.getpid())
-    
+
     # Pre-warm cpu percent check
     process.cpu_percent(interval=None)
 
@@ -29,7 +30,7 @@ def publish_heartbeat(service_name: str, filename: str, interval: float = 2.0):
                 ram = process.memory_info().rss / (1024 * 1024)
                 now = time.time()
                 uptime = int(now - start_time)
-                
+
                 hb_data = {
                     "service_name": service_name,
                     "pid": os.getpid(),
@@ -38,19 +39,21 @@ def publish_heartbeat(service_name: str, filename: str, interval: float = 2.0):
                     "cpu_usage": round(cpu, 1),
                     "memory_usage": round(ram, 1),
                     "last_heartbeat": now,
-                    "timestamp": now  # Keep timestamp for supervisor backwards-compatibility
+                    "timestamp": now,  # Keep timestamp for supervisor backwards-compatibility
                 }
-                
+
                 # Write heartbeat json
                 with open(hb_path, "w") as f:
                     json.dump(hb_data, f)
-                
+
                 # Log to logs/service_heartbeat.log
                 os.makedirs("logs", exist_ok=True)
                 timestamp_str = time.strftime("%Y-%m-%d %H:%M:%S")
                 with open("logs/service_heartbeat.log", "a", encoding="utf-8") as lf:
-                    lf.write(f"[{timestamp_str}] Service {service_name} heartbeat: CPU={hb_data['cpu_usage']}%, RAM={hb_data['memory_usage']}MB, Uptime={uptime}s\n")
-                    
+                    lf.write(
+                        f"[{timestamp_str}] Service {service_name} heartbeat: CPU={hb_data['cpu_usage']}%, RAM={hb_data['memory_usage']}MB, Uptime={uptime}s\n"
+                    )
+
             except Exception:
                 pass
             time.sleep(interval)
@@ -58,6 +61,7 @@ def publish_heartbeat(service_name: str, filename: str, interval: float = 2.0):
     t = threading.Thread(target=_loop, daemon=True)
     t.start()
     return t
+
 
 def wrap_service_main(service_name: str, main_func, *args, **kwargs):
     """
@@ -74,10 +78,12 @@ def wrap_service_main(service_name: str, main_func, *args, **kwargs):
         # Notify Diagnostics Center of the failure
         try:
             from JARVIS.core.system.diagnostics_center import DiagnosticsCenter
+
             DiagnosticsCenter().update_subsystem(service_name, "Failed", failed=True)
         except Exception:
             pass
         raise e
+
 
 def update_subcomponent_heartbeat(subcomponent_name: str, status: str = "healthy", details: dict | None = None):
     """
@@ -88,14 +94,14 @@ def update_subcomponent_heartbeat(subcomponent_name: str, status: str = "healthy
         os.makedirs(hb_dir, exist_ok=True)
         hb_path = os.path.join(hb_dir, f"{subcomponent_name}.json")
         now = time.time()
-        
+
         hb_data = {
             "subcomponent_name": subcomponent_name,
             "pid": os.getpid(),
             "status": status,
             "last_heartbeat": now,
             "timestamp": now,
-            "details": details or {}
+            "details": details or {},
         }
         with open(hb_path, "w") as f:
             json.dump(hb_data, f)

@@ -1,70 +1,82 @@
-# Detailed Installation Guide for HESA (JARVIS)
+# 🛠️ HESA (JARVIS) — Installation & Setup Guide
 
-This guide provides step-by-step instructions for setting up HESA (JARVIS) on Windows 10/11 systems.
-
----
-
-## 📌 Prerequisites
-
-1. **Python**: Python 3.10, 3.11, or 3.12 (64-bit). Ensure Python is added to your system `PATH`.
-2. **Git**: Installed and available in terminal.
-3. **Audio Hardware**: Working microphone input and speaker output.
-4. **Ollama (Optional)**: If using local LLM inference, download and install [Ollama](https://ollama.ai/) and pull the Phi-3 model:
-   ```cmd
-   ollama pull phi3:latest
-   ```
+This guide covers complete installation instructions for setting up HESA (JARVIS) on Windows 10 and 11 systems.
 
 ---
 
-## ⚙️ Installation Steps
+## 📋 System Requirements
+
+| Hardware / Software | Minimum Requirement | Recommended |
+|---|---|---|
+| **OS** | Windows 10 / 11 (64-bit) | Windows 11 (64-bit) |
+| **Python** | Python 3.10 | Python 3.11 or 3.12 |
+| **RAM** | 8 GB | 16 GB+ |
+| **Storage** | 2 GB free disk space | 10 GB (for local LLM weights) |
+| **Audio** | Standard Microphone & Speakers | USB Noise-Canceling Microphone |
+| **GPU (Optional)** | N/A | NVIDIA GPU with CUDA support for faster local STT & LLM |
+
+---
+
+## 📥 Step-by-Step Installation
 
 ### Step 1: Clone Repository
-```cmd
-git clone https://github.com/your-org/open-jarvis.git
-cd open-jarvis
+```bash
+git clone https://github.com/hchowdary476/HESA.git
+cd HESA
 ```
 
 ### Step 2: Create Virtual Environment
+Using Python 3.11+:
 ```cmd
 python -m venv .venv
 .venv\Scripts\activate
 ```
 
-### Step 3: Upgrade Pip & Install Dependencies
+### Step 3: Install Dependencies
 ```cmd
-python -m pip install --upgrade pip
+pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
 ```
 
-### Step 4: Environment Configuration
-Copy `.env.example` to `.env`:
+*(For development or running tests, also run `pip install -r requirements-dev.txt`)*
+
+### Step 4: Configure Environment Variables
+Create your configuration file from the template:
 ```cmd
 copy .env.example .env
 ```
-Edit `.env` using your text editor to insert your `GEMINI_API_KEY`, `GROQ_API_KEY`, or custom ports.
+
+Open `.env` in any editor and set appropriate values (e.g. `GEMINI_API_KEY`, `GROQ_API_KEY`, or leave blank for local mode).
+
+### Step 5: (Optional) Set Up Local LLM (Ollama)
+If you want complete offline AI capabilities without API keys:
+1. Download and install [Ollama for Windows](https://ollama.ai/).
+2. Pull the default Phi-3 model:
+   ```cmd
+   ollama pull phi3:latest
+   ```
+3. Ensure Ollama is running at `http://127.0.0.1:11434`.
 
 ---
 
-## 🔌 Windows Logon Auto-Launch Setup
+## 🚀 Launching HESA
 
-To enable zero-touch automatic boot at Windows login:
+Launch HESA using the main controller:
+```cmd
+python jarvis.py
+```
 
-1. Open Command Prompt as **Administrator**.
-2. Run:
-   ```cmd
-   scripts\setup_autostart.bat
-   ```
-3. Or run the PowerShell registration script:
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File create_task.ps1
-   ```
+### Windows Startup Integration
+To enable auto-start on logon:
+```cmd
+powershell -ExecutionPolicy Bypass -File create_task.ps1
+```
 
 ---
 
 ## 🧪 Verification
 
-Verify your installation by running the production audit suite:
+Run the production audit suite to verify your installation:
 ```cmd
-python scripts/run_production_feature_audit.py
+python scripts/run_production_audit.py
 ```
-If all 56 feature checks display `[PASS]`, your setup is fully verified and ready.
